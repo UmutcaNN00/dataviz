@@ -1,122 +1,184 @@
-﻿# DataViz Pro — İnteraktif Excel Veri Analizi Platformu
+﻿<div align="center">
 
-Ham Excel ve CSV verilerini **sürükle-bırak** yöntemiyle **50+ interaktif grafiğe**, ileri düzey **istatistiksel analizlere** (ANOVA, Regresyon, T-Test) ve düzenlenebilir **akademik PDF raporlara** dönüştüren hafif ve hızlı bir web tabanlı Veri Analizi platformudur.
+# DataViz Pro
 
-> Ağır yapay zeka modelleri veya GPU gerektirmez. Tamamen algoritmik ve istatistiksel analiz motoruna dayanır.
+### Interaktif Excel Veri Analizi Platformu
 
----
+<p align="center">
+  <strong>Ham Excel ve CSV verilerini suruklele-birak yontemiyle 50+ interaktif grafige, ileri duzey istatistiksel analizlere ve duzenlenebilir akademik PDF raporlara donusturun.</strong>
+</p>
 
-## Özellikler
+<p align="center">
+  <a href="#ozellikler"><img src="https://img.shields.io/badge/50%2B-Grafik%20T%C3%BCr%C3%BC-8b5cf6?style=for-the-badge" alt="Charts"></a>
+  <a href="#istatistiksel-analiz"><img src="https://img.shields.io/badge/ANOVA-Regresyon%20%26%20T--Test-3b82f6?style=for-the-badge" alt="Stats"></a>
+  <a href="#pdf-rapor-studyosu"><img src="https://img.shields.io/badge/PDF-Rapor%20St%C3%BCdyosu-10b981?style=for-the-badge" alt="PDF"></a>
+</p>
 
-### Veri Yönetimi
-- **Sürükle-Bırak Yükleme** — Excel (.xlsx) ve CSV dosyalarını anında yükleyin
-- **Akıllı Sütun Algılama** — Sayısal ve kategorik sütunları otomatik tanır
-- **Veri Temizleme** — Eksik verileri doldurma, aykırı değerleri tespit etme
-- **Veri Birleştirme (Join)** — İki farklı tabloyu ortak sütunla birleştirin
-- **Formül Motoru** — Yeni hesaplanmış sütunlar üretin (Toplama, Çıkarma, Bölme, Çarpma)
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-3.x-000?logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/Plotly.js-Charts-3F4F75?logo=plotly&logoColor=white" alt="Plotly">
+  <img src="https://img.shields.io/badge/SciPy-Statistics-8CAAE6?logo=scipy&logoColor=white" alt="SciPy">
+  <img src="https://img.shields.io/badge/License-Academic-yellow" alt="License">
+</p>
 
-### Görselleştirme
-- **50+ Grafik Türü** — Bar, Çizgi, Pasta, Scatter, Histogram, Box Plot, Heatmap, Treemap ve daha fazlası
-- **Akıllı Grafik Öneri Motoru** — Veri türlerine göre en uygun grafikleri önerir
-- **Sihirli Şablonlar** — Tek tıkla hazır analiz şablonları
-- **Çoklu Pano (Dashboard)** — Grafikleri sabitleyin, tek ekranda izleyin
-- **Sürüklenebilir Ekran Bölücü (Splitter)** — Sol/sağ paneli kendinize göre ayarlayın
+<br>
 
-### İstatistiksel Analiz
-- **Temel İstatistikler** — Ortalama, Medyan, Min, Max, Standart Sapma
-- **ANOVA (Tek Yönlü Varyans Analizi)** — Kategorik gruplar arası fark testi
-- **Bağımsız Örneklem T-Testi** — İki grup ortalaması karşılaştırması
-- **Pearson Korelasyon & Lineer Regresyon** — Değişkenler arası ilişki ve denklem
-- **Akademik İstatistiksel Yorumlayıcı** — İstatistik sonuçlarını akademik dille özetler
+> **GPU veya agir yapay zeka modeli gerektirmez.**
+> Tamamen algoritmik ve istatistiksel analiz motoruna dayanir.
 
-### PDF Rapor Stüdyosu
-- **A4 Önizleme** — Raporunuzu indirmeden önce A4 kağıdında görün
-- **Sürükle-Sırala** — Grafiklerin sırasını yukarı/aşağı butonlarıyla değiştirin
-- **Metin Ekleme** — Grafikler arasına kendi yorumlarınızı yazın
-- **Çok Sayfalı PDF** — 10+ grafik bile otomatik sayfalanır
-- **Tek Grafik PDF/PNG** — İstediğiniz grafiği ayrı ayrı indirin
+</div>
 
 ---
 
-## Hızlı Başlangıç
+## Ozellikler
+
+<table>
+<tr>
+<td width="50%">
+
+### Veri Yonetimi
+- **Suruklele-Birak Yukleme** — Excel (.xlsx) ve CSV dosyalarini aninda yukleyin
+- **Akilli Sutun Algilama** — Sayisal ve kategorik sutunlari otomatik tanir
+- **Veri Temizleme** — Eksik verileri doldurma, aykiri degerleri tespit etme
+- **Veri Birlestirme (Join)** — Iki farkli tabloyu ortak sutunla birlestirin
+- **Formul Motoru** — Yeni hesaplanmis sutunlar uretin
+
+</td>
+<td width="50%">
+
+### Gorsellestirme
+- **50+ Grafik Turu** — Bar, Cizgi, Pasta, Scatter, Histogram, Box Plot, Heatmap, Treemap
+- **Akilli Grafik Oneri Motoru** — Veri turlerine gore en uygun grafikleri onerir
+- **Sihirli Sablonlar** — Tek tikla hazir analiz sablonlari
+- **Coklu Pano (Dashboard)** — Grafikleri sabitleyin, tek ekranda izleyin
+- **Suruklenebilir Ekran Bolucu** — Sol/sag paneli kendinize gore ayarlayin
+
+</td>
+</tr>
+</table>
+
+---
+
+### Istatistiksel Analiz
+
+| Analiz | Aciklama |
+|--------|----------|
+| **Temel Istatistikler** | Ortalama, Medyan, Min, Max, Standart Sapma, Eksik Veri |
+| **ANOVA** | Tek Yonlu Varyans Analizi — Kategorik gruplar arasi fark testi |
+| **Bagimsiz Orneklem T-Testi** | Iki grup ortalamasi karsilastirmasi |
+| **Pearson Korelasyon** | Degiskenler arasi dogrusal iliski katsayisi |
+| **Lineer Regresyon** | Bagimli degisken tahmini ve R-squared degeri |
+| **Akademik Yorumlayici** | Tum sonuclari akademik dilde ozetler |
+
+---
+
+### PDF Rapor Studyosu
+
+<table>
+<tr>
+<td>
+
+**A4 Onizleme Tuvali** — Raporunuzu indirmeden once A4 kagidinda gorun
+
+**Suruklele-Sirala** — Grafiklerin sirasini yukari/asagi butonlariyla degistirin
+
+**Metin Ekleme** — Grafikler arasina kendi yorumlarinizi yazin
+
+**Cok Sayfali PDF** — 10+ grafik bile otomatik sayfalanir
+
+**Tek Grafik PDF/PNG** — Istediginiz grafigi ayri ayri indirin
+
+</td>
+</tr>
+</table>
+
+---
+
+## Hizli Baslangic
 
 ### Gereksinimler
 - Python 3.10+
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python paket yöneticisi)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python paket yoneticisi)
 
 ### Kurulum
 
 ```bash
-# Repoyu klonlayın
+# Repoyu klonlayin
 git clone https://github.com/UmutcaNN00/dataviz-pro-demo.git
 cd dataviz-pro-demo
 
-# Bağımlılıkları yükleyin
+# Bagimliliklari yukleyin
 uv venv
 uv pip install -r requirements.txt
 
-# Sunucuyu başlatın
+# Sunucuyu baslatin
 uv run python app.py
 ```
 
-Tarayıcınızda **http://127.0.0.1:5000** adresine gidin.
+Tarayicinizda **http://127.0.0.1:5000** adresine gidin.
 
-### Windows — Tek Tıkla Başlatma
-```DEMO_BASLAT.bat``` dosyasına çift tıklayın. Sunucu otomatik başlar ve tarayıcınız açılır.
+### Windows — Tek Tikla Baslatma
+
+> ```DEMO_BASLAT.bat``` dosyasina cift tiklayin. Sunucu otomatik baslar ve tarayiciniz acilir.
 
 ---
 
-## Proje Yapısı
+## Proje Yapisi
 
 ```
 dataviz-pro-demo/
-├── app.py                  # Flask sunucusu ve API endpoint'leri
-├── requirements.txt        # Python bağımlılıkları
-├── DEMO_BASLAT.bat         # Windows tek tıkla başlatıcı
-├── modules/
-│   └── data_processing.py  # Veri işleme yardımcı fonksiyonları
-├── templates/
-│   ├── landing.html        # Karşılama sayfası
-│   ├── analysis.html       # Ana analiz arayüzü
-│   └── index.html          # Yönlendirme sayfası
-└── static/
-    ├── css/
-    │   ├── analysis.css    # Analiz sayfası stilleri
-    │   ├── landing.css     # Karşılama sayfası stilleri
-    │   └── style.css       # Genel stiller
-    └── js/
-        ├── app.js          # Ana uygulama mantığı
-        ├── landing.js      # Karşılama sayfası animasyonları
-        ├── three_scene.js  # 3D arka plan efektleri
-        └── modules/
-            ├── charts_config.js  # Grafik konfigürasyonları
-            └── globals.js        # Global değişkenler
+|-- app.py                  # Flask sunucusu ve API endpoint'leri
+|-- requirements.txt        # Python bagimliliklari
+|-- DEMO_BASLAT.bat         # Windows tek tikla baslatici
+|-- modules/
+|   +-- data_processing.py  # Veri isleme yardimci fonksiyonlari
+|-- templates/
+|   |-- landing.html        # Karsilama sayfasi
+|   |-- analysis.html       # Ana analiz arayuzu
+|   +-- index.html          # Yonlendirme sayfasi
++-- static/
+    |-- css/                # Stiller (Dark Mode, Glassmorphism)
+    +-- js/                 # Uygulama mantigi, grafik config
 ```
 
 ---
 
-## Teknoloji Yığını
+## Teknoloji Yigini
 
-| Katman | Teknoloji |
-|--------|-----------|
-| Backend | Python, Flask, Pandas, SciPy |
-| Frontend | Vanilla JS, Plotly.js, Three.js |
-| İstatistik | scipy.stats (ANOVA, T-Test, Regresyon) |
-| PDF | html2pdf.js, html2canvas |
-| Tema | Custom CSS, Glassmorphism, Dark Mode |
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas">
+  <img src="https://img.shields.io/badge/SciPy-8CAAE6?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy">
+  <img src="https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
+  <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js">
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
+  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JS">
+</p>
+
+| Katman | Teknoloji | Amac |
+|--------|-----------|------|
+| Backend | Python, Flask, Pandas | Veri isleme ve API |
+| Istatistik | SciPy (scipy.stats) | ANOVA, T-Test, Regresyon |
+| Gorsellestirme | Plotly.js | 50+ interaktif grafik |
+| 3D Efektler | Three.js | Karsilama sayfasi animasyonlari |
+| PDF | html2pdf.js, html2canvas | Cok sayfali rapor olusturma |
+| Tema | Custom CSS | Dark Mode, Glassmorphism |
 
 ---
 
-## Ekran Görüntüleri
+<div align="center">
 
-> Uygulamayı başlattıktan sonra kendi verilerinizi yükleyerek keşfedebilirsiniz.
-
----
-
-## Lisans
-
-Bu proje akademik sunum amaçlı geliştirilmiştir.
-
-## Geliştirici
+### Gelistirici
 
 **Umutcan** — [@UmutcaNN00](https://github.com/UmutcaNN00)
+
+Bu proje akademik sunum amaciyla gelistirilmistir.
+
+<br>
+
+<img src="https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F-red?style=for-the-badge" alt="Made with love">
+
+</div>
