@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataViz Pro V6 — Kurumsal BI, Tahminleme & Veri Birleştirme Platformu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <!-- PDF Çıktısı İçin html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}?v=701">
+</head>
+<body>
+
+<!-- ══════════ DATA PREP (SAĞLIK) MODALI ══════════ -->
+<div id="dataPrepModal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <div class="modal-icon">🩺</div>
+    <h2>Veri Check-Up</h2>
+    <p id="dpMessage">Yüklediğiniz veride eksik hücreler veya hatalı satırlar tespit ettik. Sağlıklı bir grafik çizimi için bu hataları otomatik temizleyebiliriz.</p>
+    <ul class="dp-stats">
+      <li>Tespit Edilen Boş Satır: <strong id="dpMissingRows" style="color:var(--orange);">0</strong></li>
+      <li>Toplam Satır: <strong id="dpTotalRows">0</strong></li>
+    </ul>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="dpSkipBtn">Geç (Olduğu Gibi Bırak)</button>
+      <button class="btn-secondary" id="dpFillBtn">Ortalama İle Doldur</button>
+      <button class="btn-primary" id="dpDropBtn">Boş Satırları Sil</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AKILLI VERİ BİRLEŞTİRİCİ (DATA JOINER / VLOOKUP) MODALI ══════════ -->
+<div id="dataMergeModal" class="modal-overlay hidden">
+  <div class="modal-content filter-modal-content" style="max-width: 620px;">
+    <div class="modal-header-row">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.4rem;">🔗</span>
+        <h3>Akıllı Veri Birleştirici (Auto VLOOKUP)</h3>
+      </div>
+      <button class="modal-close-btn" id="btnCloseMergeModal">×</button>
+    </div>
+    <p class="filter-hint">2. bir Excel veya CSV dosyası seçerek ortak bir sütun üzerinden iki tabloyu yan yana birleştirin:</p>
+    
+    <!-- 2. Dosya Yükleme Alanı -->
+    <div class="merge-drop-zone" id="mergeDropZone">
+      <input type="file" id="mergeFileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
+      <div style="font-weight: 700; font-size: 0.95rem;">2. Dosyayı Buraya Sürükleyin</div>
+      <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">veya <label for="mergeFileInput" class="gdz-link">bilgisayardan seçin</label></div>
+    </div>
+    <div id="mergeFileStatus" class="status-msg" style="margin-top:10px; font-size:0.85rem; display:none;"></div>
+
+    <!-- Birleştirme Konfigürasyon Alanı -->
+    <div id="mergeConfigArea" class="hidden" style="margin-top:16px; background:var(--surface); padding:16px; border-radius:var(--r-lg); border:1px solid var(--border);">
+      <div style="font-weight:800; font-size:0.85rem; color:var(--purple); margin-bottom:12px;">🔗 Ortak Bağlantı Sütunları (Eşleşme)</div>
+      
+      <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center;">
+        <div class="form-group">
+          <label style="font-size:0.75rem;">1. Tablo Sütunu</label>
+          <select id="mergeKey1Select"></select>
+        </div>
+        <div style="color:var(--purple); font-weight:900; font-size:1.2rem; padding-top:16px;">=</div>
+        <div class="form-group">
+          <label style="font-size:0.75rem;">2. Tablo Sütunu</label>
+          <select id="mergeKey2Select"></select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label style="font-size:0.75rem;">Birleştirme Yöntemi</label>
+        <select id="mergeJoinType">
+          <option value="left" selected>Sol Birleşim (Left Join - Klasik VLOOKUP)</option>
+          <option value="inner">Kesişim (Inner Join - Sadece Eşleşenleri Al)</option>
+          <option value="outer">Tam Birleşim (Outer Join - Tüm Satırları Koru)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px; flex-direction:row;">
+      <button class="btn-ghost" id="btnCancelMerge" style="flex:1;">İptal</button>
+      <button class="btn-primary" id="btnExecuteMerge" style="flex:1;" disabled>⚡ Dosyaları Birleştir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ FORMÜL / HESAPLANMIŞ SÜTUN MODALI ══════════ -->
+<div id="calcColModal" class="modal-overlay hidden">
+  <div class="modal-content filter-modal-content">
+    <div class="modal-header-row">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.4rem;">🧮</span>
+        <h3>Formül & Yeni Sütun Üretici</h3>
+      </div>
+      <button class="modal-close-btn" id="btnCloseCalcModal">×</button>
+    </div>
+    <p class="filter-hint">Mevcut sayısal sütunları kullanarak tek tıkla yeni bir veri sütunu türetin:</p>
+    
+    <div class="form-group" style="margin-top:14px;">
+      <label>Üretilecek Yeni Sütun Adı</label>
+      <input type="text" id="calcNewColName" placeholder="Örn: Net Kar, KDV Dahil Tutar, Kar Marjı">
+    </div>
+
+    <div class="calc-builder-row">
+      <div class="form-group" style="flex:1;">
+        <label>1. Sayısal Sütun</label>
+        <select id="calcCol1Select"></select>
+      </div>
+
+      <div class="calc-operator-selector">
+        <label>İşlem</label>
+        <div class="calc-op-btns">
+          <button type="button" class="op-btn active" data-op="+">+</button>
+          <button type="button" class="op-btn" data-op="-">-</button>
+          <button type="button" class="op-btn" data-op="*">×</button>
+          <button type="button" class="op-btn" data-op="/">÷</button>
+        </div>
+      </div>
+
+      <div class="form-group" style="flex:1;">
+        <label>2. Değişken (Sütun veya Sayı)</label>
+        <div style="display:flex; gap:6px;">
+          <select id="calcCol2Select" style="flex:1;"></select>
+          <input type="number" id="calcScalarInput" placeholder="Sabit sayı" style="flex:1;" class="hidden" step="any">
+        </div>
+        <div style="margin-top:6px;">
+          <label style="font-size:0.75rem; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" id="calcUseScalar"> Sabit bir katsayı kullan (Örn: 1.20)
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:24px; flex-direction:row;">
+      <button class="btn-ghost" id="btnCancelCalc" style="flex:1;">İptal</button>
+      <button class="btn-primary" id="btnExecuteCalc" style="flex:1;">✨ Sütunu Üret</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AKILLI FİLTRELEME (SLICER) MODALI ══════════ -->
+<div id="filterModal" class="modal-overlay hidden">
+  <div class="modal-content filter-modal-content">
+    <div class="modal-header-row">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.4rem;">🔍</span>
+        <h3>Veri Dilimleyici (Filtre Ekle)</h3>
+      </div>
+      <button class="modal-close-btn" id="btnCloseFilterModal">×</button>
+    </div>
+    
+    <div class="form-group" style="margin-top:16px;">
+      <label>Filtrelenecek Sütunu Seçin</label>
+      <select id="filterColumnSelect">
+        <option value="" disabled selected>Bir sütun seçin...</option>
+      </select>
+    </div>
+
+    <!-- Dinamik Filtre İçerik Alanı -->
+    <div id="filterDynamicContainer" class="filter-dynamic-area hidden">
+      <!-- Kategorik Arama & Seçim -->
+      <div id="catFilterArea" class="hidden">
+        <div class="filter-search-row">
+          <input type="text" id="catSearchInput" placeholder="Kategori ara..." class="filter-search-input">
+          <div class="filter-quick-actions">
+            <button type="button" id="btnSelectAllCat" class="btn-link">Tümü</button>
+            <button type="button" id="btnClearAllCat" class="btn-link">Temizle</button>
+          </div>
+        </div>
+        <div id="catCheckboxesList" class="cat-checkboxes-list"></div>
+      </div>
+
+      <!-- Sayısal Aralık Seçimi -->
+      <div id="numFilterArea" class="hidden">
+        <p class="filter-hint">Gösterilecek değerlerin Büyüktür / Küçüktür sınırlarını girin:</p>
+        <div class="num-range-inputs">
+          <div>
+            <label>> Büyüktür (Min)</label>
+            <input type="number" id="numFilterMin" step="any" placeholder="Alt Sınır">
+          </div>
+          <span style="align-self:flex-end; padding-bottom:10px; color:var(--muted);">-</span>
+          <div>
+            <label>&lt; Küçüktür (Max)</label>
+            <input type="number" id="numFilterMax" step="any" placeholder="Üst Sınır">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px; flex-direction:row;">
+      <button class="btn-ghost" id="btnCancelFilter" style="flex:1;">İptal</button>
+      <button class="btn-primary" id="btnApplyFilter" style="flex:1;">Filtreyi Uygula</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AŞAMA 1: DOSYA YÜKLEME ══════════ -->
+<!-- ══════════ AŞAMA 1: DOSYA YÜKLEME (PREMIUM) ══════════ -->
+<div id="step1-upload" class="wizard-screen active">
+  <div class="step1-bg-glow glow-1"></div>
+  <div class="step1-bg-glow glow-2"></div>
+
+  <div class="s1-content premium-upload-container">
+    <div class="s1-header">
+      <a href="/" class="s1-logo" style="text-decoration:none;">⬡ DataViz Pro</a>
+      <h1 class="gradient-title">Zekaya Açılan Kapı.</h1>
+      <p>Excel veya CSV dosyanızı yükleyin, yerel yapay zeka saniyeler içinde analiz edip interaktif panolara dönüştürsün.</p>
+    </div>
+
+    <div class="dropzone-glass-card">
+      <label for="mainFileInput" style="display:block; cursor:pointer;">
+        <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı">
+          <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
+          
+          <div class="dz-icon-wrap" style="pointer-events: none;">
+             <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+               <polyline points="17 8 12 3 7 8"/>
+               <line x1="12" y1="3" x2="12" y2="15"/>
+             </svg>
+             <div class="dz-icon-ring"></div>
+          </div>
+          
+          <h3>Dosyanızı Buraya Sürükleyin</h3>
+          <p>veya <span class="gdz-link">bilgisayarınızdan seçin</span></p>
+          
+          <div class="dz-formats">
+            <span class="fmt-badge">.XLSX</span>
+            <span class="fmt-badge">.XLS</span>
+            <span class="fmt-badge">.CSV</span>
+          </div>
+        </div>
+      </label>
+    </div>
+
+    <div class="upload-security-badges">
+       <span>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 
+         %100 Yerel İşlem
+       </span>
+       <span>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 
+         Bulutsuz Gizlilik
+       </span>
+       <span>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 
+         Sınırsız Satır
+       </span>
+    </div>
+
+    <div id="mainUploadStatus" class="status-msg hidden" style="margin-top:20px; font-size:1rem; z-index: 10;"></div>
+  </div>
+</div>
+<!-- ══════════ AŞAMA 2: 50/50 VERİ VE GRAFİK SEÇİMİ ══════════ -->
+<div id="step2-config" class="wizard-screen hidden">
+  <header class="s2-header">
+    <div class="s2-header-left">
+      <span class="s2-file-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> <span id="s2FileName">veri.xlsx</span></span>
+    </div>
+
+    <!-- Ortada Stüdyo Geçiş Butonları -->
+    <div class="studio-mode-switcher">
+      <button type="button" class="sms-btn active" id="btnModeChartsS2">📊 50 Grafik Stüdyosu</button>
+    </div>
+
+    <div class="wizard-steps">
+      <div class="wizard-step done"><div class="ws-num">✓</div><span>Yükle</span></div>
+      <div class="wizard-arrow">›</div>
+      <div class="wizard-step active"><div class="ws-num">2</div><span>Seçim</span></div>
+      <div class="wizard-arrow">›</div>
+      <div class="wizard-step"><div class="ws-num">3</div><span>Görünüm</span></div>
+    </div>
+    <div class="s2-header-right">
+      <button class="btn-ghost" id="btnCancelStep2">İptal</button>
+    </div>
+  </header>
+
+  <!-- ÇOKLU EXCEL SAYFALARI (MULTI-SHEET) BARI -->
+  <div id="sheetTabsBar" class="sheet-tabs-bar hidden">
+    <span class="stb-label">📑 Çalışma Sayfası:</span>
+    <div id="sheetTabsList" class="sheet-tabs-list"></div>
+  </div>
+
+  <!-- CANLI FİLTRELEME BARI (HER EKRANDA KULLANILABİLİR) -->
+  <div class="global-filter-bar" id="s2FilterBar">
+    <div class="gfb-left">
+      <span class="gfb-title">🔍 Aktif Dilimleyiciler:</span>
+      <div id="s2ActiveFiltersList" class="active-filters-chips">
+        <span class="no-filter-hint">Filtre uygulanmadı (Tüm veri aktif)</span>
+      </div>
+    </div>
+    <button type="button" class="btn-add-filter" id="btnOpenFilterModalS2">+ Filtre Ekle</button>
+  </div>
+
+  <div class="s2-body-split">
+    <!-- SOL YARI (%50) -->
+    <div class="s2-pane s2-left-pane">
+      <div class="pane-header">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h3>1. Eksenleri Sürükle Bırak Yapın</h3>
+            <p>Aşağıdaki havuzdan sütunları tutup sağdaki kutulara sürükleyin.</p>
+          </div>
+          <!-- Sihirli Şablonlar -->
+          <div class="magic-templates-dropdown">
+            <button class="magic-btn-main">✨ Şablon Seç</button>
+            <div class="magic-menu">
+              <button class="magic-btn" data-tpl="sales">💰 Satış Raporu</button>
+              <button class="magic-btn" data-tpl="hr">👥 İK Analizi</button>
+              <button class="magic-btn" data-tpl="finance">📉 Finans Trendi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Veri Havuzu -->
+      <div class="s2-pool-container">
+        <div class="pool-header-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h4>Veri Havuzu</h4>
+            <span id="poolCountBadge" class="pool-total-badge">0 Sütun</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn-calc-col" id="btnOpenCalcModal">🧮 + Formül</button>
+            <button type="button" class="btn-calc-col" id="btnOpenMergeModal" style="color:var(--green); border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.1);">🔗 2. Dosyayı Birleştir</button>
+          </div>
+        </div>
+
+        <!-- Havuz Arama ve Filtreleme Barı -->
+        <div class="pool-controls-row">
+          <div class="pool-search-box">
+            <input type="text" id="poolSearchInput" placeholder="🔍 Sütun ara (örn: Şehir, Ciro, Tarih)...">
+          </div>
+          <div class="pool-filter-chips" id="poolFilterChips">
+            <button type="button" class="pfc-btn active" data-pfilter="all">Tümü (<span id="pfcAllCount">0</span>)</button>
+            <button type="button" class="pfc-btn" data-pfilter="cat">T Metin (<span id="pfcCatCount">0</span>)</button>
+            <button type="button" class="pfc-btn" data-pfilter="num"># Sayısal (<span id="pfcNumCount">0</span>)</button>
+            <button type="button" class="pfc-btn hidden" data-pfilter="joined" id="pfcJoinedBtn">🔗 2. Dosya (<span id="pfcJoinedCount">0</span>)</button>
+          </div>
+        </div>
+
+        <div id="colPool" class="col-pool-structured">
+          <!-- JS Pills injected here by groups -->
+        </div>
+      </div>
+
+      <!-- Drop Zones -->
+      <div class="s2-zones-container">
+        <div class="dd-zone-wrapper">
+          <h4>X Ekseni <span class="zone-hint">📌 Kategori / Zaman: Şehir, Tarih, Ürün, Müşteri vb.</span></h4>
+          <div id="xZone" class="dd-zone" data-max="1">Sütunu Buraya Bırakın</div>
+        </div>
+        <div class="dd-zone-wrapper">
+          <h4>Y Ekseni <span class="zone-hint">📊 Sayısal Değerler: Ciro, Kâr, Adet, Puan vb.</span></h4>
+          <div id="yZone" class="dd-zone" data-max="10">Sütunları Buraya Bırakın</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:20px;">
+        <label>Hesaplama Türü (Grup Bazlı Grafikler İçin)</label>
+        <select id="s2AggFunc">
+          <option value="sum">Toplam (Sum)</option>
+          <option value="mean">Ortalama (Mean)</option>
+          <option value="median">Medyan (Median)</option>
+          <option value="count">Adet (Count)</option>
+          <option value="min">Minimum</option>
+          <option value="max">Maksimum</option>
+        </select>
+      </div>
+      <div id="axisWarning" class="axis-warning hidden"></div>
+    </div>
+
+    <div class="resizer" id="s2-resizer"></div>
+
+    <!-- SAĞ YARI (%50) -->
+    <div class="s2-pane s2-right-pane">
+      <div class="pane-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3>2. Grafik Seçin (50 Tür)</h3>
+          <p>Eksenlerinize en uygun olanlar parlatılmıştır.</p>
+        </div>
+        <div class="chart-filters" id="chartFilters">
+          <button data-filter="all" class="active">Tümü</button>
+          <button data-filter="trend">Trend</button>
+          <button data-filter="comp">Kıyas</button>
+          <button data-filter="dist">Dağılım</button>
+          <button data-filter="rel">İlişki</button>
+          <button data-filter="part">Bütün</button>
+          <button data-filter="sci">3D/Matris</button>
+        </div>
+      </div>
+      <div class="s2-chart-grid" id="s2ChartGrid">
+        <!-- 50 Chart cards injected by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AŞAMA 3: DASHBOARD / DÜZENLEME ══════════ -->
+<div id="step3-dashboard" class="wizard-screen hidden">
+  
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="btn-ghost" id="btnBackToStep2" title="Eksen Seçimine Geri Dön" style="margin-right:12px;">← Geri</button>
+      <a href="/" class="topbar-logo">⬡ <span>DataViz Pro V6</span></a>
+    </div>
+
+    <!-- Ortada Stüdyo Geçiş Butonları -->
+    <div class="studio-mode-switcher">
+      <button type="button" class="sms-btn active" id="btnModeChartsS3">📊 50 Grafik Stüdyosu</button>
+    </div>
+
+    <div class="wizard-steps">
+      <div class="wizard-step done"><div class="ws-num">✓</div><span>Yükle</span></div>
+      <div class="wizard-arrow">›</div>
+      <div class="wizard-step done"><div class="ws-num">✓</div><span>Seçim</span></div>
+      <div class="wizard-arrow">›</div>
+      <div class="wizard-step active"><div class="ws-num">3</div><span>Grafik & Pano</span></div>
+    </div>
+
+    <div class="topbar-right">
+      <!-- PANOYA EKLEME BUTONU -->
+      <button class="btn-pin" id="btnPinToDashboard" title="Bu grafiği Çoklu Gösterge Panosuna ekle">
+        <span>📌</span> Panoya Ekle
+      </button>
+      <button class="btn-ghost" id="btnNewFile" style="margin-right:12px;">Yeni Dosya</button>
+      <button class="topbar-icon-btn" id="topbarHelp" title="Kısayollar (?)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
+    </div>
+  </header>
+
+  <!-- CANLI FİLTRELEME BARI (ADIM 3) -->
+  <div class="global-filter-bar" id="s3FilterBar">
+    <div class="gfb-left">
+      <span class="gfb-title">🔍 Dilimleyiciler:</span>
+      <div id="s3ActiveFiltersList" class="active-filters-chips">
+        <span class="no-filter-hint">Filtre uygulanmadı (Tüm veri aktif)</span>
+      </div>
+    </div>
+    <button type="button" class="btn-add-filter" id="btnOpenFilterModalS3">+ Filtre Ekle</button>
+  </div>
+
+  <div class="app-body">
+    
+    <!-- MAIN AREA -->
+    <main class="main-area">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="chart">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 12v5M12 7v10M17 10v7"/></svg>
+          <span id="currentChartTypeName">Grafik</span>
+        </button>
+        <button class="tab-btn" data-tab="stats">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          İstatistik Analizi
+        </button>
+
+        <!-- ÇOKLU PANO (DASHBOARD) SEKME -->
+        <button class="tab-btn tab-btn-dashboard" data-tab="dashboard" style="color:var(--orange);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Çoklu Pano <span id="dashBadgeCount" class="dash-count-badge">0</span>
+        </button>
+      </div>
+
+
+      <!-- GRAFİK SEKME İÇERİĞİ -->
+      <div class="tab-pane active" id="tabChart">
+        
+        <div class="chart-wrapper" id="chartAreaContainer">
+          <div id="chartArea" style="width:100%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- İSTATİSTİK & AI SEKME İÇERİĞİ -->
+      <div class="tab-pane hidden" id="tabStats" style="overflow-y: auto; padding: 24px;">
+        <div class="premium-stats-pane" style="display: flex; flex-direction: column; gap: 24px; min-height: 100%;">
+          <div class="p-stats-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="p-stats-title">
+              <h2 style="font-size: 1.6rem; font-weight: 800;">İstatistik Analizi & Yapay Zeka Özeti</h2>
+              <p style="color: var(--muted); margin-top: 4px;">Seçilen eksenlerdeki veri dağılımları ve AI destekli akademik yorumlar.</p>
+            </div>
+            <button id="refreshStatsBtn" class="btn-premium secondary" style="padding: 10px 20px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
+              Yenile
+            </button>
+          </div>
+
+          <!-- Hızlı KPI Şeridi (Genel) -->
+          <div id="chartKpiStrip" class="dashboard-kpis"></div>
+
+          <!-- Ana Grid Alanı -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            
+            <!-- AI Box (Sol Taraf veya Üst) -->
+            <div class="ai-pane-grid-item" style="grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+              <div class="ai-hero" style="text-align: left;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <div class="ai-icon" style="font-size: 2rem; margin: 0; filter: drop-shadow(0 4px 10px rgba(244,114,182,0.3));">🧠</div>
+                  <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--pink);">Akademik İstatistiksel Yorumlayıcı</h3>
+                </div>
+                <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">İleri düzey varyans ve dağılım testleri üzerinden profesyonel bir veri analisti yorumu alın.</p>
+                <button id="btnGenerateInsight" class="btn-primary" style="margin-top: 16px; width: 100%; max-width: 250px;">Veriyi Yorumla</button>
+              </div>
+
+              <div id="aiResponseContainer" class="ai-response-container hidden" style="margin: 0; max-width: 100%; box-shadow: none; border-color: rgba(244,114,182,0.2); background: rgba(0,0,0,0.2);">
+                <div class="ai-response-header" style="padding: 12px 16px;">
+                  <h4 style="font-size: 0.95rem; margin: 0; color: var(--pink);">Sonuç</h4>
+                </div>
+                <div id="aiResponseContent" class="ai-response-content" style="padding: 16px; font-size: 0.9rem;"></div>
+              </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div id="statsGrid" class="bento-stats-grid" style="display: contents;">
+               <!-- JS tarafından Doldurulacak -->
+               <div class="bento-loading" style="grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center; color: var(--muted);">Analiz yükleniyor... Lütfen grafiği çizin.</div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+
+      <!-- ÇOKLU PANO (DASHBOARD CANVAS) İÇERİĞİ -->
+      <div class="tab-pane hidden" id="tabDashboard">
+        <div class="dashboard-canvas-pane">
+          <div class="dash-canvas-header">
+            <div>
+              <h2>🎛️ Özel Gösterge Panosu (Executive Dashboard)</h2>
+              <p>Eklediğiniz tüm grafikleri ve üst düzey KPI özetlerini tek bir çalışma alanında yönetin.</p>
+            </div>
+            <div class="dash-canvas-actions">
+              <button class="btn-ghost" id="btnClearDashboard" title="Panodaki tüm grafikleri temizle">🧹 Panoyu Temizle</button>
+              <button class="btn-download" id="downloadDashboardPdfBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Tüm Panoyu PDF İndir
+              </button>
+            </div>
+          </div>
+
+          <!-- ÜST DÜZEY KPI ÖZET KARTLARI -->
+          <div id="dashboardKpiGrid" class="kpi-tiles-grid" style="margin-bottom: 24px;"></div>
+
+          <!-- Dashboard Grid -->
+          <div id="dashboardGrid" class="dashboard-grid">
+            <!-- Boş Durum (Empty State) -->
+            <div id="dashboardEmptyState" class="dash-empty-state">
+              <div class="des-icon">📊</div>
+              <h3>Henüz Panoda Grafik Yok</h3>
+              <p>Çizdiğiniz herhangi bir grafiği sağ üstteki <strong>"📌 Panoya Ekle"</strong> butonuna basarak buraya ekleyebilirsiniz. Başlıkları değiştirmek için doğrudan kartın üzerindeki başlık yazısına tıklayabilirsiniz.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- RIGHT INSPECTOR (CUSTOMIZATION) -->
+    <aside class="inspector-panel">
+      <div class="inspector-header">Özelleştirme</div>
+      
+      <div class="inspector-tabs">
+        <button class="i-tab active" data-itab="colors">🎨 Stil</button>
+        <button class="i-tab" data-itab="axes">⚙️ Eksen</button>
+        
+        <button class="i-tab" data-itab="export">💾 Dışa Aktar</button>
+      </div>
+
+      <div class="inspector-body">
+        <!-- Style Tab -->
+        <div class="i-pane active" id="itab-colors">
+          <div class="form-group">
+            <label>Ana Çizgi / Nokta Rengi</label>
+            <input type="color" id="chartColor" value="#a78bfa">
+          </div>
+          <div class="form-group">
+            <label>Arkaplan Rengi</label>
+            <input type="color" id="chartBgColor" value="#070711">
+          </div>
+          <div class="form-group">
+            <label>Çizgi Kalınlığı / Nokta Boyutu <span id="traceSizeVal" class="label-val">3</span></label>
+            <input type="range" id="traceSize" min="1" max="15" value="3">
+          </div>
+          <div class="form-group-check" style="margin-top:16px;">
+            <input type="checkbox" id="showLegend" checked>
+            <label for="showLegend">Lejantı (Göstergeyi) Açık Tut</label>
+          </div>
+        </div>
+
+        <!-- Axes & Title Tab -->
+        <div class="i-pane hidden" id="itab-axes">
+          <div class="form-group">
+            <label>Grafik Ana Başlığı</label>
+            <input type="text" id="customChartTitle" placeholder="Örn: Bölgesel Satış Dağılımı">
+          </div>
+          <div class="form-group">
+            <label>X Ekseni Başlığı (Opsiyonel)</label>
+            <input type="text" id="customXTitle" placeholder="Örn: Yıllar">
+          </div>
+          <div class="form-group">
+            <label>Y Ekseni Başlığı (Opsiyonel)</label>
+            <input type="text" id="customYTitle" placeholder="Örn: Satış (TL)">
+          </div>
+          <div class="form-group-check" style="margin-top:16px;">
+            <input type="checkbox" id="showGrid" checked>
+            <label for="showGrid">Izgara (Grid) Çizgilerini Göster</label>
+          </div>
+        </div>
+
+        <!-- Forecast Tab -->
+        <div class="i-pane hidden" id="itab-forecast">
+          <p style="font-size:0.85rem; color:var(--muted); line-height:1.5;">Trend grafiklerinde matematiksel regresyon ile geleceğe yönelik projeksiyon eğrisi çizin:</p>
+          
+          <div class="form-group-check" style="margin-top:12px;">
+            <input type="checkbox" id="enableForecast">
+            <label for="enableForecast" style="font-weight:700; color:var(--purple);">🔮 Gelecek Trend Tahminini Aç</label>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label>Tahmin Edilecek Dönem Sayısı</label>
+            <select id="forecastStepsSelect">
+              <option value="3">Gelecek 3 Dönem (Kısa Vade)</option>
+              <option value="6" selected>Gelecek 6 Dönem (Orta Vade)</option>
+              <option value="12">Gelecek 12 Dönem (Uzun Vade)</option>
+            </select>
+          </div>
+
+          <div id="forecastInfoBox" class="forecast-info-box hidden">
+            <span>📊 Model Güveni: <strong id="forecastR2Val">%0</strong></span>
+          </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div class="i-pane hidden" id="itab-export">
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px; line-height:1.5;">Bu grafiği tekil olarak PNG formatında veya kurumsal bir A4 raporu olarak indirebilirsiniz.</p>
+          <button id="downloadPngBtn" class="btn-ghost" style="width:100%; margin-bottom:12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Tekil PNG İndir
+          </button>
+          
+          <button id="downloadPdfBtn" class="btn-download" style="width:100%;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            📄 Tekil PDF Raporu
+          </button>
+        </div>
+        
+      </div>
+      
+      <div class="inspector-footer">
+        <button id="applyCustomsBtn" class="btn-secondary">Değişiklikleri Uygula</button>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+
+  <script src="{{ url_for('static', filename='js/modules/globals.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=800"></script>
+
+<!-- ═══ UPLOAD GÜVENLİ YEDEK MOTORU ═══
+     app.js yüklenemese veya hata verse bile upload çalışır (REMOVED) -->
+
+<!-- PDF EXPORT STUDIO MODAL (A4 PREVIEW) -->
+<div class="modal-overlay hidden" id="pdfStudioModal" style="z-index: 10000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; overflow-y: auto;">
+  <div style="width: 100%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 20px; background: var(--bg-2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+    <h3 style="color: white; margin: 0; display: flex; align-items: center; gap: 10px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      PDF Önizleme Stüdyosu
+    </h3>
+    <div style="display: flex; gap: 15px;">
+      <button class="btn-ghost" id="addTextBtnPdf" style="color: white; border-color: rgba(255,255,255,0.2);">+ Metin Ekle</button>
+      <button class="btn-primary" id="generatePdfBtn" style="background: var(--blue);">Sonuçlandır ve İndir</button>
+      <button class="btn-ghost" id="closePdfStudioBtn" style="color: var(--red); border-color: rgba(248,113,113,0.3);">Kapat</button>
+    </div>
+  </div>
+  
+  <div id="a4Container" style="background: white; color: black; aspect-ratio: 1 / 1.414; padding: 20px; overflow-y: auto; width: 100%; max-width: 800px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <!-- PDF Content Cloned Here -->
+  </div>
+</div>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
