@@ -92,6 +92,10 @@ def analysis():
 
     return render_template('analysis.html')
 
+@app.route('/a4-demo')
+def a4_demo():
+    return render_template('a4_demo.html')
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files: return jsonify({'error': 'Dosya bulunamadı'}), 400
