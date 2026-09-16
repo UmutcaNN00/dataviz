@@ -9,6 +9,21 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  
+  // ── ESCAPE & BACKDROP İLE MODAL KAPATMA ──
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    }
+  });
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+      }
+    });
+  });
+
   /* ── 1. UPLOAD & MULTI-SHEET LOGIC ── */
   const step1 = document.getElementById('step1-upload'), step2 = document.getElementById('step2-config'), step3 = document.getElementById('step3-dashboard');
   const mainDropZone = document.getElementById('mainDropZone'), mainFileInput = document.getElementById('mainFileInput');
@@ -46,7 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Tıklama ile Dosya Seçim Penceresi Açma (Buton)
+  // Tıklama ile Dosya Seçim Penceresi Açma (Dropzone veya Buton)
+  mainDropZone?.addEventListener('click', (e) => {
+    if (e.target.closest('#btnLoadSampleData')) return;
+    mainFileInput?.click();
+  });
+
   document.getElementById('btnBrowseFile')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -702,12 +722,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ['btnOpenMergeModal', 'btnOpenMergeModalS2', 'btnOpenMergeModalS3'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => {
-    selectedFile2 = null;
-    mergeFileInput.value = '';
-    mergeFileStatus.style.display = 'none';
-    mergeConfigArea.classList.add('hidden');
-    btnExecuteMerge.disabled = true;
-    dataMergeModal.classList.remove('hidden');
+      selectedFile2 = null;
+      if (mergeFileInput) mergeFileInput.value = '';
+      if (mergeFileStatus) mergeFileStatus.style.display = 'none';
+      if (mergeConfigArea) mergeConfigArea.classList.add('hidden');
+      if (btnExecuteMerge) btnExecuteMerge.disabled = true;
+      dataMergeModal?.classList.remove('hidden');
+    });
   });
 
   document.getElementById('btnCloseMergeModal')?.addEventListener('click', () => dataMergeModal.classList.add('hidden'));
@@ -973,11 +994,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const chartArea = document.getElementById('chartArea');
   
   const resizeObserver = new ResizeObserver(() => {
-    if (step3.classList.contains('active')) {
+    if (step3 && step3.classList.contains('active')) {
       try { Plotly.Plots.resize('chartArea'); } catch(e){}
     }
   });
-  resizeObserver.observe(document.getElementById('chartAreaContainer'));
+  const chartAreaContainerEl = document.getElementById('chartAreaContainer');
+  if (chartAreaContainerEl) {
+    resizeObserver.observe(chartAreaContainerEl);
+  }
 
   async function goToStep3(chartId, chartName) {
     showScreen(3);
@@ -1054,17 +1078,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawMegaPlotly(targetElementId, data, type, isMini = false) {
-    const mainColor = document.getElementById('chartColor').value;
-    const bg = document.getElementById('chartBgColor').value;
-    const sGrid = document.getElementById('showGrid').checked;
-    const sLeg = isMini ? false : document.getElementById('showLegend').checked;
-    const sz = parseInt(document.getElementById('traceSize').value);
+    const mainColor = document.getElementById('chartColor')?.value || '#a78bfa';
+    const bg = document.getElementById('chartBgColor')?.value || '#070711';
+    const sGrid = document.getElementById('showGrid')?.checked ?? true;
+    const sLeg = isMini ? false : (document.getElementById('showLegend')?.checked ?? true);
+    const sz = parseInt(document.getElementById('traceSize')?.value || '5');
 
     let traces = [];
     const layout = buildLayout(bg, sGrid, sLeg, isMini);
     if (!isMini) {
-      layout.xaxis.title.text = document.getElementById('customXTitle').value || axisConfig.x || '';
-      layout.yaxis.title.text = document.getElementById('customYTitle').value || (axisConfig.y.length ? axisConfig.y.join(', ') : '');
+      if (layout.xaxis && layout.xaxis.title) {
+        layout.xaxis.title.text = document.getElementById('customXTitle')?.value || axisConfig.x || '';
+      }
+      if (layout.yaxis && layout.yaxis.title) {
+        layout.yaxis.title.text = document.getElementById('customYTitle')?.value || (axisConfig.y.length ? axisConfig.y.join(', ') : '');
+      }
     }
 
     const raw = data.raw || {}, agg = data.agg || {}, corr = data.corr || {};
@@ -1097,9 +1125,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Parallel Coordinates & Categories
         else if (type === 'parcoords') {
+          const numKeys = keys.filter(k => numericColumns.includes(k));
+          const targetKeys = numKeys.length >= 2 ? numKeys : keys;
           traces.push({
             type: 'parcoords',
-            dimensions: keys.map(k => ({ label: k, values: raw[k] }))
+            dimensions: targetKeys.map(k => ({
+              label: k,
+              values: (raw[k] || []).map(v => Number(v) || 0)
+            }))
           });
         }
         else if (type === 'parcats') {
@@ -1115,6 +1148,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Finansal: Candlestick & OHLC
         else if (type === 'candlestick' || type === 'ohlc') {
           const y0 = keys[0] ? raw[keys[0]] : [];
+          if (!y0 || y0.length === 0) {
+            const el = document.getElementById(targetElementId);
+            if (el) el.innerHTML = '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Mum grafiği için en az bir sayısal fiyat sütunu seçiniz.</div>';
+            return;
+          }
           const openVals = keys[1] ? raw[keys[1]] : y0.map(v => v * 0.98);
           const highVals = keys[2] ? raw[keys[2]] : y0.map(v => v * 1.03);
           const lowVals = keys[3] ? raw[keys[3]] : y0.map(v => v * 0.95);
@@ -1125,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             x: xVals.length ? xVals : Array.from({length: y0.length}, (_, i) => i + 1),
             open: openVals, high: highVals, low: lowVals, close: closeVals
           });
+          if (layout.xaxis) layout.xaxis.rangeslider = { visible: false };
         }
         // Ternary
         else if (type === 'ternary') {
@@ -1136,11 +1175,23 @@ document.addEventListener('DOMContentLoaded', () => {
             marker: { color: mainColor, size: sz * 2 }
           });
         }
-        // Scatter, Bubble, Geo
-        else if (['scatter', 'bubble', 'scattergeo'].includes(type)) {
+        // Scattergeo Coğrafi Harita
+        else if (type === 'scattergeo') {
           keys.forEach((k, i) => {
             traces.push({
-              type: type === 'scattergeo' ? 'scattergeo' : 'scatter', mode: 'markers', name: k,
+              type: 'scattergeo', mode: 'markers', name: k,
+              lat: xVals.length ? xVals : raw[keys[0]],
+              lon: raw[keys[1] || keys[0]],
+              marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10], size: isMini ? sz * 2 : sz * 3, opacity: 0.8 }
+            });
+          });
+          layout.geo = { bgcolor: 'transparent', showcoastlines: true, coastlinecolor: 'rgba(255,255,255,0.2)', showland: true, landcolor: 'rgba(255,255,255,0.05)' };
+        }
+        // Scatter & Bubble
+        else if (['scatter', 'bubble'].includes(type)) {
+          keys.forEach((k, i) => {
+            traces.push({
+              type: 'scatter', mode: 'markers', name: k,
               x: xVals.length ? xVals : undefined, y: raw[k],
               marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10], size: type === 'bubble' ? sz * 4 : (isMini ? sz * 2 : sz * 3), opacity: 0.75 }
             });
@@ -1208,11 +1259,20 @@ document.addEventListener('DOMContentLoaded', () => {
             keys.forEach((k, kIdx) => {
               let targetIdx = xVals.length + kIdx;
               xVals.forEach((x, xIdx) => {
-                source.push(xIdx);
-                target.push(targetIdx);
-                value.push(agg[k][xIdx] || 0);
+                const val = Number(agg[k]?.[xIdx]) || 0;
+                if (val > 0) {
+                  source.push(xIdx);
+                  target.push(targetIdx);
+                  value.push(val);
+                }
               });
             });
+            
+            if (value.length === 0) {
+              const el = document.getElementById(targetElementId);
+              if (el) el.innerHTML = '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Sankey akışı için en az bir pozitif sayısal değer ve kategori seçiniz.</div>';
+              return;
+            }
             
             traces.push({
               type: 'sankey', orientation: 'h',
@@ -1227,9 +1287,16 @@ document.addEventListener('DOMContentLoaded', () => {
               let _values = agg[k];
               
               if (['sunburst', 'treemap', 'icicle'].includes(type)) {
-                 _labels = [...xVals, 'Tümü'];
-                 _parents = [...xVals.map(() => 'Tümü'), ""];
-                 _values = [...agg[k], agg[k].reduce((a,b)=>a+b, 0)];
+                 const cleanVals = (agg[k] || []).map(v => Math.max(0, Number(v) || 0));
+                 const totalVal = cleanVals.reduce((a, b) => a + b, 0);
+                 const rootLabel = 'Toplam';
+                 const safeLabels = xVals.map((x, idx) => {
+                     let s = String(x || `Kategori ${idx + 1}`).trim();
+                     return s === rootLabel ? s + ' ' : s;
+                 });
+                 _labels = [...safeLabels, rootLabel];
+                 _parents = [...safeLabels.map(() => rootLabel), ""];
+                 _values = [...cleanVals, totalVal];
               }
               
               traces.push({
@@ -1241,7 +1308,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 hole: type === 'donut' ? 0.5 : 0,
                 marker: { colors: PALETTE }
               });
-              layout.xaxis.visible = false; layout.yaxis.visible = false;
+              if (layout.xaxis) layout.xaxis.visible = false;
+              if (layout.yaxis) layout.yaxis.visible = false;
             }
           }
         }
@@ -1350,7 +1418,8 @@ document.addEventListener('DOMContentLoaded', () => {
       autosize: true, paper_bgcolor: 'transparent', plot_bgcolor: bg, font: { family: 'Inter', color: tc }, showlegend: sLeg,
       legend: { bgcolor: 'transparent' }, margin: isMini ? { t:15, r:15, b:25, l:35 } : { t:30, r:30, b:50, l:50 },
       xaxis: { gridcolor: gc, zeroline: false, title: { text:'' } }, yaxis: { gridcolor: gc, zeroline: false, title: { text:'' } },
-      polar: { angularaxis: { gridcolor: gc }, radialaxis: { gridcolor: gc } }
+      polar: { angularaxis: { gridcolor: gc }, radialaxis: { gridcolor: gc } },
+      ternary: { aaxis: { gridcolor: gc, linecolor: gc }, baxis: { gridcolor: gc, linecolor: gc }, caxis: { gridcolor: gc, linecolor: gc }, bgcolor: 'transparent' }
     };
   }
 
@@ -2191,7 +2260,7 @@ document.getElementById('generatePdfBtn')?.addEventListener('click', async () =>
       } else if(tabName === 'stats') {
         document.getElementById('tabStats').classList.remove('hidden');
       } else if(tabName === 'ai') {
-        document.getElementById('tabAi').classList.remove('hidden');
+        document.getElementById('tabAi')?.classList.remove('hidden');
       } else if(tabName === 'dashboard') {
         document.getElementById('tabDashboard').classList.remove('hidden');
         renderDashboardGrid();
@@ -2705,13 +2774,13 @@ document.getElementById('generatePdfBtn')?.addEventListener('click', async () =>
     renderDashboardGrid();
 
     const btn = document.getElementById('btnPmsPinDashboard');
-    btn.innerHTML = '<span>✓</span> Panoya Eklendi!';
-    setTimeout(() => {
-      btn.innerHTML = '<span>📌</span> Panoya Ekle';
-    }, 2000);
+    if (btn) {
+      btn.innerHTML = '<span>✓</span> Panoya Eklendi!';
+      setTimeout(() => {
+        btn.innerHTML = '<span>📌</span> Panoya Ekle';
+      }, 2000);
+    }
   });
-
-});
 
 
 // SPRINT 3: Prevent global window drop to avoid navigating away
