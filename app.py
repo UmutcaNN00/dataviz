@@ -170,7 +170,7 @@ def switch_sheet():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ═════════ 2. AKILLI VERİ BİRLEŞTİRİCİ (Auto VLOOKUP / Data Joiner) ═════════
+# ═════════ 2. AKILLI VERİ BİRLEŞTİRİCİ (Data Merge & Join) ═════════
 @app.route('/preview_second_file', methods=['POST'])
 def preview_second_file():
     global_df = get_df(1)

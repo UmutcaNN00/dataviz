@@ -31,13 +31,13 @@
   </div>
 </div>
 
-<!-- ══════════ AKILLI VERİ BİRLEŞTİRİCİ (DATA JOINER / VLOOKUP) MODALI ══════════ -->
+<!-- ══════════ AKILLI VERİ BİRLEŞTİRİCİ (DATA MERGE & JOIN) MODALI ══════════ -->
 <div id="dataMergeModal" class="modal-overlay hidden">
   <div class="modal-content filter-modal-content" style="max-width: 620px;">
     <div class="modal-header-row">
       <div style="display:flex; align-items:center; gap:8px;">
         <span style="font-size:1.4rem;">🔗</span>
-        <h3>Akıllı Veri Birleştirici (Auto VLOOKUP)</h3>
+        <h3>Akıllı Veri Birleştirici (Data Merge &amp; Join)</h3>
       </div>
       <button class="modal-close-btn" id="btnCloseMergeModal">×</button>
     </div>
@@ -71,7 +71,7 @@
       <div class="form-group" style="margin-top:12px;">
         <label style="font-size:0.75rem;">Birleştirme Yöntemi</label>
         <select id="mergeJoinType">
-          <option value="left" selected>Sol Birleşim (Left Join - Klasik VLOOKUP)</option>
+          <option value="left" selected>Sol Birleşim (Left Join - 1. Tabloyu Esas Al)</option>
           <option value="inner">Kesişim (Inner Join - Sadece Eşleşenleri Al)</option>
           <option value="outer">Tam Birleşim (Outer Join - Tüm Satırları Koru)</option>
         </select>

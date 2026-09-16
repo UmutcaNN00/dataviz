@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Grup 2: 2. Dosyadan Birleştirilen Sütunlar (Varsa)
     if (joinedCols.length > 0) {
-      renderPoolSection(pool, '🔗 2. Dosya Sütunları (VLOOKUP)', joinedCols, 'section_joined');
+      renderPoolSection(pool, '🔗 2. Dosya Sütunları (Birleştirilen)', joinedCols, 'section_joined');
     }
 
     // Grup 3: Özel Formül Sütunları (Varsa)
@@ -510,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  /* ── 4. AKILLI VERİ BİRLEŞTİRİCİ (DATA JOINER / VLOOKUP) ── */
+  /* ── 4. AKILLI VERİ BİRLEŞTİRİCİ (DATA MERGE & JOIN) ── */
   const dataMergeModal = document.getElementById('dataMergeModal');
   const mergeFileInput = document.getElementById('mergeFileInput');
   const mergeDropZone = document.getElementById('mergeDropZone');
@@ -2093,7 +2093,7 @@ document.getElementById('generatePdfBtn')?.addEventListener('click', async () =>
 
     renderPivotPoolSection(pool, '📁 1. Dosya Sütunları', file1Cols, 'section_pivot_file1');
     if (joinedCols.length > 0) {
-      renderPivotPoolSection(pool, '🔗 2. Dosya Sütunları (VLOOKUP)', joinedCols, 'section_pivot_joined');
+      renderPivotPoolSection(pool, '🔗 2. Dosya Sütunları (Birleştirilen)', joinedCols, 'section_pivot_joined');
     }
     if (calcCols.length > 0) {
       renderPivotPoolSection(pool, '🧮 Hesaplanmış Formül Sütunları', calcCols, 'section_pivot_calc');
