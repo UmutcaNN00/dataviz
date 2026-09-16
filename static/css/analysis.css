@@ -163,7 +163,7 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
 .magic-templates-dropdown { position: relative; }
 .magic-btn-main { background: linear-gradient(135deg, rgba(244,114,182,0.2), rgba(167,139,250,0.2)); border: 1px solid rgba(244,114,182,0.3); color: var(--pink); font-size: 0.85rem; font-weight: 700; padding: 8px 16px; border-radius: 50px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(244,114,182,0.15); }
 .magic-btn-main:hover { box-shadow: 0 6px 20px rgba(244,114,182,0.25); transform: translateY(-1px); }
-.magic-menu { position: fixed; margin-top: 40px; right: auto; background: var(--bg-3); border: 1px solid var(--border-hi); border-radius: var(--r-lg); padding: 8px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s; z-index: 9999; min-width: 160px; }
+.magic-menu { position: absolute; top: calc(100% + 4px); right: 0; margin-top: 0; background: var(--bg-3); border: 1px solid var(--border-hi); border-radius: var(--r-lg); padding: 8px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all 0.2s; z-index: 9999; min-width: 180px; }
 .magic-templates-dropdown:hover .magic-menu { opacity: 1; visibility: visible; transform: translateY(0); }
 .magic-btn { background: transparent; border: none; color: var(--text); padding: 10px 14px; text-align: left; font-size: 0.85rem; font-weight: 500; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
 .magic-btn:hover { background: var(--surface); color: var(--purple); }

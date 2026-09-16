@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import json
 from scipy import stats as sp_stats
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file, session
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
@@ -18,6 +18,17 @@ from flask import session
 
 app.secret_key = 'dataviz_secret_super_key'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
+
+def safe_float(val, default=None):
+    """NaN, Infinity ve -Infinity değerlerini JSON uyumlu hale getirir."""
+    try:
+        if val is None or pd.isna(val) or np.isinf(val):
+            return default
+        f = float(val)
+        return f if np.isfinite(f) else default
+    except Exception:
+        return default
+
 
 DATA_STORE = {}
 
@@ -266,11 +277,8 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 hf_pipeline = None  # Lazy loading için global model değişkeni
 
 def apply_filters(df, filters):
-    global_df = get_df(1)
-    global_df_2 = get_df(2)
-
     """Verilen filtre listesini DataFrame'e uygular."""
-    if not filters or not isinstance(filters, list):
+    if df is None or df.empty or not filters or not isinstance(filters, list):
         return df
     filtered_df = df.copy()
     for f in filters:
@@ -285,10 +293,17 @@ def apply_filters(df, filters):
         elif ftype == 'num':
             min_val = f.get('min')
             max_val = f.get('max')
-            if min_val is not None:
-                filtered_df = filtered_df[filtered_df[col] >= float(min_val)]
-            if max_val is not None:
-                filtered_df = filtered_df[filtered_df[col] <= float(max_val)]
+            col_num = pd.to_numeric(filtered_df[col], errors='coerce')
+            if min_val is not None and str(min_val).strip() != '':
+                try:
+                    filtered_df = filtered_df[col_num >= float(min_val)]
+                except (ValueError, TypeError):
+                    pass
+            if max_val is not None and str(max_val).strip() != '':
+                try:
+                    filtered_df = filtered_df[col_num <= float(max_val)]
+                except (ValueError, TypeError):
+                    pass
     return filtered_df
 
 @app.route('/')
@@ -573,8 +588,28 @@ def merge_datasets():
         global_df_temp = global_df.copy()
         df2_temp = df2.copy()
         
-        global_df_temp['_merge_key_'] = global_df_temp[key1].astype(str).str.strip()
-        df2_temp['_merge_key_'] = df2_temp[key2].astype(str).str.strip()
+        def normalize_merge_series(series):
+            def _clean(val):
+                if pd.isna(val):
+                    return None
+                s_val = str(val).strip()
+                if s_val == '' or s_val.lower() in ['nan', 'none', 'null', '<na>']:
+                    return None
+                try:
+                    f = float(s_val)
+                    if f.is_integer():
+                        return str(int(f))
+                    return str(f)
+                except (ValueError, TypeError):
+                    return s_val
+            return series.apply(_clean)
+
+        k1_norm = normalize_merge_series(global_df_temp[key1])
+        k2_norm = normalize_merge_series(df2_temp[key2])
+
+        # NaN anahtarların birbiriyle eşleşip sahte kartezyen patlama yapmasını engelle:
+        global_df_temp['_merge_key_'] = [v if v is not None else f'__null_left_{i}__' for i, v in enumerate(k1_norm)]
+        df2_temp['_merge_key_'] = [v if v is not None else f'__null_right_{i}__' for i, v in enumerate(k2_norm)]
 
         merged = pd.merge(
             global_df_temp, 
@@ -698,15 +733,22 @@ def clean_data():
             set_df(global_df, 1)
         elif action == 'fill_mean':
             num_cols = global_df.select_dtypes(include=['number']).columns
-            global_df[num_cols] = global_df[num_cols].fillna(global_df[num_cols].mean())
-            cat_cols = global_df.select_dtypes(include=['object', 'category']).columns
-            global_df[cat_cols] = global_df[cat_cols].fillna('Bilinmiyor')
+            means = global_df[num_cols].mean()
+            global_df[num_cols] = global_df[num_cols].fillna(means).fillna(0)
+            for c in global_df.select_dtypes(include=['object', 'category']).columns:
+                if pd.api.types.is_categorical_dtype(global_df[c]):
+                    if 'Bilinmiyor' not in global_df[c].cat.categories:
+                        global_df[c] = global_df[c].cat.add_categories(['Bilinmiyor'])
+                global_df[c] = global_df[c].fillna('Bilinmiyor')
             set_df(global_df, 1)
         elif action == 'fill_zero':
             num_cols = global_df.select_dtypes(include=['number']).columns
             global_df[num_cols] = global_df[num_cols].fillna(0)
-            cat_cols = global_df.select_dtypes(include=['object', 'category']).columns
-            global_df[cat_cols] = global_df[cat_cols].fillna('Bilinmiyor')
+            for c in global_df.select_dtypes(include=['object', 'category']).columns:
+                if pd.api.types.is_categorical_dtype(global_df[c]):
+                    if 'Bilinmiyor' not in global_df[c].cat.categories:
+                        global_df[c] = global_df[c].cat.add_categories(['Bilinmiyor'])
+                global_df[c] = global_df[c].fillna('Bilinmiyor')
             set_df(global_df, 1)
             
         numeric_cols = global_df.select_dtypes(include=['number']).columns.tolist()
@@ -815,16 +857,18 @@ def get_kpi_summary():
     # 4. Lider Kategori
     if cat_cols:
         main_cat = cat_cols[0]
-        top_cat_name = str(active_df[main_cat].value_counts().index[0])
-        top_cat_count = int(active_df[main_cat].value_counts().iloc[0])
-        pct = (top_cat_count / len(active_df)) * 100
-        kpis.append({
-            'title': f'Lider {main_cat}',
-            'value': top_cat_name[:15],
-            'sub': f"%{pct:.1f} pay ({top_cat_count} adet)",
-            'icon': '🏆',
-            'color': 'orange'
-        })
+        vc = active_df[main_cat].dropna().value_counts()
+        if not vc.empty:
+            top_cat_name = str(vc.index[0])
+            top_cat_count = int(vc.iloc[0])
+            pct = (top_cat_count / len(active_df)) * 100 if len(active_df) > 0 else 0
+            kpis.append({
+                'title': f'Lider {main_cat}',
+                'value': top_cat_name[:15],
+                'sub': f"%{pct:.1f} pay ({top_cat_count} adet)",
+                'icon': '🏆',
+                'color': 'orange'
+            })
 
     return jsonify({'kpis': kpis, 'total_active_rows': len(active_df)})
 
@@ -845,8 +889,13 @@ def generate_insight():
 
     try:
         if hf_pipeline is None:
-            
-            hf_pipeline = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct")
+            try:
+                from transformers import pipeline
+                hf_pipeline = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct")
+            except Exception:
+                hf_pipeline = False
+        if not hf_pipeline:
+            raise RuntimeError("HuggingFace pipeline mevcut değil, yerel kural motoruna geçiliyor.")
 
         messages = [
             {"role": "system", "content": "Sen bir akademi profesörü ve istatistik uzmanısın. Amacın, sana gönderilen verileri bilimsel bir titizlikle, nesnel ve profesyonel bir akademik dil kullanarak analiz etmektir. Yanıtlarını Türkçe ver. Sadece verideki istatistiksel eğilimleri (trend), varyans farklılıklarını ve en önemli bulguları 3-4 madde halinde özetle. Akademik sunumlara uygun, resmi bir istatistiksel özet dili (ör. 'harika veriler' yerine 'anlamlı istatistiksel dağılım') kullan. Okunabilirliği artırmak için Markdown kullan."},
@@ -961,8 +1010,10 @@ def get_chart_data():
                 else: grouped = grouped.count()
                 
                 if len(grouped) > 100:
-                    if agg_func in ['sum', 'mean'] and y_cols: grouped = grouped.sort_values(by=y_cols[0], ascending=False).head(100)
-                    else: grouped = grouped.head(100)
+                    if agg_func in ['sum', 'mean'] and y_cols and y_cols[0] in grouped.columns:
+                        grouped = grouped.sort_values(by=y_cols[0], ascending=False).head(100)
+                    else:
+                        grouped = grouped.head(100)
                         
                 agg_dict = {'__x__': [str(x) for x in grouped.index.tolist()]}
                 for y in y_cols:
@@ -991,10 +1042,10 @@ def get_chart_data():
                         response_data['forecast'] = {
                             'target_y': primary_y,
                             'x': [agg_dict['__x__'][-1]] + future_x,
-                            'y': [float(y_vals[-1])] + [float(max(0, val)) for val in forecast_y],
-                            'upper': [float(y_vals[-1])] + [float(max(0, val + err)) for val, err in zip(forecast_y, ci)],
-                            'lower': [float(y_vals[-1])] + [float(max(0, val - err)) for val, err in zip(forecast_y, ci)],
-                            'r2': float(r_value**2)
+                            'y': [safe_float(y_vals[-1], 0.0)] + [safe_float(max(0, val), 0.0) for val in forecast_y],
+                            'upper': [safe_float(y_vals[-1], 0.0)] + [safe_float(max(0, val + err), 0.0) for val, err in zip(forecast_y, ci)],
+                            'lower': [safe_float(y_vals[-1], 0.0)] + [safe_float(max(0, val - err), 0.0) for val, err in zip(forecast_y, ci)],
+                            'r2': safe_float(r_value**2, 0.0)
                         }
                     except Exception as fe:
                         print("Tahmin hatası:", fe)
@@ -1047,10 +1098,11 @@ def get_stats():
                     y_vals = valid_df[y_col].values
                     try:
                         slope, intercept, r_value, p_value, std_err = sp_stats.linregress(x_vals, y_vals)
-                        adv_info['correlation'] = float(r_value)
-                        adv_info['r_squared'] = float(r_value**2)
-                        adv_info['regression'] = f"y = {slope:.4f}x + {intercept:.4f}"
-                        adv_info['p_value'] = float(p_value)
+                        r_clean = safe_float(r_value, 0.0)
+                        adv_info['correlation'] = r_clean
+                        adv_info['r_squared'] = safe_float(r_clean**2, 0.0)
+                        adv_info['regression'] = f"y = {slope:.4f}x + {intercept:.4f}" if np.isfinite(slope) and np.isfinite(intercept) else "Hesaplanan regresyon tanımsız"
+                        adv_info['p_value'] = safe_float(p_value, None)
                         adv_info['type'] = 'numeric'
                     except Exception:
                         pass
@@ -1059,16 +1111,16 @@ def get_stats():
                     if len(groups) == 2:
                         try:
                             t_stat, p_val = sp_stats.ttest_ind(groups[0], groups[1], equal_var=False)
-                            adv_info['t_test_stat'] = float(t_stat) if pd.notnull(t_stat) else None
-                            adv_info['p_value'] = float(p_val) if pd.notnull(p_val) else None
+                            adv_info['t_test_stat'] = safe_float(t_stat, None)
+                            adv_info['p_value'] = safe_float(p_val, None)
                             adv_info['type'] = 'categorical_2'
                         except Exception:
                             pass
                     elif len(groups) > 2:
                         try:
                             f_stat, p_val = sp_stats.f_oneway(*groups)
-                            adv_info['anova_f'] = float(f_stat) if pd.notnull(f_stat) else None
-                            adv_info['p_value'] = float(p_val) if pd.notnull(p_val) else None
+                            adv_info['anova_f'] = safe_float(f_stat, None)
+                            adv_info['p_value'] = safe_float(p_val, None)
                             adv_info['type'] = 'categorical_n'
                         except Exception:
                             pass
@@ -1207,9 +1259,17 @@ def export_pivot_excel():
     filters = data.get('filters', [])
 
     active_df = apply_filters(global_df, filters)
+    if active_df is None or active_df.empty:
+        return jsonify({'error': 'Uygulanan filtreler sonucunda dışa aktarılacak veri kalmadı.'}), 400
+
     valid_rows = [r for r in rows if r in active_df.columns]
     valid_cols = [c for c in cols if c in active_df.columns]
     valid_values = [v for v in values if v in active_df.columns and pd.api.types.is_numeric_dtype(active_df[v])]
+
+    if not valid_rows and not valid_cols:
+        return jsonify({'error': 'En az bir Satır veya Sütun boyutu seçilmelidir.'}), 400
+    if not valid_values:
+        return jsonify({'error': 'En az bir sayısal değer metriği seçilmelidir.'}), 400
 
     try:
         import io
@@ -1239,6 +1299,39 @@ def export_pivot_excel():
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+
+# ═════════ 10. AKTİF VERİ DIŞA AKTARMA (CSV / EXCEL) ═════════
+@app.route('/export_data', methods=['POST'])
+def export_data():
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({'error': 'Dışa aktarılacak aktif veri seti bulunamadı.'}), 400
+    
+    data = request.get_json(silent=True) or {}
+    export_format = data.get('format', 'csv').lower()
+    filters = data.get('filters', [])
+    
+    active_df = apply_filters(global_df, filters)
+    if active_df is None or active_df.empty:
+        return jsonify({'error': 'Filtreler sonucunda dışa aktarılacak veri kalmadı.'}), 400
+
+    output = io.BytesIO()
+    if export_format in ['xlsx', 'excel']:
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            active_df.to_excel(writer, index=False, sheet_name='Veri_Seti')
+        mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        download_name = 'Aktarilan_Veri.xlsx'
+    else:
+        csv_str = active_df.to_csv(index=False, encoding='utf-8-sig')
+        output.write(csv_str.encode('utf-8-sig'))
+        mimetype = 'text/csv; charset=utf-8'
+        download_name = 'Aktarilan_Veri.csv'
+
+    output.seek(0)
+    return send_file(output, mimetype=mimetype, as_attachment=True, download_name=download_name)
 
 
 if __name__ == '__main__':
