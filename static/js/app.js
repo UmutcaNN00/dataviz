@@ -200,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert(`⚠️ Dosya Yüklenemedi:\n\n${errMsg}`);
     } finally {
       isUploading = false;
+      if (mainFileInput) mainFileInput.value = '';
     }
   }
 
@@ -617,22 +618,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ['btnOpenCalcModal', 'btnOpenCalcModalS2'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => {
-    calcCol1Select.innerHTML = '';
-    calcCol2Select.innerHTML = '';
-    numericColumns.forEach(c => {
-      calcCol1Select.innerHTML += `<option value="${c}">${c}</option>`;
-      calcCol2Select.innerHTML += `<option value="${c}">${c}</option>`;
+      if (calcCol1Select) calcCol1Select.innerHTML = '';
+      if (calcCol2Select) calcCol2Select.innerHTML = '';
+      numericColumns.forEach(c => {
+        if (calcCol1Select) calcCol1Select.innerHTML += `<option value="${c}">${c}</option>`;
+        if (calcCol2Select) calcCol2Select.innerHTML += `<option value="${c}">${c}</option>`;
+      });
+      if (calcNewColName) calcNewColName.value = '';
+      if (calcScalarInput) calcScalarInput.value = '';
+      if (calcUseScalar) calcUseScalar.checked = false;
+      calcCol2Select?.classList.remove('hidden');
+      calcScalarInput?.classList.add('hidden');
+      calcColModal?.classList.remove('hidden');
     });
-    calcNewColName.value = '';
-    calcScalarInput.value = '';
-    calcUseScalar.checked = false;
-    calcCol2Select.classList.remove('hidden');
-    calcScalarInput.classList.add('hidden');
-    calcColModal.classList.remove('hidden');
   });
 
-  document.getElementById('btnCloseCalcModal')?.addEventListener('click', () => calcColModal.classList.add('hidden'));
-  document.getElementById('btnCancelCalc')?.addEventListener('click', () => calcColModal.classList.add('hidden'));
+  document.getElementById('btnCloseCalcModal')?.addEventListener('click', () => calcColModal?.classList.add('hidden'));
+  document.getElementById('btnCancelCalc')?.addEventListener('click', () => calcColModal?.classList.add('hidden'));
 
   document.querySelectorAll('.op-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2806,7 +2808,6 @@ function renderStatsCards(data) {
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
   /* ── DRAGGABLE RESIZER FOR STEP 2 ── */
   const s2Resizer = document.getElementById('s2-resizer');
   const s2LeftPane = document.querySelector('.s2-left-pane');
