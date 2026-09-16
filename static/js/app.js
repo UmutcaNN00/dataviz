@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sürükle - Bırak (Drag & Drop) Olayları
   ['dragenter', 'dragover'].forEach(name => {
-    mainDropZone.addEventListener(name, (e) => {
+    mainDropZone?.addEventListener(name, (e) => {
       e.preventDefault();
       e.stopPropagation();
       mainDropZone.classList.add('dragover');
@@ -26,14 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ['dragleave', 'dragend'].forEach(name => {
-    mainDropZone.addEventListener(name, (e) => {
+    mainDropZone?.addEventListener(name, (e) => {
       e.preventDefault();
       e.stopPropagation();
       mainDropZone.classList.remove('dragover');
     });
   });
 
-  mainDropZone.addEventListener('drop', (e) => {
+  mainDropZone?.addEventListener('drop', (e) => {
     e.preventDefault();
     e.stopPropagation();
     mainDropZone.classList.remove('dragover');
@@ -42,8 +42,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Dosya Seçildiğinde Tetiklenen Olay (label tag üzerinden native açılıyor)
-  mainFileInput.addEventListener('change', (e) => {
+  // Tıklama ile Dosya Seçim Penceresi Açma
+  mainDropZone?.addEventListener('click', (e) => {
+    if (e.target !== mainFileInput) {
+      mainFileInput.value = '';
+      mainFileInput.click();
+    }
+  });
+
+  // Klavye Erişilebilirliği (Enter / Space)
+  mainDropZone?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      mainFileInput.value = '';
+      mainFileInput.click();
+    }
+  });
+
+  mainFileInput?.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFileUpload(e.target.files[0]);
     }
@@ -56,11 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
     mainUploadStatus.textContent = '⏳ Veri analiz ediliyor...';
     mainUploadStatus.style.display = 'block';
 
-    const fd = new FormData(); fd.append('file', file);
+    const fd = new FormData();
+    fd.append('file', file);
+
     try {
       const res = await fetch('/upload', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Dosya yüklenemedi');
 
       numericColumns = data.numeric_columns || [];
       categoricalColumns = data.categorical_columns || [];
@@ -70,28 +88,34 @@ document.addEventListener('DOMContentLoaded', () => {
       dashboardCharts = [];
       sheetNames = data.sheet_names || [];
 
-      updateDashboardBadge();
-      renderActiveFilterChips();
-      renderSheetTabs(sheetNames, data.active_sheet);
+      if (typeof updateDashboardBadge === 'function') updateDashboardBadge();
+      if (typeof renderActiveFilterChips === 'function') renderActiveFilterChips();
+      if (typeof renderSheetTabs === 'function') renderSheetTabs(sheetNames, data.active_sheet);
       
-      document.getElementById('s2FileName').textContent = activeFileName;
+      const s2FileEl = document.getElementById('s2FileName');
+      if (s2FileEl) s2FileEl.textContent = activeFileName;
       const pivotFileEl = document.getElementById('pivotFileName');
       if (pivotFileEl) pivotFileEl.textContent = activeFileName;
       
-      // DATA PREP (Check Health)
-      const healthRes = await fetch('/check_health');
-      const healthData = await healthRes.json();
-      
-      if(healthData.has_issues) {
-        document.getElementById('dpMissingRows').textContent = healthData.missing_rows;
-        document.getElementById('dpTotalRows').textContent = healthData.total_rows;
-        document.getElementById('dataPrepModal').classList.remove('hidden');
-      } else {
-        proceedToStep2();
+      mainUploadStatus.style.display = 'none';
+
+      // Doğrudan 2. Aşamaya geç
+      proceedToStep2();
+
+      // Arka planda eksik değer kontrolü (varsa kullanıcıyı bilgilendirir)
+      try {
+        const healthRes = await fetch('/check_health');
+        const healthData = await healthRes.json();
+        if (healthData && healthData.has_issues) {
+          openDataPrepModal();
+        }
+      } catch (healthErr) {
+        console.warn('Veri kontrol uyarısı:', healthErr);
       }
     } catch (err) {
       mainUploadStatus.className = 'status-msg error';
       mainUploadStatus.textContent = `❌ ${err.message}`;
+      mainUploadStatus.style.display = 'block';
     }
   }
 

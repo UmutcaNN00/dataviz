@@ -233,29 +233,26 @@
     </div>
 
     <div class="dropzone-glass-card">
-      <label for="mainFileInput" style="display:block; cursor:pointer;">
-        <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı">
-          <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
-          
-          <div class="dz-icon-wrap" style="pointer-events: none;">
-             <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-               <polyline points="17 8 12 3 7 8"/>
-               <line x1="12" y1="3" x2="12" y2="15"/>
-             </svg>
-             <div class="dz-icon-ring"></div>
-          </div>
-          
-          <h3>Dosyanızı Buraya Sürükleyin</h3>
-          <p>veya <span class="gdz-link">bilgisayarınızdan seçin</span></p>
-          
-          <div class="dz-formats">
-            <span class="fmt-badge">.XLSX</span>
-            <span class="fmt-badge">.XLS</span>
-            <span class="fmt-badge">.CSV</span>
-          </div>
+      <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı" style="cursor:pointer;">
+        <div class="dz-icon-wrap" style="pointer-events: none;">
+           <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+             <polyline points="17 8 12 3 7 8"/>
+             <line x1="12" y1="3" x2="12" y2="15"/>
+           </svg>
+           <div class="dz-icon-ring"></div>
         </div>
-      </label>
+        
+        <h3>Dosyanızı Buraya Sürükleyin</h3>
+        <p>veya <span class="gdz-link" style="color:var(--cyan); text-decoration:underline;">bilgisayarınızdan seçin</span></p>
+        
+        <div class="dz-formats">
+          <span class="fmt-badge">.XLSX</span>
+          <span class="fmt-badge">.XLS</span>
+          <span class="fmt-badge">.CSV</span>
+        </div>
+      </div>
     </div>
 
     <div class="upload-security-badges">
