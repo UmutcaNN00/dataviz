@@ -233,8 +233,9 @@
     </div>
 
     <div class="dropzone-glass-card">
-      <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="display:none;">
-      <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı" style="cursor:pointer;">
+      <div id="mainUploadStatus" class="status-msg hidden" style="margin-bottom: 14px; font-size: 1rem; z-index: 60; display: none;"></div>
+      <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı" style="position: relative; overflow: hidden; cursor: pointer;">
+        <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 50;">
         <div class="dz-icon-wrap" style="pointer-events: none;">
            <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -244,10 +245,14 @@
            <div class="dz-icon-ring"></div>
         </div>
         
-        <h3>Dosyanızı Buraya Sürükleyin</h3>
-        <p>veya <span class="gdz-link" style="color:var(--cyan); text-decoration:underline;">bilgisayarınızdan seçin</span></p>
+        <h3 style="pointer-events: none;">Dosyanızı Buraya Sürükleyin</h3>
+        <p style="pointer-events: none; margin-bottom: 10px;">veya <span class="gdz-link" style="color:var(--cyan); text-decoration:underline;">bilgisayarınızdan seçin</span></p>
         
-        <div class="dz-formats">
+        <button type="button" class="btn-browse-file" style="pointer-events: none; margin-top: 10px; background: var(--purple, #6366f1); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bilgisayardan Dosya Seç
+        </button>
+
+        <div class="dz-formats" style="pointer-events: none; margin-top: 18px;">
           <span class="fmt-badge">.XLSX</span>
           <span class="fmt-badge">.XLS</span>
           <span class="fmt-badge">.CSV</span>
@@ -294,8 +299,6 @@
         </div>
       </div>
     </div>
-
-    <div id="mainUploadStatus" class="status-msg hidden" style="margin-top:20px; font-size:1rem; z-index: 10;"></div>
   </div>
 </div>
 <!-- ══════════ AŞAMA 2: 50/50 VERİ VE GRAFİK SEÇİMİ ══════════ -->
@@ -718,9 +721,9 @@
 </div>
 
 
-  <script src="{{ url_for('static', filename='js/modules/globals.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=800"></script>
+  <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260916_v9"></script>
+  <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260916_v9"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=20260916_v9"></script>
 
 <!-- ═══ UPLOAD GÜVENLİ YEDEK MOTORU ═══
      app.js yüklenemese veya hata verse bile upload çalışır (REMOVED) -->
