@@ -724,45 +724,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isXDate = hasX && /tarih|date|zaman|ay|yıl|gün/i.test(axisConfig.x);
     const isXNum = hasX && numericColumns.includes(axisConfig.x);
+    const hasFinance = globalColumns.some(c => /open|açılış|high|yüksek|low|düşük|close|kapanış|fiyat/i.test(c));
 
     if (hasX) {
       if (yCount === 0) {
-        // Yalnızca X seçili: Dağılım ve parça grafikleri
-        rec = ['histogram', 'bar', 'horizontalbar'];
-        if (!isXNum) rec.push('pie', 'donut');
-        dis = ['scatter', 'bubble', 'scatter3d', 'line3d', 'surface', 'heatmap', 'candlestick', 'ohlc', 'line', 'area'];
+        if (isXNum) {
+          rec = ['histogram', 'box', 'violin', 'strip'];
+          dis = ['scatter3d', 'surface', 'candlestick', 'ohlc', 'bubble', 'line3d'];
+        } else {
+          rec = ['bar', 'horizontalbar', 'pie', 'donut', 'treemap'];
+          dis = ['scatter3d', 'surface', 'candlestick', 'ohlc', 'bubble', 'line3d'];
+        }
       } else if (yCount === 1) {
         if (isXDate) {
-          rec = ['line', 'spline', 'step', 'area', 'bar', 'candlestick', 'ohlc'];
-          dis = ['pie', 'donut', 'sunburst', 'radar'];
+          rec = ['line', 'spline', 'step', 'area', 'bar', 'waterfall'];
+          if (hasFinance) rec.push('candlestick', 'ohlc');
+          dis = ['pie', 'donut', 'sunburst', 'radar', 'scatter3d', 'ternary'];
         } else if (isXNum) {
-          rec = ['scatter', 'line', 'bar', 'histogram', 'bubble'];
-          dis = ['pie', 'donut', 'sunburst', 'treemap', 'funnel'];
+          rec = ['scatter', 'bubble', 'line', 'bar', 'histogram', 'density2d', 'histogram2d'];
+          dis = ['pie', 'donut', 'sunburst', 'treemap', 'funnel', 'candlestick', 'ohlc'];
         } else {
-          // X kategorik
-          rec = ['bar', 'horizontalbar', 'pie', 'donut', 'treemap', 'funnel'];
-          dis = ['line', 'spline', 'area', 'candlestick', 'ohlc'];
+          rec = ['bar', 'horizontalbar', 'pie', 'donut', 'radar', 'treemap', 'sunburst', 'funnel', 'dotplot', 'waterfall', 'bullet', 'errorbar'];
+          dis = ['line3d', 'surface', 'candlestick', 'ohlc', 'scatter3d', 'ternary'];
         }
       } else if (yCount >= 2) {
         if (isXDate) {
           rec = ['line', 'spline', 'stackedarea', 'groupedbar', 'stackedbar', 'candlestick', 'ohlc'];
-          dis = ['pie', 'donut', 'funnelarea', 'scatter3d'];
+          dis = ['pie', 'donut', 'funnelarea', 'ternary'];
         } else if (isXNum) {
-          rec = ['scatter', 'bubble', 'scatter3d', 'line3d', 'surface', 'contour'];
-          dis = ['pie', 'donut', 'funnelarea', 'treemap'];
+          if ((1 + yCount) === 3) {
+            rec = ['scatter', 'bubble', 'scatter3d', 'line3d', 'surface', 'contour', 'ternary'];
+          } else {
+            rec = ['scattermatrix', 'parcoords', 'heatmap', 'surface', 'contour'];
+          }
+          dis = ['pie', 'donut', 'sunburst', 'funnel'];
         } else {
-          rec = ['groupedbar', 'stackedbar', 'heatmap', 'parcats'];
-          dis = ['pie', 'donut', 'funnelarea', 'line3d', 'surface'];
+          rec = ['groupedbar', 'stackedbar', 'radar', 'heatmap', 'parcats', 'sunburst', 'icicle', 'sankey'];
+          dis = ['line3d', 'surface', 'candlestick', 'ohlc', 'scatter3d'];
         }
       }
     } else {
-      // X yok, Sadece Y ekseni seçili
       if (yCount === 1) {
-        rec = ['histogram', 'box', 'violin', 'strip', 'rug'];
-        dis = ['pie', 'donut', 'sunburst', 'treemap', 'bar', 'line', 'scatter'];
+        rec = ['histogram', 'box', 'violin', 'strip', 'rug', 'bullet'];
+        dis = ['pie', 'donut', 'sunburst', 'treemap', 'scatter3d', 'surface', 'candlestick', 'ohlc'];
       } else if (yCount >= 2) {
-        rec = ['scatter', 'bubble', 'density2d', 'histogram2d', 'heatmap', 'scattermatrix', 'parcoords'];
-        dis = ['pie', 'donut', 'funnelarea', 'bar', 'line'];
+        rec = ['scatter', 'bubble', 'density2d', 'histogram2d', 'heatmap', 'scattermatrix', 'parcoords', 'box', 'violin'];
+        dis = ['pie', 'donut', 'funnelarea', 'candlestick', 'ohlc'];
       }
     }
 
@@ -1011,20 +1018,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const keys = Object.keys(agg).filter(k => k !== '__x__');
         const xVals = agg['__x__'] || [];
 
-        // Pie, Donut, Sunburst, Treemap, FunnelArea, Icicle
-        if (['pie', 'donut', 'funnelarea', 'sunburst', 'treemap', 'icicle'].includes(type)) {
-          const k = keys[0];
-          if (k) {
-            traces.push({
-              type: ['sunburst', 'treemap', 'icicle'].includes(type) ? type : (type === 'funnelarea' ? 'funnelarea' : 'pie'),
-              labels: ['sunburst', 'treemap', 'icicle'].includes(type) ? xVals : undefined,
-              parents: ['sunburst', 'treemap', 'icicle'].includes(type) ? xVals.map(() => "") : undefined,
-              [type === 'funnelarea' ? 'text' : 'labels']: xVals,
-              values: agg[k],
-              hole: type === 'donut' ? 0.5 : 0,
-              marker: { colors: PALETTE }
+        // Pie, Donut, Sunburst, Treemap, FunnelArea, Icicle, Sankey
+        if (['pie', 'donut', 'funnelarea', 'sunburst', 'treemap', 'icicle', 'sankey'].includes(type)) {
+          if (type === 'sankey') {
+            let nodeLabels = [...xVals, ...keys];
+            let source = [];
+            let target = [];
+            let value = [];
+            
+            keys.forEach((k, kIdx) => {
+              let targetIdx = xVals.length + kIdx;
+              xVals.forEach((x, xIdx) => {
+                source.push(xIdx);
+                target.push(targetIdx);
+                value.push(agg[k][xIdx] || 0);
+              });
             });
-            layout.xaxis.visible = false; layout.yaxis.visible = false;
+            
+            traces.push({
+              type: 'sankey', orientation: 'h',
+              node: { pad: 15, thickness: 20, line: { color: 'black', width: 0.5 }, label: nodeLabels, color: PALETTE },
+              link: { source: source, target: target, value: value }
+            });
+          } else {
+            const k = keys[0];
+            if (k) {
+              let _labels = xVals;
+              let _parents = ['sunburst', 'treemap', 'icicle'].includes(type) ? xVals.map(() => "") : undefined;
+              let _values = agg[k];
+              
+              if (['sunburst', 'treemap', 'icicle'].includes(type)) {
+                 _labels = [...xVals, 'Tümü'];
+                 _parents = [...xVals.map(() => 'Tümü'), ""];
+                 _values = [...agg[k], agg[k].reduce((a,b)=>a+b, 0)];
+              }
+              
+              traces.push({
+                type: ['sunburst', 'treemap', 'icicle'].includes(type) ? type : (type === 'funnelarea' ? 'funnelarea' : 'pie'),
+                labels: _labels,
+                parents: _parents,
+                [type === 'funnelarea' ? 'text' : 'labels']: _labels,
+                values: _values,
+                hole: type === 'donut' ? 0.5 : 0,
+                marker: { colors: PALETTE }
+              });
+              layout.xaxis.visible = false; layout.yaxis.visible = false;
+            }
           }
         }
         // Bullet / Indicator
