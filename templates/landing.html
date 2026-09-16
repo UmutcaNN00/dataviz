@@ -3,420 +3,489 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataViz Pro V6 — Yeni Nesil İnteraktif Veri & Dashboard Platformu</title>
+  <title>DataViz Pro — Akademik İstatistik & İnteraktif Veri Analizi Laboratuvarı</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 </head>
 <body>
 
-<!-- SCROLL PROGRESS BAR -->
-<div class="scroll-progress" id="scrollProgress"></div>
+  <!-- SCROLL PROGRESS BAR -->
+  <div class="scroll-progress" id="scrollProgress"></div>
 
-<!-- NAVBAR -->
-<nav class="navbar" id="navbar">
-  <div class="nav-inner">
-    <a href="/" class="nav-logo" style="text-decoration:none;color:inherit">⬡ DataViz Pro</a>
-    <div class="nav-links">
-      <a href="#guide">Nasıl Çalışır?</a>
-      <a href="#features">Yetenekler</a>
-      <a href="#charts">50+ Grafik</a>
-      <a href="#dashboard">Çoklu Pano</a>
-      <a href="#faq">SSS</a>
-    </div>
-    <div class="nav-actions">
-      <button class="nav-help-btn" id="openHelpModal" title="Yardım">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Rehber
-      </button>
-      <a href="/analysis" class="nav-cta">Analize Başla →</a>
-    </div>
-  </div>
-</nav>
-
-<!-- CANVAS -->
-<canvas id="particleCanvas"></canvas>
-
-<!-- ══════════ HERO ══════════ -->
-<section class="hero" id="hero">
-  <div class="hero-glow glow-1"></div>
-  <div class="hero-glow glow-2"></div>
-  <div class="hero-glow glow-3"></div>
-
-  <div class="hero-content">
-    <div class="badge reveal-up" style="--delay:0s">
-      <span class="badge-dot"></span>
-      v6 Mega BI — 50+ Grafik · İleri Düzey İstatistik · Çoklu Pano · Canlı Dilimleyiciler
-    </div>
-
-    <h1 class="hero-title reveal-up" style="--delay:0.1s">
-      Ham Excel'i<br><span class="gradient-text">Akıllı Panolara</span><br>Dönüştürün.
-    </h1>
-
-    <p class="hero-sub reveal-up" style="--delay:0.2s">
-      Excel veya CSV dosyalarınızı sürükle-bırak yöntemiyle yükleyin. Otomatik veri temizliği (Data Prep), 50 farklı görselleştirme türü, canlı dilimleyiciler (Slicers) ve hızlı algoritmik yorumlayıcı ile profesyonel yönetim panoları oluşturun.
-    </p>
-
-    <div class="hero-actions reveal-up" style="--delay:0.3s">
-      <a href="/analysis" class="btn-hero-primary">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Ücretsiz Analize Başla
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">⬡</span> DataViz <em>Research</em>
       </a>
-      <a href="#guide" class="btn-hero-ghost">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Nasıl Kullanılır?
-      </a>
-    </div>
-
-    <div class="hero-stats reveal-up" style="--delay:0.4s">
-      <div class="stat-chip">📊 50+ Grafik Türü</div>
-      <div class="stat-chip">📈 İleri Düzey İstatistik</div>
-      <div class="stat-chip">🎛️ Çoklu Pano (Canvas)</div>
-      <div class="stat-chip">🧩 Pivot Studio (YENİ)</div>
-      <div class="stat-chip">🔗 Veri Birleştirici (YENİ)</div>
-      <div class="stat-chip">🔍 Canlı Dilimleyiciler</div>
-      <div class="stat-chip">📄 PDF Export Studio</div>
-    </div>
-  </div>
-
-    <!-- Uçan Cam Pano (Floating Glass Dashboard) -->
-  <div class="hero-mockup-wrapper reveal-right" style="--delay:0.2s" id="heroVisual">
-    <div class="glass-dashboard" id="heroMockup">
-      <div class="mockup-header">
-        <div class="mac-dots"><span></span><span></span><span></span></div>
-        <div class="mockup-title">DataViz Pro - Analysis Studio</div>
+      <div class="nav-links">
+        <a href="#stats-lab">İstatistik Laboratuvarı</a>
+        <a href="#workflow">Nasıl Çalışır?</a>
+        <a href="#features">Yetenekler</a>
+        <a href="#charts">50+ Grafik</a>
+        <a href="#a4-studio">A4 Rapor Stüdyosu</a>
+        <a href="#faq">Metodoloji & SSS</a>
       </div>
-      <div class="mockup-body">
-        <div class="mockup-sidebar">
-          <div class="m-line short"></div><div class="m-line"></div>
-          <div class="m-line short mt-2"></div><div class="m-line"></div>
+      <div class="nav-actions">
+        <a href="/analysis" class="nav-cta">Analiz Laboratuvarı →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══════════ HERO SECTION ══════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-glow glow-1"></div>
+    <div class="hero-glow glow-2"></div>
+
+    <div class="hero-content">
+      <div class="badge reveal-up">
+        <span class="badge-dot"></span>
+        🔬 SciPy 1.11+ İstatistik Motoru • Sıfır Halüsinasyon • SPSS / R Alternatifi
+      </div>
+
+      <h1 class="hero-title reveal-up" style="--delay:0.1s">
+        Bilimsel Araştırmalarınız İçin<br>
+        <span class="gradient-text">Kesin İstatistiksel</span> Çıktılar.
+      </h1>
+
+      <p class="hero-sub reveal-up" style="--delay:0.2s">
+        SPSS ve R kod karmaşasına son. Excel ve CSV dosyalarınızı anında <strong>Tek Yönlü ANOVA</strong>, <strong>Bağımsız T-Testi</strong>, <strong>OLS Doğrusal Regresyon</strong> ve <strong>%95 Güven Aralıklarıyla</strong> akademik makale ve tez formatında raporlayın. Ağır GPU veya bulut bağımlılığı olmadan %100 yerel ve güvenli.
+      </p>
+
+      <div class="hero-actions reveal-up" style="--delay:0.3s">
+        <a href="/analysis" class="btn-hero-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Tez / Makale Analizi Başlat
+        </a>
+        <a href="#stats-lab" class="btn-hero-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          İstatistik Motorunu İncele
+        </a>
+      </div>
+
+      <div class="hero-stats reveal-up" style="--delay:0.4s">
+        <div class="stat-chip">📊 50+ Plotly.js Grafiği</div>
+        <div class="stat-chip">📐 Tek Yönlü ANOVA</div>
+        <div class="stat-chip">📉 OLS Regresyon (%95 Güven)</div>
+        <div class="stat-chip">📋 Bağımsız T-Testi</div>
+        <div class="stat-chip">📄 A4 PDF Rapor Stüdyosu</div>
+        <div class="stat-chip">🔗 VLOOKUP / Left Join</div>
+        <div class="stat-chip">⚡ Zero-GPU Yerel Hız</div>
+      </div>
+    </div>
+
+    <!-- İNTERAKTİF HİPOTEZ VE İSTATİSTİK KARTI -->
+    <div class="hero-visual reveal-right" style="--delay:0.2s">
+      <div class="acad-interactive-card">
+        <div class="card-top-bar">
+          <div class="card-indicator">
+            <span class="pulse-dot"></span>
+            <strong>Parametrik Hipotez Test Panosu</strong>
+          </div>
+          <div class="card-tabs" id="heroTabs">
+            <button class="c-tab active" data-tab="anova">ANOVA</button>
+            <button class="c-tab" data-tab="regression">Regresyon (R²)</button>
+            <button class="c-tab" data-tab="ttest">T-Testi</button>
+            <button class="c-tab" data-tab="corr">Korelasyon</button>
+          </div>
         </div>
-        <div class="mockup-charts">
-          <div class="m-chart m-chart-1"><div class="m-bar h-1"></div><div class="m-bar h-2"></div><div class="m-bar h-3"></div><div class="m-bar h-4"></div></div>
-          <div class="m-chart m-chart-2"><div class="m-circle"></div></div>
-          <div class="m-chart m-chart-3" style="grid-column: span 2;"><svg viewBox="0 0 100 30" preserveAspectRatio="none" class="m-wave"><path d="M0,30 Q25,10 50,20 T100,5 L100,30 L0,30 Z" fill="rgba(167,139,250,0.4)"/></svg></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-</section>
-<!-- ── INFINITE MARQUEE ── -->
-<div class="infinite-marquee-container">
-  <div class="infinite-marquee">
-    <span>✦ HIZLI ALGORİTMİK YORUMLAYICI</span>
-    <span>✦ SINIRSIZ VERİ BOYUTU</span>
-    <span>✦ 50+ MODERN GRAFİK</span>
-    <span>✦ EXECUTİVE PDF ÇIKTISI</span>
-    <span>✦ PANDAS & PYTHON TABANLI</span>
-    <span>✦ HIZLI ALGORİTMİK YORUMLAYICI</span>
-    <span>✦ SINIRSIZ VERİ BOYUTU</span>
-    <span>✦ 50+ MODERN GRAFİK</span>
-    <span>✦ EXECUTİVE PDF ÇIKTISI</span>
-    <span>✦ PANDAS & PYTHON TABANLI</span>
-  </div>
-</div>
+        <!-- Dynamic Content Panel -->
+        <div class="card-body" id="heroDynamicBody">
+          <div class="metrics-row">
+            <div class="metric-box">
+              <span class="m-label">F-İstatistiği (F-Value)</span>
+              <span class="m-val highlight-blue">14.825</span>
+              <span class="m-badge">✓ Gruplar Arası Anlamlı</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-label">P-Değeri (Asymptotic Sig.)</span>
+              <span class="m-val highlight-green">0.00012</span>
+              <span class="m-badge">p &lt; 0.01 (İleri Düzey)</span>
+            </div>
+          </div>
 
-<!-- ══════════ COUNTERS ══════════ -->
-<section class="counters-section" id="counters">
-  <div class="counters-grid">
-    <div class="counter-item" data-reveal="up">
-      <span class="counter-num" data-target="50">0</span><span class="counter-suffix">+</span>
-      <p>Grafik Türü</p>
-    </div>
-    <div class="counter-item" data-reveal="up" style="--delay:0.08s">
-      <span class="counter-num" data-target="4">0</span><span class="counter-suffix">+</span>
-      <p>İleri İstatistiksel Analiz</p>
-    </div>
-    <div class="counter-item" data-reveal="up" style="--delay:0.16s">
-      <span class="counter-num" data-target="1">0</span><span class="counter-suffix"> Tıkla</span>
-      <p>Yönetici PDF Raporu</p>
-    </div>
-    <div class="counter-item" data-reveal="up" style="--delay:0.24s">
-      <span class="counter-num" data-target="0">0</span><span class="counter-suffix"> Kod</span>
-      <p>Sürükle & Bırak Kolaylığı</p>
-    </div>
-  </div>
-</section>
+          <div class="chart-box-mock">
+            <svg width="100%" height="95" viewBox="0 0 340 95" class="mock-svg">
+              <!-- Box Plot 1 -->
+              <line x1="40" y1="48" x2="130" y2="48" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="60" y="24" width="50" height="48" fill="rgba(56,189,248,0.18)" stroke="#38bdf8" stroke-width="2" rx="4"/>
+              <line x1="85" y1="24" x2="85" y2="72" stroke="#f59e0b" stroke-width="2.5"/>
 
-<!-- ══════════ GUIDE ══════════ -->
-<section class="guide-section" id="guide">
-  <div class="section-header">
-    <p class="section-label">Hızlı Başlangıç Rehberi</p>
-    <h2 class="section-title">4 Adımda Ham Veriden Yönetici Raporuna.</h2>
-    <p class="section-sub">Veri analizi bilmenize gerek yok. Sistem her adımda size rehberlik eder:</p>
-  </div>
+              <!-- Box Plot 2 -->
+              <line x1="200" y1="48" x2="300" y2="48" stroke="#818cf8" stroke-width="2"/>
+              <rect x="225" y="18" width="55" height="60" fill="rgba(129,140,248,0.18)" stroke="#818cf8" stroke-width="2" rx="4"/>
+              <line x1="255" y1="18" x2="255" y2="78" stroke="#f59e0b" stroke-width="2.5"/>
+            </svg>
+            <div class="chart-caption">Gruplar Arası Kutu (Box Plot) Yayılımı & Medyan Çizgisi</div>
+          </div>
 
-  <div class="guide-steps">
-    <div class="guide-step" data-reveal="up" style="--delay:0s">
-      <div class="gs-num">01</div>
-      <div class="gs-icon">📁</div>
-      <h3>Dosyanızı Yükleyin</h3>
-      <p>Excel (.xlsx, .xls) veya CSV dosyanızı sürükleyip bırakın. Veri Sağlığı (Data Prep) motoru eksik hücreleri anında tespit edip onarır.</p>
-      <div class="gs-tip">💡 Eksik satırları tek tıkla silebilir veya ortalamayla doldurabilirsiniz</div>
-    </div>
-
-    <div class="guide-connector"></div>
-
-    <div class="guide-step" data-reveal="up" style="--delay:0.1s">
-      <div class="gs-num">02</div>
-      <div class="gs-icon">🎯</div>
-      <h3>Sürükle-Bırak ile Eksenleri Seçin</h3>
-      <p>Veri havuzundaki renkli sütun haplarını tutup X ve Y kutularına bırakın. Dilerseniz "✨ Şablon Seç" ile otomatik eşleyin.</p>
-      <div class="gs-tip">💡 Sağdaki 50 grafikten seçtiğiniz eksenlere en uygun olanlar parlar</div>
-    </div>
-
-    <div class="guide-connector"></div>
-
-    <div class="guide-step" data-reveal="up" style="--delay:0.2s">
-      <div class="gs-num">03</div>
-      <div class="gs-icon">🔍</div>
-      <h3>Filtreleyin ve İstatistiksel Olarak Yorumlayın</h3>
-      <p>Canlı dilimleyicilerle (Slicers) verinizi daraltın. "Algoritmik Yorum" sekmesine geçerek verileriniz hakkında istatistiksel sonuçlar (ANOVA, T-Testi, Korelasyon, Regresyon) elde edin.</p>
-      <div class="gs-tip">💡 Verileriniz tamamen bilgisayarınızda kalır, buluta sızmaz</div>
-    </div>
-
-    <div class="guide-connector"></div>
-
-    <div class="guide-step" data-reveal="up" style="--delay:0.3s">
-      <div class="gs-num">04</div>
-      <div class="gs-icon">🎛️</div>
-      <h3>Panoya Ekleyin & PDF İndirin</h3>
-      <p>Grafikleri "📌 Panoya Ekle" butonuyla çoklu gösterge panosuna toplayın. Tek tıkla tüm panoyu kurumsal A4 PDF olarak dışa aktarın.</p>
-      <div class="gs-tip">💡 Birden fazla farklı analizi yan yana tek raporda sunun</div>
-    </div>
-  </div>
-</section>
-
-<!-- ── SCROLLYTELLING FEATURES ── -->
-<section class="features" id="features">
-  <div class="section-header">
-    <p class="section-label">Gelişmiş BI Yetenekleri</p>
-    <h2 class="section-title">Her Şey Tek Platformda.</h2>
-  </div>
-  
-  <div class="scrolly-container">
-    <!-- Sol Taraf: Kayıp Giden (Scrollable) Yazılar -->
-    <div class="scrolly-text">
-      
-      <div class="scrolly-step">
-        <div class="feat-icon" style="--ic:#a78bfa">🧹</div>
-        <h3>Akıllı Veri Temizliği</h3>
-        <p>Hatalı veya eksik hücreler (NaN) yükleme anında taranır. Tek tıkla ortalamayla doldurma veya silme opsiyonu sunulur.</p>
-      </div>
-      
-      <div class="scrolly-step">
-        <div class="feat-icon" style="--ic:#f97316">📊</div>
-        <h3>Çoklu Pano (Dashboard Canvas)</h3>
-        <p>Tek bir grafikle sınırlı kalmayın. Farklı analizleri panonuza sabitleyin, yan yana karşılaştırın ve topluca raporlayın.</p>
-      </div>
-      
-      <div class="scrolly-step">
-        <div class="feat-icon" style="--ic:#f472b6">📈</div>
-        <h3>İleri Düzey İstatistik & Algoritmik Yorum</h3>
-        <p>ANOVA, T-Testi, Korelasyon ve Regresyon gibi gelişmiş istatistiksel testleri algoritmik bir altyapı ile saniyeler içinde uygulayıp profesyonel özetler elde edin.</p>
-      </div>
-      
-      <div class="scrolly-step">
-        <div class="feat-icon" style="--ic:#60a5fa">🔍</div>
-        <h3>Dinamik Veri Dilimleyiciler</h3>
-        <p>Kategori filtreleri veya sayısal aralık çubukları ekleyin. Filtre uygulandığı an tüm grafikler canlı güncellenir.</p>
-      </div>
-      
-      <div class="scrolly-step">
-        <div class="feat-icon" style="--ic:#fbbf24">🧩</div>
-        <h3>Pivot Studio (Yeni)</h3>
-        <p>Verilerinizi satır, sütun ve metrik alanlarına sürükleyerek çok boyutlu kırılımlar oluşturun. Tıpkı Excel'deki Pivot Table konforuyla.</p>
-      </div>
-      
-      <div class="scrolly-step">
-        <div class="feat-icon" style="--ic:#4ade80">🔗</div>
-        <h3>Akıllı Veri Birleştirici</h3>
-        <p>İkinci bir dosya yükleyerek verilerinizi sol-birleştirme (VLOOKUP / Left Join) ile tek dosyada toplayın ve analizi derinleştirin.</p>
-      </div>
-      
-    </div>
-
-    <!-- Sağ Taraf: Ekrana Kilitlenen (Sticky) 3D Obje -->
-    <div class="scrolly-visual">
-      <div class="sticky-card" style="border: none; background: transparent; box-shadow: none; overflow: visible;">
-        <div class="sticky-glow" id="svGlow" style="width: 400px; height: 400px;"></div>
-        <!-- 3D Canvas Container -->
-        <div id="three-canvas-container" style="position:absolute; inset:0; z-index: 5;"></div>
-        
-        <!-- Yüzen (Floating) Bilgi Kartı -->
-        <div class="floating-info-card" id="svInfoCard">
-          <span class="sv-icon" id="svIcon">💡</span>
-          <div>
-            <h4 id="svTitle">Scroll Yaparak İnceleyin</h4>
-            <p id="svDesc" style="color:var(--muted); font-size:0.85rem; margin-top:4px;">Veri deneyiminizi kusursuzlaştıran özellikler.</p>
+          <div class="academic-verdict">
+            <strong>Akademik Yorum:</strong> H₀ Hipotezi Reddedildi. Gruplar arasında %99 güven düzeyinde istatistiksel açıdan anlamlı bir varyans farkı saptanmıştır.
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ── CHART SHOWCASE (BENTO BOX) ── -->
-<section class="chart-showcase" id="charts">
-  <div class="section-header">
-    <p class="section-label">Üstün Yetenekler</p>
-    <h2 class="section-title">Güç ve Zarafet Bir Arada.</h2>
-  </div>
-  <div class="bento-grid">
-    <div class="bento-card b-span-2" data-reveal="up">
-      <div class="bento-icon">📈</div>
-      <h3>Gelişmiş Algoritmik Yorumlayıcı</h3>
-      <p>Karmaşık dil modellerine ihtiyaç duymadan, istatistiksel (ANOVA, T-Test vb.) ve matematiksel algoritmalarla verinizi en doğru şekilde analiz edin.</p>
-    </div>
-    
-    <div class="bento-card b-row-2" data-reveal="right">
-      <div class="bento-icon">📑</div>
-      <h3>PDF Export Studio</h3>
-      <p>Akademik ve kurumsal sunumlarınız için saniyeler içinde 4K kalitesinde detaylı A4 PDF raporlar üretin.</p>
-    </div>
-
-    <div class="bento-card" data-reveal="left">
-      <div class="bento-icon">📊</div>
-      <h4>50+ Modern Grafik</h4>
-      <p>Keman, Sunburst, Isı Haritası.</p>
-    </div>
-
-    <div class="bento-card" data-reveal="up">
-      <div class="bento-icon">🎲</div>
-      <h4>3D Analiz</h4>
-      <p>Yüzey, Contour ve 3D Scatter.</p>
-    </div>
-    
-    <div class="bento-card b-span-2" data-reveal="up">
-      <div class="bento-icon">🎛️</div>
-      <h3>Sınırsız Dashboard Canvas</h3>
-      <p>Farklı dilimleyicilerle yan yana onlarca grafiği canlı senkronize edin.</p>
+  <!-- ── INFINITE SCIENTIFIC MARQUEE ── -->
+  <div class="infinite-marquee-container">
+    <div class="infinite-marquee">
+      <span>✦ SCIPY 1.11+ İSTATİSTİK MOTORU</span>
+      <span>✦ TEK YÖNLÜ ANOVA & T-TESTİ</span>
+      <span>✦ OLS DOĞRUSAL REGRESYON & %95 GÜVEN BANDI</span>
+      <span>✦ 50+ İNTERAKTİF PLOTLY.JS GRAFİĞİ</span>
+      <span>✦ AKILLI ÖNERİ KURAL MOTORU</span>
+      <span>✦ DÜZENLENEBİLİR A4 PDF RAPOR STÜDYOSU</span>
+      <span>✦ SIFIR BULUT BAĞIMLILIĞI (%100 YEREL)</span>
+      <span>✦ VLOOKUP / LEFT JOIN VERİ BİRLEŞTİRİCİ</span>
+      <span>✦ FORMÜL & YENİ DEĞİŞKEN MOTORU</span>
     </div>
   </div>
-</section>
 
-<!-- ══════════ FAQ ══════════ -->
-<section class="faq-section" id="faq">
-  <div class="section-header">
-    <p class="section-label">Sık Sorulan Sorular</p>
-    <h2 class="section-title">Merak Ettikleriniz.</h2>
-  </div>
-  <div class="faq-grid">
-    <div class="faq-item" data-reveal="up">
-      <button class="faq-q" aria-expanded="false">
-        <span>İleri düzey istatistik testleri için internet gerekiyor mu?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div class="faq-a">
-        <p><strong>Kesinlikle hayır.</strong> Tüm hesaplamalar (ANOVA, T-Testi, Korelasyon, Regresyon vb.) ve algoritmik analiz süreçleri doğrudan cihazınızda çalışır. Verileriniz hiçbir şekilde dışarı aktarılmaz.</p>
+  <!-- ══════════ METRICS / STATS COUNTERS ══════════ -->
+  <section class="counters-section" id="counters">
+    <div class="counters-grid">
+      <div class="counter-item">
+        <span class="counter-num" data-target="50">0</span><span class="counter-suffix">+</span>
+        <p>İnteraktif Grafik Türü</p>
+        <span class="c-desc">Plotly.js donanım hızlandırmalı</span>
+      </div>
+      <div class="counter-item">
+        <span class="counter-num" data-target="4">0</span><span class="counter-suffix"> Temel</span>
+        <p>Parametrik Hipotez Testi</p>
+        <span class="c-desc">ANOVA, T-Test, Regresyon, Korelasyon</span>
+      </div>
+      <div class="counter-item">
+        <span class="counter-num" data-target="95">0</span><span class="counter-suffix">%</span>
+        <p>Güven Aralığı (CI)</p>
+        <span class="c-desc">Doğrusal trend ve gelecek projeksiyonu</span>
+      </div>
+      <div class="counter-item">
+        <span class="counter-num" data-target="0">0</span><span class="counter-suffix"> GPU / Bulut</span>
+        <p>Yerel Donanım Hızı</p>
+        <span class="c-desc">Veriler bilgisayarınızdan asla ayrılmaz</span>
       </div>
     </div>
+  </section>
 
-    <div class="faq-item" data-reveal="up" style="--delay:0.05s">
-      <button class="faq-q" aria-expanded="false">
-        <span>Çoklu Pano (Dashboard Canvas) nasıl kullanılır?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div class="faq-a">
-        <p>Adım 3 ekranında çizdiğiniz herhangi bir grafiği sağ üstteki <strong>"📌 Panoya Ekle"</strong> butonuyla kaydedin. Farklı filtreler ve grafik türleriyle panoya birden fazla grafik ekleyebilir, ardından "📋 Pano" sekmesine geçerek tümünü tek ekranda görüp PDF olarak indirebilirsiniz.</p>
+  <!-- ══════════ STATS LAB DEEP DIVE ══════════ -->
+  <section class="stats-lab-section" id="stats-lab">
+    <div class="section-header">
+      <p class="section-label">İstatistiksel Doğruluk</p>
+      <h2 class="section-title">SPSS ve R Konforunda Parametrik Testler.</h2>
+      <p class="section-sub">
+        Karmaşık istatistik yazılımlarının lisans ve komut yükünden kurtulun. Veri setinizi seçin, SciPy motoru tüm testleri milisaniyeler içinde icra etsin.
+      </p>
+    </div>
+
+    <div class="hypothesis-grid">
+      <div class="hypo-card">
+        <div class="hypo-icon">📐</div>
+        <h3>Tek Yönlü ANOVA (One-Way ANOVA)</h3>
+        <p>
+          Üç veya daha fazla kategorik grup ortalamasının birbirinden anlamlı düzeyde farklılaşıp farklılaşmadığını varyans analizi ile test eder. $F$ oranı ve p-değerini tam doğrulukla üretir.
+        </p>
+        <div class="hypo-meta">
+          <code>scipy.stats.f_oneway()</code>
+          <span class="hypo-tag">F-Test & p-value</span>
+        </div>
       </div>
-    </div>
 
-    <div class="faq-item" data-reveal="up" style="--delay:0.1s">
-      <button class="faq-q" aria-expanded="false">
-        <span>Akıllı Veri Sağlığı (Data Prep) nedir?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div class="faq-a">
-        <p>Yüklediğiniz Excel veya CSV dosyasında boş hücreler veya hatalı satırlar varsa, sistem analiz başlamadan önce sizi bilgilendirir. Boş satırları tek tıkla silebilir veya sütun ortalaması ile doldurarak veri kaybını önleyebilirsiniz.</p>
+      <div class="hypo-card">
+        <div class="hypo-icon">⚖️</div>
+        <h3>Bağımsız Örneklem T-Testi</h3>
+        <p>
+          İki bağımsız grubun ortalamaları arasındaki farkın tesadüfi olup olmadığını çift yönlü t-dağılımı üzerinden test eder. Serbestlik derecesi ($df$) ve anlamlılık sınırını raporlar.
+        </p>
+        <div class="hypo-meta">
+          <code>scipy.stats.ttest_ind()</code>
+          <span class="hypo-tag">t-Statistic & df</span>
+        </div>
       </div>
-    </div>
 
-    <div class="faq-item" data-reveal="up" style="--delay:0.15s">
-      <button class="faq-q" aria-expanded="false">
-        <span>Canlı Dilimleyiciler (Filtreler) grafikleri nasıl etkiler?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div class="faq-a">
-        <p>"+ Filtre Ekle" butonuna basarak dilediğiniz sütuna göre filtre oluşturabilirsiniz. Filtreyi onayladığınız anda hem aktif grafik hem de istatistiksel özetler anlık olarak yeniden hesaplanır.</p>
+      <div class="hypo-card">
+        <div class="hypo-icon">📈</div>
+        <h3>OLS Doğrusal Regresyon & Güven Bandı</h3>
+        <p>
+          Bağımsız değişkenin bağımlı değişken üzerindeki etkisini En Küçük Kareler (OLS) yöntemiyle modeller. Regresyon denklemini ($y = mx + c$), $R^2$ belirlilik katsayısını ve %95 güven aralığını sunar.
+        </p>
+        <div class="hypo-meta">
+          <code>scipy.stats.linregress()</code>
+          <span class="hypo-tag">R² & %95 CI</span>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
 
-<!-- ══════════ CTA ══════════ -->
-<section class="cta-banner" data-reveal="up">
-  <div class="cta-glow"></div>
-  <h2>Verilerinizi Keşfetmeye Hazır mısınız?</h2>
-  <p>Excel veya CSV dosyanızı yükleyin. Saniyeler içinde modern gösterge panonuzu oluşturun.</p>
-  <a href="/analysis" class="btn-hero-primary">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-    DataViz Pro'yu Başlat
-  </a>
-</section>
-
-<footer class="footer">
-  <span>⬡ DataViz Pro V6 — Yeni Nesil Veri Analitiği & İş Zekası Platformu</span>
-</footer>
-
-<!-- ══════════ HELP MODAL ══════════ -->
-<div class="modal-overlay" id="helpModal">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h2>📖 Kullanım Kılavuzu</h2>
-      <button class="modal-close" id="closeHelpModal">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="modal-tabs">
-      <button class="modal-tab active" data-mtab="shortcuts">⌨ Kısayollar</button>
-      <button class="modal-tab" data-mtab="charts">📊 Grafik Türleri</button>
-      <button class="modal-tab" data-mtab="tips">💡 İpuçları</button>
-    </div>
-    <div class="modal-content" id="mtab-shortcuts">
-      <div class="modal-section">
-        <h3>Hızlı Kontroller</h3>
-        <div class="modal-kb-grid">
-          <div class="mkb"><kbd>G</kbd><span>Grafiği Çiz</span></div>
-          <div class="mkb"><kbd>S</kbd><span>İstatistik Sekmesi</span></div>
-          <div class="mkb"><kbd>D</kbd><span>PNG İndir</span></div>
-          <div class="mkb"><kbd>P</kbd><span>Panoya Ekle</span></div>
-          <div class="mkb"><kbd>?</kbd><span>Rehber</span></div>
-          <div class="mkb"><kbd>Esc</kbd><span>Pencereleri Kapat</span></div>
+      <div class="hypo-card">
+        <div class="hypo-icon">🌡️</div>
+        <h3>Pearson Korelasyon Matrisi</h3>
+        <p>
+          Sayısal değişkenler arasındaki doğrusal ilişkinin yönünü ve gücünü -1.00 ile +1.00 aralığında hesaplar. Çoklu değişkenlerin karşılıklı etkileşimini Isı Haritası (Heatmap) olarak görselleştirir.
+        </p>
+        <div class="hypo-meta">
+          <code>DataFrame.corr(method='pearson')</code>
+          <span class="hypo-tag">Correlation Matrix</span>
         </div>
       </div>
     </div>
-    <div class="modal-content hidden" id="mtab-charts">
-      <div class="modal-section">
-        <h3>50+ Grafik Kategorileri</h3>
-        <div class="modal-chart-guide">
-          <div class="mcg-item"><span class="mcg-icon">📈</span><div><strong>Trend & Zaman:</strong> Çizgi, Alan, Spline, Basamak, Şelale, Mum (Candlestick).</div></div>
-          <div class="mcg-item"><span class="mcg-icon">📊</span><div><strong>Karşılaştırma:</strong> Çubuk, Gruplu Bar, Yığılmış Bar, Huni, Radar, Bullet.</div></div>
-          <div class="mcg-item"><span class="mcg-icon">📉</span><div><strong>Dağılım:</strong> Histogram, Box Plot, Keman (Violin), 2D Yoğunluk, Strip.</div></div>
-          <div class="mcg-item"><span class="mcg-icon">🔵</span><div><strong>İlişki & Matris:</strong> Dağılım (Scatter), Balon (Bubble), Isı Haritası (Heatmap).</div></div>
-          <div class="mcg-item"><span class="mcg-icon">🥧</span><div><strong>Parça / Bütün:</strong> Pasta, Donut, Sunburst, Treemap, Sarkıt (Icicle).</div></div>
-          <div class="mcg-item"><span class="mcg-icon">🧊</span><div><strong>3D & Bilimsel:</strong> 3D Scatter, 3D Yüzey, Kontur, Polar, Ternary.</div></div>
+  </section>
+
+  <!-- ══════════ WORKFLOW GUIDE ══════════ -->
+  <section class="guide-section" id="workflow">
+    <div class="section-header">
+      <p class="section-label">4 Adımda Bilimsel İş Akışı</p>
+      <h2 class="section-title">Ham Excel Verisinden Yayın Formatına.</h2>
+      <p class="section-sub">Veri analitiği bilmenize gerek yok; mimari her adımda sizi yönlendirir:</p>
+    </div>
+
+    <div class="guide-steps">
+      <div class="guide-step">
+        <div class="gs-num">01</div>
+        <div class="gs-icon">📁</div>
+        <h3>Dosyanızı Yükleyin & Temizleyin</h3>
+        <p>Excel (.xlsx, .xls) veya CSV dosyanızı sürükleyin. Veri Sağlığı motoru eksik satırları (NaN) tespit eder; tek tıkla silin veya ortalamayla doldurun.</p>
+        <div class="gs-tip">💡 Çoklu sayfa (sheet) desteği ile dilediğiniz çalışma sayfasını seçin</div>
+      </div>
+
+      <div class="guide-connector"></div>
+
+      <div class="guide-step">
+        <div class="gs-num">02</div>
+        <div class="gs-icon">🎯</div>
+        <h3>Sürükle-Bırak Eksen Eşleme</h3>
+        <p>Renkli sütun haplarını X ve Y kutucuklarına bırakın. Akıllı kural motoru seçtiğiniz değişken tipolojisine en uygun grafikleri parlatır.</p>
+        <div class="gs-tip">💡 Tarih seçilirse trend, kategorik seçilirse kıyaslama ve dağılım parlar</div>
+      </div>
+
+      <div class="guide-connector"></div>
+
+      <div class="guide-step">
+        <div class="gs-num">03</div>
+        <div class="gs-icon">🔬</div>
+        <h3>Hipotez Testi & İstatistiksel Yorum</h3>
+        <p>İstatistik Analizi sekmesine geçin. SciPy motoru ANOVA, T-Testi ve Regresyon sonuçlarını hesaplasın; akademik özet motoru resmi tez dilinde yorumlasın.</p>
+        <div class="gs-tip">💡 Sıfır halüsinasyon: Tüm çıkarımlar doğrudan p ve F değerlerine dayanır</div>
+      </div>
+
+      <div class="guide-connector"></div>
+
+      <div class="guide-step">
+        <div class="gs-num">04</div>
+        <div class="gs-icon">📑</div>
+        <h3>A4 Stüdyosu & Tez Çıktısı</h3>
+        <p>Grafiklerinizi panoya ekleyin, ardından A4 Rapor Stüdyosu'nda yerlerini yukarı-aşağı taşıyın, serbest metin yorumları yazın ve çok sayfalı PDF indirin.</p>
+        <div class="gs-tip">💡 10+ grafik bile otomatik sayfalanır, grafikler ortadan ikiye bölünmez</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ A4 JOURNAL & PDF STUDIO SHOWCASE ══════════ -->
+  <section class="a4-showcase-section" id="a4-studio">
+    <div class="a4-showcase-grid">
+      <div class="a4-paper-container">
+        <div class="a4-paper">
+          <div class="a4-journal-header">
+            <span class="a4-journal-tag">AKADEMİK ARAŞTIRMA RAPORU</span>
+            <span class="a4-journal-date">Eylül 2026</span>
+          </div>
+          <h3 class="a4-paper-title">BÖLÜM 4: BULGULAR VE İSTATİSTİKSEL TARTIŞMA</h3>
+          <p class="a4-paper-text">
+            Örneklem grubuna uygulanan Tek Yönlü Varyans Analizi (One-Way ANOVA) bulgularına göre, gruplar arasındaki fark istatistiksel açıdan ileri düzeyde anlamlıdır (F(2, 147) = 14.825, p &lt; 0.001). Gruplar arası varyans, grup içi varyanstan anlamlı derecede yüksektir.
+          </p>
+
+          <div class="a4-table-mock">
+            <div class="a4-table-header">Tablo 4.1: OLS Doğrusal Regresyon Modeli Katsayıları</div>
+            <div class="a4-table-row"><span>R-Squared (R²)</span><strong>0.891 (%89.1 Açıklanan Varyans)</strong></div>
+            <div class="a4-table-row"><span>F-İstatistiği</span><strong>F = 14.825 (p = 0.00012)</strong></div>
+            <div class="a4-table-row"><span>Model Denklemi</span><strong>Y = 2.41(X) + 15.30 [Güven Bandı: %95]</strong></div>
+          </div>
+
+          <div class="a4-chart-placeholder">
+            <svg width="100%" height="90" viewBox="0 0 300 90">
+              <line x1="30" y1="70" x2="270" y2="15" stroke="#0284c7" stroke-width="2.5"/>
+              <polygon points="30,65 270,10 270,22 30,78" fill="rgba(2,132,199,0.15)"/>
+              <circle cx="60" cy="62" r="3.5" fill="#0284c7"/>
+              <circle cx="110" cy="50" r="3.5" fill="#0284c7"/>
+              <circle cx="160" cy="38" r="3.5" fill="#0284c7"/>
+              <circle cx="210" cy="28" r="3.5" fill="#0284c7"/>
+              <circle cx="250" cy="18" r="3.5" fill="#0284c7"/>
+            </svg>
+            <span>Şekil 4.1: Doğrusal Regresyon Eğrisi & %95 Güven Aralığı</span>
+          </div>
+
+          <p class="a4-paper-text" style="margin-top: 14px;">
+            Araştırmacı Notu: Elde edilen R² değeri doğrusal modelin yüksek tahmin gücüne sahip olduğunu göstermektedir. Bulgular teorik çerçeve ile uyumludur.
+          </p>
+        </div>
+      </div>
+
+      <div class="a4-desc-container">
+        <div class="badge" style="color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.1);">
+          📄 İnteraktif A4 PDF Rapor Stüdyosu
+        </div>
+        <h2 class="section-title" style="text-align: left; font-size: 2.5rem; margin: 16px 0;">
+          Jüriye Sunmaya Hazır, Sayfalanmış Tez Ekleri.
+        </h2>
+        <p style="color: #94a3b8; line-height: 1.7; font-size: 1.05rem; margin-bottom: 24px;">
+          Grafik ekran görüntülerini tek tek kopyalayıp Word'e yapıştırmaktan kurtulun. DataViz Pro'nun A4 PDF Stüdyosu'nda grafiklerinizi canlı bir A4 sayfası üzerinde görün:
+        </p>
+
+        <div class="a4-features-list">
+          <div class="a4-f-item">
+            <span class="a4-f-icon">↕️</span>
+            <div>
+              <strong>Sürükle-Sırala veya Butonlarla Taşı:</strong>
+              <p>Grafik bloklarını ↑ ve ↓ butonlarıyla istediğiniz sıraya dizin, gereksizleri silin.</p>
+            </div>
+          </div>
+          <div class="a4-f-item">
+            <span class="a4-f-icon">✍️</span>
+            <div>
+              <strong>Serbest Akademik Yorum Ekleme:</strong>
+              <p>"+ Metin Ekle" butonu ile grafikler arasına dilediğiniz hipotez açıklamasını ve tablo başlığını yazın.</p>
+            </div>
+          </div>
+          <div class="a4-f-item">
+            <span class="a4-f-icon">📑</span>
+            <div>
+              <strong>Akıllı Çoklu Sayfalama (Multi-Page):</strong>
+              <p>10 veya daha fazla grafik eklediğinizde grafikler ikiye bölünmez; akıllı sayfa sonlarıyla çok sayfalı tam A4 PDF iner.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+          <a href="/analysis" class="btn-hero-primary" style="display: inline-flex;">A4 Stüdyosunu Dene →</a>
         </div>
       </div>
     </div>
-    <div class="modal-content hidden" id="mtab-tips">
-      <div class="modal-section">
-        <h3>Profesyonel Analiz İpuçları</h3>
-        <ul class="modal-tips-list">
-          <li>📌 <strong>Çoklu Pano:</strong> Birden fazla grafiği "Panoya Ekle" ile toplayıp tek parça PDF raporu oluşturabilirsiniz.</li>
-          <li>🔍 <strong>Dilimleyiciler:</strong> Belirli kategorilere veya fiyat aralıklarına odaklanmak için "+ Filtre Ekle" butonunu kullanın.</li>
-          <li>📈 <strong>İleri İstatistik:</strong> "Algoritmik Yorum" sekmesine tıklayarak ANOVA ve Regresyon gibi test sonuçları ile bilimsel içgörüler alın.</li>
-          <li>✨ <strong>Sihirli Şablonlar:</strong> Hızlı analiz için Adım 2'deki hazır şablon butonlarına basabilirsiniz.</li>
+  </section>
+
+  <!-- ══════════ 50+ CHARTS DIRECTORY ══════════ -->
+  <section class="charts-section" id="charts">
+    <div class="section-header">
+      <p class="section-label">Görsel Çeşitlilik</p>
+      <h2 class="section-title">50+ İnteraktif Plotly.js Grafik Türü.</h2>
+      <p class="section-sub">
+        Yeni kural motoru (`evaluateCharts`) ile her veri tipine en doğru grafik önerilir. Hiçbir grafik atıl kalmaz:
+      </p>
+    </div>
+
+    <div class="charts-category-grid">
+      <div class="chart-cat-box">
+        <h4>📈 Trend & Finans</h4>
+        <ul>
+          <li>Çizgi (Line) & Spline</li>
+          <li>Alan & Yığılmış Alan</li>
+          <li>Şelale (Waterfall)</li>
+          <li>Mum (Candlestick) & OHLC</li>
+          <li>Basamak (Step)</li>
+        </ul>
+      </div>
+
+      <div class="chart-cat-box">
+        <h4>📊 Kıyaslama & Profil</h4>
+        <ul>
+          <li>Çubuk & Yatay Çubuk</li>
+          <li>Gruplu & Yığılmış Çubuk</li>
+          <li>Radar (Örümcek Profil)</li>
+          <li>Nokta Kıyas (Dotplot)</li>
+          <li>Huni (Funnel) & Bullet (KPI)</li>
+        </ul>
+      </div>
+
+      <div class="chart-cat-box">
+        <h4>📉 İstatistiksel Dağılım</h4>
+        <ul>
+          <li>Histogram & 2D Histogram</li>
+          <li>Kutu (Box Plot & Çeyreklikler)</li>
+          <li>Keman (Violin Plot & Yoğunluk)</li>
+          <li>Şerit (Strip) & Halı (Rug)</li>
+          <li>2D Kontur Yoğunluğu</li>
+        </ul>
+      </div>
+
+      <div class="chart-cat-box">
+        <h4>🔵 Korelasyon & Çoklu İlişki</h4>
+        <ul>
+          <li>Dağılım (Scatter) & Balon</li>
+          <li>Isı Haritası (Heatmap)</li>
+          <li>Scatter Matrix (SPLOM)</li>
+          <li>Paralel Koordinatlar (Parcoords)</li>
+          <li>Paralel Kategoriler (Parcats)</li>
+        </ul>
+      </div>
+
+      <div class="chart-cat-box">
+        <h4>🥧 Hiyerarşi & Akış</h4>
+        <ul>
+          <li>Pasta & Donut</li>
+          <li>Ağaç Haritası (Treemap)</li>
+          <li>Güneş Işığı (Sunburst)</li>
+          <li>Sarkıt (Icicle)</li>
+          <li>Akış Diyagramı (Sankey)</li>
+        </ul>
+      </div>
+
+      <div class="chart-cat-box">
+        <h4>🌌 3D & Bilimsel</h4>
+        <ul>
+          <li>3D Scatter & 3D Çizgi</li>
+          <li>3D Topolojik Yüzey (Surface)</li>
+          <li>Eş-Yükselti Kontur (Contour)</li>
+          <li>Ternary (3 Eksenli Üçgen)</li>
+          <li>Polar Çubuk & Rüzgar Gülü</li>
         </ul>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- ── 3D KÜTÜPHANESİ ── -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="{{ url_for('static', filename='js/three_scene.js') }}?v=10"></script>
-<script src="{{ url_for('static', filename='js/landing.js') }}?v=10"></script>
+  <!-- ══════════ METHODOLOGY & FAQ ══════════ -->
+  <section class="faq-section" id="faq">
+    <div class="section-header">
+      <p class="section-label">Sıkça Sorulan Sorular</p>
+      <h2 class="section-title">Metodoloji ve Güvenilirlik.</h2>
+    </div>
+
+    <div class="faq-grid">
+      <div class="faq-card">
+        <h4>❓ ANOVA ve T-Testi hangi standartlara göre hesaplanır?</h4>
+        <p>Tüm hipotez testleri Python'un standart bilimsel kütüphanesi olan <code>scipy.stats</code> ile hesaplanır. ANOVA için tek yönlü varyans analizi ($F$), bağımsız gruplar için iki yönlü Student's t-testi kullanılır.</p>
+      </div>
+
+      <div class="faq-card">
+        <h4>❓ Sistemde yapay zeka halüsinasyonu riski var mı?</h4>
+        <p>Kesinlikle hayır. Sistemde üretken (generatif) uydurma metin yoktur. "Akademik Yorumlayıcı", elde edilen $p$, $F$ ve $R^2$ değerlerini kural tabanlı katı bilimsel şablonlarla yorumlar.</p>
+      </div>
+
+      <div class="faq-card">
+        <h4>❓ Verilerim üçüncü parti sunuculara veya buluta yükleniyor mu?</h4>
+        <p>Hayır. Uygulama tamamen yerel makinenizde (127.0.0.1) çalışır. Yüklediğiniz Excel veya CSV dosyaları bilgisayarınızın RAM'inde işlenir ve dışarıya hiçbir veri aktarılmaz.</p>
+      </div>
+
+      <div class="faq-card">
+        <h4>❓ A4 PDF Raporunda tabloları ve metinleri düzenleyebilir miyim?</h4>
+        <p>Evet. A4 Rapor Stüdyosu tam etkileşimlidir. Blokları yukarı/aşağı taşıyabilir, istemediğiniz grafikleri silebilir ve "+ Metin Ekle" butonu ile dilediğiniz yorumu yazabilirsiniz.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">⬡ DataViz Research</div>
+        <p class="footer-desc">Akademik Araştırma, İstatistiksel Hipotez Testleri ve İnteraktif Raporlama Platformu.</p>
+      </div>
+      <div class="footer-meta">
+        <p>Geliştirici: <strong>Umutcan</strong> (<a href="https://github.com/UmutcaNN00/dataviz" target="_blank">@UmutcaNN00/dataviz</a>)</p>
+        <p>Lisans: Akademik ve Açık Kaynak Kullanımı • 2026</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
 </body>
 </html>
