@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════
-   DATAVIZ PRO V6 — ENTERPRISE BI & FORECASTING MOTORU
+   DATAVIZ PRO V6 — ENTERPRISE BI & İSTATİSTİK MOTORU
    Multi-Sheet, Slicers, 50 Grafik, Formül Motoru, 
-   Gelecek Tahminlemesi, KPI Tiles, Qwen2.5 AI, Executive PDF
+   Hipotez Testleri (ANOVA/T-Test), KPI Tiles, Executive PDF
 ════════════════════════════════════════════════════════════ */
 
 
@@ -1039,16 +1039,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    const isForecastEnabled = document.getElementById('enableForecast')?.checked || false;
-    const forecastSteps = isForecastEnabled ? parseInt(document.getElementById('forecastStepsSelect').value) : 0;
-
     const reqBody = { 
       x_col: axisConfig.x, 
       y_cols: axisConfig.y, 
       agg_func: document.getElementById('s2AggFunc').value, 
       chart_type: currentPlotType,
-      filters: activeFilters,
-      forecast_steps: forecastSteps
+      filters: activeFilters
     };
 
     try {
@@ -1062,15 +1058,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
       if(!statCols.length) statCols = numericColumns.slice(0, 6);
       fetchStats(statCols);
-
-      // Tahmin Bilgi Kutusu
-      const fBox = document.getElementById('forecastInfoBox');
-      if (data.forecast && fBox) {
-        fBox.classList.remove('hidden');
-        document.getElementById('forecastR2Val').textContent = `%${(data.forecast.r2 * 100).toFixed(1)}`;
-      } else if(fBox) {
-        fBox.classList.add('hidden');
-      }
 
     } catch(err) {
       chartArea.innerHTML = `<div style="color:var(--red); padding:40px; text-align:center;">❌ Hata:<br>${err.message}</div>`;
@@ -1378,30 +1365,6 @@ document.addEventListener('DOMContentLoaded', () => {
             traces.push(tr);
           });
         }
-
-        // 🔮 GELECEK TAHMİNİ TRACE EKLEME
-        if (data.forecast) {
-          const fc = data.forecast;
-          
-          if (!isMini) {
-            traces.push({
-              type: 'scatter', mode: 'lines', name: 'Güven Bandı (%95 Alt)',
-              x: fc.x, y: fc.lower, line: { color: 'transparent' }, showlegend: false, hoverinfo: 'none'
-            });
-            traces.push({
-              type: 'scatter', mode: 'lines', name: 'Güven Bandı (%95)',
-              x: fc.x, y: fc.upper, fill: 'tonexty', fillcolor: 'rgba(244,114,182,0.15)',
-              line: { color: 'transparent' }, showlegend: false, hoverinfo: 'none'
-            });
-          }
-
-          traces.push({
-            type: 'scatter', mode: 'lines+markers', name: `🔮 Gelecek Tahmini (${fc.target_y})`,
-            x: fc.x, y: fc.y,
-            line: { dash: 'dot', color: '#f472b6', width: 3 },
-            marker: { size: isMini ? 4 : 7, color: '#f472b6' }
-          });
-        }
       }
 
       Plotly.newPlot(targetElementId, traces, layout, { responsive: true, displayModeBar: !isMini, displaylogo: false });
@@ -1422,13 +1385,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ternary: { aaxis: { gridcolor: gc, linecolor: gc }, baxis: { gridcolor: gc, linecolor: gc }, caxis: { gridcolor: gc, linecolor: gc }, bgcolor: 'transparent' }
     };
   }
-
-  // Tahmin Anahtarı Listener
-  document.getElementById('enableForecast')?.addEventListener('change', refreshActiveChart);
-  document.getElementById('forecastStepsSelect')?.addEventListener('change', () => {
-    if(document.getElementById('enableForecast')?.checked) refreshActiveChart();
-  });
-
 
   /* ── 7. AKILLI FİLTRELEME / SLICERS SİSTEMİ ── */
   const filterModal = document.getElementById('filterModal');

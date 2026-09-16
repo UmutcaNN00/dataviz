@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # ⬡ DataViz Pro
 ### Yeni Nesil İnteraktif Veri Analizi, İstatistik ve İş Zekası (BI) Platformu
@@ -25,7 +25,7 @@
 
 <br>
 
-> ⚡ **Sıfır Bulut Bağımlılığı & Donanım Dostu:** Ağır yapay zeka modelleri (LLM) veya yüksek GPU maliyetleri gerektirmez. Tüm veri işleme, hipotez testleri ve tahminlemeler yerel Python ve SciPy algoritmalarıyla milisaniyeler içinde gerçekleştirilir.
+> ⚡ **Sıfır Bulut Bağımlılığı & Donanım Dostu:** Ağır yapay zeka modelleri (LLM) veya yüksek GPU maliyetleri gerektirmez. Tüm veri işleme ve hipotez testleri yerel Python ve SciPy algoritmalarıyla milisaniyeler içinde gerçekleştirilir.
 
 </div>
 
@@ -91,7 +91,6 @@ Platform, rastgele grafikler sunmak yerine seçilen eksenlerin **matematiksel ti
 
 ### 2. 50+ İnteraktif Görselleştirme
 * **Plotly.js Entegrasyonu:** Tüm grafiklerde donanım hızlandırmalı yakınlaştırma (zoom), kaydırma (pan) ve fare ile üzerine gelme (tooltip) desteği.
-* **Gelecek Tahminleme (Forecasting):** Zaman serisi ve trend grafiklerinde doğrusal regresyon ve %95 güven bandı (`Confidence Interval`) ile gelecek periyot projeksiyonu.
 * **Sürüklenebilir Bölücü (Splitter):** Değişken havuzu ile grafik seçim paneli arasındaki dikey ayırıcıyı fareyle esnetebilme.
 * **Karanlık Mod & Özel Renk Paletleri:** Apple/Mac standartlarında 6px ultra-ince kaydırma çubukları, neon vurgular ve glassmorphism kart tasarımı.
 

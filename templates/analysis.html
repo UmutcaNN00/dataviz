@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataViz Pro V6 — Kurumsal BI, Tahminleme & Veri Birleştirme Platformu</title>
+  <title>DataViz Pro V6 — Kurumsal BI, İstatistik & Veri Birleştirme Platformu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -640,7 +640,6 @@
       <div class="inspector-tabs">
         <button class="i-tab active" data-itab="colors">🎨 Stil</button>
         <button class="i-tab" data-itab="axes">⚙️ Eksen</button>
-        <button class="i-tab" data-itab="forecast">🔮 Tahmin</button>
         <button class="i-tab" data-itab="export">💾 Dışa Aktar</button>
       </div>
 
@@ -682,29 +681,6 @@
           <div class="form-group-check" style="margin-top:16px;">
             <input type="checkbox" id="showGrid" checked>
             <label for="showGrid">Izgara (Grid) Çizgilerini Göster</label>
-          </div>
-        </div>
-
-        <!-- Forecast Tab -->
-        <div class="i-pane hidden" id="itab-forecast">
-          <p style="font-size:0.85rem; color:var(--muted); line-height:1.5;">Trend grafiklerinde matematiksel regresyon ile geleceğe yönelik projeksiyon eğrisi çizin:</p>
-          
-          <div class="form-group-check" style="margin-top:12px;">
-            <input type="checkbox" id="enableForecast">
-            <label for="enableForecast" style="font-weight:700; color:var(--purple);">🔮 Gelecek Trend Tahminini Aç</label>
-          </div>
-
-          <div class="form-group" style="margin-top:16px;">
-            <label>Tahmin Edilecek Dönem Sayısı</label>
-            <select id="forecastStepsSelect">
-              <option value="3">Gelecek 3 Dönem (Kısa Vade)</option>
-              <option value="6" selected>Gelecek 6 Dönem (Orta Vade)</option>
-              <option value="12">Gelecek 12 Dönem (Uzun Vade)</option>
-            </select>
-          </div>
-
-          <div id="forecastInfoBox" class="forecast-info-box hidden">
-            <span>📊 Model Güveni: <strong id="forecastR2Val">%0</strong></span>
           </div>
         </div>
 

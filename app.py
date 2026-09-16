@@ -941,7 +941,7 @@ def generate_insight():
         
         return jsonify({"insight": "\n\n".join(items), "fallback": True})
 
-# ═════════ 8. GET CHART DATA + GELECEK TAHMİNİ (FORECASTING) ═════════
+# ═════════ 8. GET CHART DATA ═════════
 @app.route('/get_chart_data', methods=['POST'])
 def get_chart_data():
     global_df = get_df(1)
@@ -953,7 +953,6 @@ def get_chart_data():
     agg_func = data.get('agg_func', 'sum')
     chart_type = data.get('chart_type', 'bar')
     filters = data.get('filters', [])
-    forecast_steps = int(data.get('forecast_steps', 0))
 
     if isinstance(y_cols, str): y_cols = [y_cols]
     
@@ -1019,36 +1018,6 @@ def get_chart_data():
                 for y in y_cols:
                     if y in grouped.columns: agg_dict[y] = grouped[y].astype(object).fillna(0).tolist()
                 response_data['agg'] = agg_dict
-
-                # 🔮 GELECEK TAHMİNİ (FORECASTING) HESAPLAMA
-                if forecast_steps > 0 and y_cols and len(grouped) >= 3:
-                    try:
-                        primary_y = y_cols[0]
-                        y_vals = np.array(agg_dict[primary_y], dtype=float)
-                        x_indices = np.arange(len(y_vals))
-                        
-                        slope, intercept, r_value, p_value, std_err = sp_stats.linregress(x_indices, y_vals)
-                        
-                        future_indices = np.arange(len(y_vals), len(y_vals) + forecast_steps)
-                        forecast_y = (slope * future_indices + intercept).tolist()
-                        
-                        if pd.isna(std_err) or np.isinf(std_err):
-                            ci = np.zeros(len(future_indices))
-                        else:
-                            ci = 1.96 * std_err * np.sqrt(1 + 1/len(y_vals) + (future_indices - np.mean(x_indices))**2 / np.sum((x_indices - np.mean(x_indices))**2))
-                        
-                        future_x = [f"+{i+1}. Dönem" for i in range(forecast_steps)]
-                        
-                        response_data['forecast'] = {
-                            'target_y': primary_y,
-                            'x': [agg_dict['__x__'][-1]] + future_x,
-                            'y': [safe_float(y_vals[-1], 0.0)] + [safe_float(max(0, val), 0.0) for val in forecast_y],
-                            'upper': [safe_float(y_vals[-1], 0.0)] + [safe_float(max(0, val + err), 0.0) for val, err in zip(forecast_y, ci)],
-                            'lower': [safe_float(y_vals[-1], 0.0)] + [safe_float(max(0, val - err), 0.0) for val, err in zip(forecast_y, ci)],
-                            'r2': safe_float(r_value**2, 0.0)
-                        }
-                    except Exception as fe:
-                        print("Tahmin hatası:", fe)
 
         return jsonify(response_data)
     except Exception as e:

@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════
-   DATAVIZ PRO — ANALYSIS CSS v6 (ENTERPRISE BI & FORECASTING)
-   Filtreleme, Çoklu Pano, KPI Tiles, Tahminleme, Formül Motoru
+   DATAVIZ PRO — ANALYSIS CSS v6 (ENTERPRISE BI & İSTATİSTİK)
+   Filtreleme, Çoklu Pano, KPI Tiles, Hipotez Testleri, Formül Motoru
 ════════════════════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -120,8 +120,6 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
 .kpi-tile-card.blue::before { background: linear-gradient(90deg, var(--blue), #3b82f6); }
 .kpi-tile-card.purple::before { background: linear-gradient(90deg, var(--purple), #8b5cf6); }
 .kpi-tile-card.orange::before { background: linear-gradient(90deg, var(--orange), #f97316); }
-/* ── FORECASTING STYLES ── */
-.forecast-info-box { background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.3); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: var(--purple); margin-top: 12px; }
 
 /* ── PIN BUTTON ── */
 .btn-pin { background: linear-gradient(135deg, rgba(251,146,60,0.2), rgba(244,114,182,0.2)); border: 1px solid rgba(251,146,60,0.4); color: var(--orange); font-size: 0.85rem; font-weight: 700; padding: 7px 16px; border-radius: 50px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(251,146,60,0.15); }
