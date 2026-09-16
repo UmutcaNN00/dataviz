@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const sheetTabsBar = document.getElementById('sheetTabsBar');
   const sheetTabsList = document.getElementById('sheetTabsList');
 
+  // Tarayıcının varsayılan sürükle-bırak dosya açma davranışını önle
+  window.addEventListener('dragover', (e) => e.preventDefault(), false);
+  window.addEventListener('drop', (e) => e.preventDefault(), false);
+
   // Sürükle - Bırak (Drag & Drop) Olayları
   ['dragenter', 'dragover'].forEach(name => {
     mainDropZone?.addEventListener(name, (e) => {
@@ -42,44 +46,79 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Native dosya seçim input'u tıklandığında eski seçimi temizle (aynı dosya tekrar seçilebilsin)
-  mainFileInput?.addEventListener('click', () => {
-    mainFileInput.value = '';
+  // Tıklama ile Dosya Seçim Penceresi Açma (Buton)
+  document.getElementById('btnBrowseFile')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    mainFileInput?.click();
   });
 
-  // Tıklama ile Dosya Seçim Penceresi Açma (Yedek)
-  mainDropZone?.addEventListener('click', (e) => {
-    if (e.target !== mainFileInput) {
-      mainFileInput.value = '';
-      try {
-        mainFileInput.click();
-      } catch (err) {
-        console.warn('Programmatic click fallback warning:', err);
-      }
-    }
-  });
-
-  // Klavye Erişilebilirliği (Enter / Space)
-  mainDropZone?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      mainFileInput.value = '';
-      try {
-        mainFileInput.click();
-      } catch (err) {
-        console.warn('Programmatic click warning:', err);
-      }
-    }
+  // Hazır Örnek Veri ile Başlama Butonu
+  document.getElementById('btnLoadSampleData')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleLoadSampleData();
   });
 
   // Dosya seçimi gerçekleştiğinde temiz ve anında işleme
   mainFileInput?.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      handleFileUpload(e.target.files[0]);
+      const file = e.target.files[0];
+      handleFileUpload(file);
     }
   });
 
   let isUploading = false;
+
+  async function handleLoadSampleData() {
+    if (isUploading) return;
+    isUploading = true;
+    activeFileName = 'Akademik_Ornek_Veri_Seti.xlsx';
+
+    if (mainUploadStatus) {
+      mainUploadStatus.className = 'status-msg loading';
+      mainUploadStatus.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600;">
+          <span style="display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite;"></span>
+          <span>🧪 Hazır örnek veri seti yükleniyor...</span>
+        </div>
+      `;
+      mainUploadStatus.style.display = 'block';
+    }
+
+    try {
+      const res = await fetch('/load_sample', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Örnek veri yüklenemedi');
+
+      numericColumns = data.numeric_columns || [];
+      categoricalColumns = data.categorical_columns || [];
+      globalColumns = [...categoricalColumns, ...numericColumns];
+      calculatedColumns = [];
+      activeFilters = [];
+      dashboardCharts = [];
+      sheetNames = data.sheet_names || [];
+
+      if (typeof updateDashboardBadge === 'function') updateDashboardBadge();
+      if (typeof renderActiveFilterChips === 'function') renderActiveFilterChips();
+      if (typeof renderSheetTabs === 'function') renderSheetTabs(sheetNames, data.active_sheet);
+      
+      const s2FileEl = document.getElementById('s2FileName');
+      if (s2FileEl) s2FileEl.textContent = activeFileName;
+      const pivotFileEl = document.getElementById('pivotFileName');
+      if (pivotFileEl) pivotFileEl.textContent = activeFileName;
+      
+      if (mainUploadStatus) mainUploadStatus.style.display = 'none';
+
+      proceedToStep2();
+    } catch (err) {
+      console.error('Örnek veri yükleme hatası:', err);
+      alert('Örnek veri yüklenemedi: ' + err.message);
+      if (mainUploadStatus) mainUploadStatus.style.display = 'none';
+    } finally {
+      isUploading = false;
+    }
+  }
   async function handleFileUpload(file) {
     if (!file || isUploading) return;
     isUploading = true;

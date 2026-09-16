@@ -234,8 +234,10 @@
 
     <div class="dropzone-glass-card">
       <div id="mainUploadStatus" class="status-msg hidden" style="margin-bottom: 14px; font-size: 1rem; z-index: 60; display: none;"></div>
-      <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı" style="position: relative; overflow: hidden; cursor: pointer;">
-        <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 50;">
+      
+      <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+
+      <label for="mainFileInput" class="giant-drop-zone" id="mainDropZone" tabindex="0" role="button" aria-label="Dosya Yükleme Alanı" style="display: block; cursor: pointer; position: relative;">
         <div class="dz-icon-wrap" style="pointer-events: none;">
            <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -245,19 +247,26 @@
            <div class="dz-icon-ring"></div>
         </div>
         
-        <h3 style="pointer-events: none;">Dosyanızı Buraya Sürükleyin</h3>
-        <p style="pointer-events: none; margin-bottom: 10px;">veya <span class="gdz-link" style="color:var(--cyan); text-decoration:underline;">bilgisayarınızdan seçin</span></p>
+        <h3 style="pointer-events: none; margin-bottom: 6px;">Dosyanızı Buraya Sürükleyin</h3>
+        <p style="pointer-events: none; margin-bottom: 16px;">veya <span class="gdz-link" style="color:var(--cyan); text-decoration:underline;">bilgisayarınızdan seçin</span></p>
         
-        <button type="button" class="btn-browse-file" style="pointer-events: none; margin-top: 10px; background: var(--purple, #6366f1); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bilgisayardan Dosya Seç
-        </button>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 18px;">
+          <button type="button" class="btn-browse-file" id="btnBrowseFile" style="cursor: pointer; background: linear-gradient(135deg, var(--purple), var(--blue)); color: white; border: none; padding: 12px 28px; border-radius: 12px; font-weight: 700; font-size: 1rem; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(99,102,241,0.4);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Bilgisayardan Dosya Seç
+          </button>
+          
+          <button type="button" class="btn-sample-data" id="btnLoadSampleData" style="cursor: pointer; background: rgba(56,189,248,0.15); color: var(--cyan); border: 1px solid rgba(56,189,248,0.4); padding: 9px 20px; border-radius: 10px; font-weight: 600; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 8px;">
+            🧪 Veya Hazır Örnek Veri ile Hemen Başla
+          </button>
+        </div>
 
-        <div class="dz-formats" style="pointer-events: none; margin-top: 18px;">
+        <div class="dz-formats" style="pointer-events: none;">
           <span class="fmt-badge">.XLSX</span>
           <span class="fmt-badge">.XLS</span>
           <span class="fmt-badge">.CSV</span>
         </div>
-      </div>
+      </label>
     </div>
 
     <div class="upload-security-badges">
@@ -721,9 +730,9 @@
 </div>
 
 
-  <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260916_v9"></script>
-  <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260916_v9"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=20260916_v9"></script>
+  <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260916_v10"></script>
+  <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260916_v10"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=20260916_v10"></script>
 
 <!-- ═══ UPLOAD GÜVENLİ YEDEK MOTORU ═══
      app.js yüklenemese veya hata verse bile upload çalışır (REMOVED) -->
