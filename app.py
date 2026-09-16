@@ -398,6 +398,12 @@ def clean_data():
             cat_cols = global_df.select_dtypes(include=['object', 'category']).columns
             global_df[cat_cols] = global_df[cat_cols].fillna('Bilinmiyor')
             set_df(global_df, 1)
+        elif action == 'fill_zero':
+            num_cols = global_df.select_dtypes(include=['number']).columns
+            global_df[num_cols] = global_df[num_cols].fillna(0)
+            cat_cols = global_df.select_dtypes(include=['object', 'category']).columns
+            global_df[cat_cols] = global_df[cat_cols].fillna('Bilinmiyor')
+            set_df(global_df, 1)
             
         numeric_cols = global_df.select_dtypes(include=['number']).columns.tolist()
         categorical_cols = global_df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
