@@ -42,11 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Tıklama ile Dosya Seçim Penceresi Açma
+  // Native dosya seçim input'u tıklandığında eski seçimi temizle (aynı dosya tekrar seçilebilsin)
+  mainFileInput?.addEventListener('click', () => {
+    mainFileInput.value = '';
+  });
+
+  // Tıklama ile Dosya Seçim Penceresi Açma (Yedek)
   mainDropZone?.addEventListener('click', (e) => {
     if (e.target !== mainFileInput) {
       mainFileInput.value = '';
-      mainFileInput.click();
+      try {
+        mainFileInput.click();
+      } catch (err) {
+        console.warn('Programmatic click fallback warning:', err);
+      }
     }
   });
 
@@ -55,22 +64,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       mainFileInput.value = '';
-      mainFileInput.click();
+      try {
+        mainFileInput.click();
+      } catch (err) {
+        console.warn('Programmatic click warning:', err);
+      }
     }
   });
 
+  // Dosya seçimi gerçekleştiğinde temiz ve anında işleme
   mainFileInput?.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFileUpload(e.target.files[0]);
     }
   });
 
+  let isUploading = false;
   async function handleFileUpload(file) {
-    if (!file) return;
+    if (!file || isUploading) return;
+    isUploading = true;
     activeFileName = file.name;
-    mainUploadStatus.className = 'status-msg loading';
-    mainUploadStatus.textContent = '⏳ Veri analiz ediliyor...';
-    mainUploadStatus.style.display = 'block';
+
+    if (mainUploadStatus) {
+      mainUploadStatus.className = 'status-msg loading';
+      mainUploadStatus.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600;">
+          <span style="display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite;"></span>
+          <span>⏳ <strong>${file.name}</strong> yükleniyor ve analiz ediliyor...</span>
+        </div>
+      `;
+      mainUploadStatus.style.display = 'block';
+      mainUploadStatus.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 
     const fd = new FormData();
     fd.append('file', file);
@@ -97,9 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const pivotFileEl = document.getElementById('pivotFileName');
       if (pivotFileEl) pivotFileEl.textContent = activeFileName;
       
-      mainUploadStatus.style.display = 'none';
+      if (mainUploadStatus) {
+        mainUploadStatus.style.display = 'none';
+      }
 
-      // Doğrudan 2. Aşamaya geç
+      // Doğrudan 2. Aşamaya geç (hata durumunda bile showScreen(2) garantilenmiştir)
       proceedToStep2();
 
       // Arka planda eksik değer kontrolü (varsa kullanıcıyı bilgilendirir)
@@ -113,9 +140,27 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Veri kontrol uyarısı:', healthErr);
       }
     } catch (err) {
-      mainUploadStatus.className = 'status-msg error';
-      mainUploadStatus.textContent = `❌ ${err.message}`;
-      mainUploadStatus.style.display = 'block';
+      console.error('Dosya yükleme hatası:', err);
+      const errMsg = err.message || 'Dosya okunamadı veya biçim desteklenmiyor.';
+      if (mainUploadStatus) {
+        mainUploadStatus.className = 'status-msg error';
+        mainUploadStatus.innerHTML = `
+          <div style="display: flex; align-items: flex-start; justify-content: center; gap: 12px; font-weight: 600; text-align: left; max-width: 520px; margin: 0 auto; padding: 4px 0;">
+            <span style="font-size: 1.5rem; line-height: 1;">⚠️</span>
+            <div>
+              <div style="font-weight: 700; margin-bottom: 3px; font-size: 1rem;">Dosya Yükleme Hatası</div>
+              <div style="font-size: 0.9rem; font-weight: 500; opacity: 0.9;" id="mainUploadErrMsg"></div>
+            </div>
+          </div>
+        `;
+        const errSpan = document.getElementById('mainUploadErrMsg');
+        if (errSpan) errSpan.textContent = errMsg;
+        mainUploadStatus.style.display = 'block';
+        mainUploadStatus.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      alert(`⚠️ Dosya Yüklenemedi:\n\n${errMsg}`);
+    } finally {
+      isUploading = false;
     }
   }
 
@@ -264,8 +309,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.proceedToStep2 = proceedToStep2;
   function proceedToStep2() {
-    initDragDropPool();
-    renderChartGrid('all');
+    try {
+      initDragDropPool();
+    } catch (e) {
+      console.error('initDragDropPool error in proceedToStep2:', e);
+    }
+    try {
+      if (typeof renderChartGrid === 'function') renderChartGrid('all');
+    } catch (e) {
+      console.error('renderChartGrid error in proceedToStep2:', e);
+    }
     showScreen(2);
   }
 

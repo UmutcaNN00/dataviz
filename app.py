@@ -1,10 +1,15 @@
 import os
 import io
+import csv
+import logging
 import pandas as pd
 import numpy as np
 import json
 from scipy import stats as sp_stats
 from flask import Flask, request, jsonify, render_template
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -43,6 +48,214 @@ def set_excel_data(excel_file, sheet_names):
         DATA_STORE[uid] = {1: None, 2: None, 'excel_file': None, 'sheet_names': []}
     DATA_STORE[uid]['excel_file'] = excel_file
     DATA_STORE[uid]['sheet_names'] = sheet_names
+
+def clean_dataframe(df):
+    """
+    DataFrame'i temizler:
+    - Tamamen boş satır ve sütunları temizler.
+    - Başlık ofseti veya boş başlık satırlarını tespit edip gerçek başlığı çıkarır.
+    - Sütun isimlerindeki boşlukları ve BOM karakterini temizler.
+    - İsimsiz (Unnamed:) veya boş sütun isimlerini 'Sütun_X' olarak düzeltir.
+    - Mükerrer sütun isimlerini tekilleştirir.
+    - Excel formül hatalarını (#VALUE!, #DIV/0! vb.) NaN yapar.
+    """
+    if df is None or df.empty:
+        return df
+
+    # 1. Tamamen boş satır ve sütunları kaldır
+    df = df.dropna(how='all', axis=0).dropna(how='all', axis=1)
+    if df.empty:
+        return df
+
+    # 2. Formül hata metinlerini NaN'a dönüştür
+    excel_error_strings = {'#VALUE!', '#REF!', '#DIV/0!', '#NAME?', '#NUM!', '#NULL!', '#N/A', '#N/A N/A'}
+    df = df.replace(list(excel_error_strings), np.nan)
+
+    # 3. Başlık satırının veri içinde kalıp kalmadığını (header offset) kontrol et
+    cols = [str(c).replace('\ufeff', '').strip() for c in df.columns]
+    unnamed_count = sum(1 for c in cols if not c or c.startswith('Unnamed:') or c.lower() == 'nan')
+    
+    # Eğer sütunların yarısından fazlası 'Unnamed' ise gerçek başlık ilk satırlarda olabilir
+    if unnamed_count >= len(cols) / 2 and len(df) > 0:
+        header_candidate_idx = None
+        for r_idx in range(min(10, len(df))):
+            row_vals = df.iloc[r_idx]
+            valid_headers = [
+                v for v in row_vals 
+                if pd.notna(v) and str(v).strip() != '' and not str(v).lower().startswith('unnamed:') and str(v).lower() != 'nan'
+            ]
+            if len(valid_headers) >= max(2, len(cols) * 0.5):
+                header_candidate_idx = r_idx
+                break
+        
+        if header_candidate_idx is not None:
+            new_cols = []
+            header_row = df.iloc[header_candidate_idx]
+            for i, val in enumerate(header_row):
+                val_str = str(val).replace('\ufeff', '').strip() if pd.notna(val) else ''
+                if val_str and val_str.lower() != 'nan':
+                    new_cols.append(val_str)
+                else:
+                    new_cols.append(f'Sütun_{i+1}')
+            df = df.iloc[header_candidate_idx + 1:].copy()
+            df.columns = new_cols
+
+    # 4. Sütun isimlerini normalize et ve tekilleştir
+    cleaned_cols = []
+    seen = {}
+    for i, col in enumerate(df.columns):
+        col_str = str(col).replace('\ufeff', '').strip()
+        if not col_str or col_str.startswith('Unnamed:') or col_str.lower() == 'nan':
+            col_str = f'Sütun_{i+1}'
+        if col_str in seen:
+            seen[col_str] += 1
+            col_str = f'{col_str}_{seen[col_str]}'
+        else:
+            seen[col_str] = 0
+        cleaned_cols.append(col_str)
+    df.columns = cleaned_cols
+
+    # 5. Başlık temizliği sonrası tamamen boşalan sütunları tekrar filtrele
+    df = df.dropna(how='all', axis=1)
+    df = df.reset_index(drop=True)
+    return df
+
+def read_csv_safely(file_input):
+    """
+    CSV dosyalarını farklı encoding (utf-8, utf-8-sig, windows-1254, iso-8859-9, latin1)
+    ve ayraçlar (;, ,, \\t, |) ile güvenle okur.
+    """
+    if hasattr(file_input, 'read'):
+        raw_bytes = file_input.read()
+    elif isinstance(file_input, bytes):
+        raw_bytes = file_input
+    else:
+        raise ValueError("Geçersiz dosya nesnesi.")
+
+    if not raw_bytes or not raw_bytes.strip():
+        raise pd.errors.EmptyDataError("CSV dosyası tamamen boş.")
+
+    # 1. Encodings sırası: UTF-8 BOM varsa önce utf-8-sig, yoksa utf-8, sonra Türkçe ve latin1
+    if raw_bytes.startswith(b'\xef\xbb\xbf'):
+        encodings = ['utf-8-sig', 'utf-8', 'windows-1254', 'iso-8859-9', 'latin1']
+    else:
+        encodings = ['utf-8', 'utf-8-sig', 'windows-1254', 'iso-8859-9', 'latin1']
+
+    decoded_text = None
+    successful_enc = None
+    for enc in encodings:
+        try:
+            text = raw_bytes.decode(enc)
+            if '\x00' in text:
+                continue
+            decoded_text = text
+            successful_enc = enc
+            break
+        except UnicodeDecodeError:
+            continue
+
+    if decoded_text is None:
+        raise UnicodeDecodeError(
+            'unknown', raw_bytes, 0, 1, 
+            f"Dosya karakter kodlaması çözülemedi. Denediğimiz kodlamalar: {', '.join(encodings)}"
+        )
+
+    logger.info(f"CSV başarıyla çözümlendi. Kodlama: {successful_enc}")
+
+    # 2. Ayraç (delimiter) tespiti
+    sample_lines = [l for l in decoded_text.splitlines() if l.strip()][:25]
+    detected_delim = None
+    if sample_lines:
+        header_line = sample_lines[0]
+        counts = {d: header_line.count(d) for d in [';', ',', '\t', '|']}
+        if any(c > 0 for c in counts.values()):
+            try:
+                sniffer = csv.Sniffer()
+                detected_delim = sniffer.sniff('\n'.join(sample_lines), delimiters=';,\t|').delimiter
+            except Exception:
+                detected_delim = max(counts, key=counts.get)
+        else:
+            detected_delim = ','
+
+    # 3. Pandas ile ayrıştırma
+    df = None
+    errors = []
+
+    if detected_delim:
+        try:
+            df = pd.read_csv(io.StringIO(decoded_text), sep=detected_delim, engine='python')
+        except Exception as e:
+            errors.append(e)
+
+    if df is None:
+        try:
+            df = pd.read_csv(io.StringIO(decoded_text), sep=None, engine='python')
+        except Exception as e:
+            errors.append(e)
+
+    if df is None:
+        for fallback_sep in [';', ',', '\t']:
+            try:
+                df = pd.read_csv(io.StringIO(decoded_text), sep=fallback_sep)
+                break
+            except Exception as e:
+                errors.append(e)
+
+    if df is None:
+        raise ValueError(f"CSV içeriği tablolanamadı: {errors[-1] if errors else 'Bilinmeyen hata'}")
+
+    return clean_dataframe(df)
+
+def read_excel_safely(file_input):
+    """
+    .xlsx ve .xls dosyalarını pd.read_excel(sheet_name=None) ile okur,
+    tüm sayfaları temizleyip bir sözlük ve sayfa listesi olarak döner.
+    """
+    if hasattr(file_input, 'read'):
+        file_bytes = file_input.read()
+    elif isinstance(file_input, bytes):
+        file_bytes = file_input
+    else:
+        raise ValueError("Geçersiz dosya nesnesi.")
+
+    if not file_bytes:
+        raise pd.errors.EmptyDataError("Excel dosyası tamamen boş.")
+
+    try:
+        sheets_dict = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
+    except Exception as e:
+        err_msg = str(e)
+        logger.error(f"Excel okuma hatası: {err_msg}")
+        if 'xlrd' in err_msg.lower():
+            raise ValueError("Eski Excel (.xls) dosyalarını okumak için 'xlrd' kütüphanesi gereklidir. Lütfen dosyanızı .xlsx formatına dönüştürüp yükleyin.")
+        elif 'zip' in err_msg.lower() or 'corrupt' in err_msg.lower():
+            raise ValueError("Excel dosyası bozuk veya geçersiz bir formatta.")
+        else:
+            raise ValueError(f"Excel dosyası açılamadı: {err_msg}")
+
+    if not sheets_dict:
+        raise ValueError("Excel dosyasında herhangi bir çalışma sayfası bulunamadı.")
+
+    cleaned_sheets = {}
+    valid_sheet_names = []
+    for s_name, s_df in sheets_dict.items():
+        cleaned_df = clean_dataframe(s_df)
+        cleaned_sheets[s_name] = cleaned_df
+        valid_sheet_names.append(s_name)
+
+    active_sheet_name = valid_sheet_names[0]
+    for s_name in valid_sheet_names:
+        if not cleaned_sheets[s_name].empty and len(cleaned_sheets[s_name].columns) > 0:
+            active_sheet_name = s_name
+            break
+
+    active_df = cleaned_sheets[active_sheet_name]
+    if active_df.empty or len(active_df.columns) == 0:
+        all_empty = all(df.empty or len(df.columns) == 0 for df in cleaned_sheets.values())
+        if all_empty:
+            raise ValueError("Excel dosyasındaki tüm sayfalar boş veya geçerli veri içermiyor.")
+
+    return active_df, cleaned_sheets, valid_sheet_names, active_sheet_name
 
 
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -98,66 +311,102 @@ def a4_demo():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files: return jsonify({'error': 'Dosya bulunamadı'}), 400
+    if 'file' not in request.files:
+        return jsonify({'error': 'İstekte dosya bulunamadı. Lütfen bir dosya seçin.'}), 400
     file = request.files['file']
-    if file.filename == '': return jsonify({'error': 'Dosya seçilmedi'}), 400
+    if file.filename == '':
+        return jsonify({'error': 'Herhangi bir dosya seçilmedi.'}), 400
+
+    filename = file.filename.lower()
+    logger.info(f"Dosya yükleme isteği alındı: {file.filename}")
 
     try:
         sheet_names = []
-        if file.filename.endswith('.csv'): 
-            df = pd.read_csv(file)
+        active_sheet = None
+
+        if filename.endswith('.csv'):
+            df = read_csv_safely(file)
             set_df(df, 1)
             set_excel_data(None, [])
-        elif file.filename.endswith(('.xls', '.xlsx')): 
-            file_bytes = file.read()
-            excel_file = pd.ExcelFile(io.BytesIO(file_bytes))
-            sheet_names = excel_file.sheet_names
-            df = excel_file.parse(sheet_names[0])
+        elif filename.endswith(('.xls', '.xlsx')):
+            df, sheets_dict, sheet_names, active_sheet = read_excel_safely(file)
             set_df(df, 1)
-            set_excel_data(excel_file, sheet_names)
-        else: 
-            return jsonify({'error': 'Desteklenmeyen dosya formatı'}), 400
-        
-        df = get_df(1)
-        df.columns = df.columns.astype(str).str.strip()
+            set_excel_data(sheets_dict, sheet_names)
+        else:
+            return jsonify({
+                'error': 'Desteklenmeyen dosya formatı. Lütfen sadece .csv, .xlsx veya .xls uzantılı dosyalar yükleyin.'
+            }), 400
+
+        if df is None or df.empty or len(df.columns) == 0:
+            return jsonify({'error': 'Yüklenen dosyada geçerli veri veya sütun bulunamadı.'}), 400
+
+        # Sütun isimlerindeki boşlukları ve BOM karakterlerini temizle
+        df.columns = [str(c).replace('\ufeff', '').strip() for c in df.columns]
         set_df(df, 1)
-        
+
         numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
-        
+
+        logger.info(f"Yükleme başarılı: {file.filename} -> {len(df)} satır, {len(df.columns)} sütun")
+
         return jsonify({
             'success': True,
             'total_rows': len(df),
             'total_cols': len(df.columns),
             'sheet_names': sheet_names,
-            'active_sheet': sheet_names[0] if sheet_names else None,
+            'active_sheet': active_sheet or (sheet_names[0] if sheet_names else None),
             'numeric_columns': numeric_cols,
             'categorical_columns': categorical_cols
         })
     except pd.errors.EmptyDataError:
-        return jsonify({'error': 'Dosya boş veya okunamadı'}), 400
+        logger.warning(f"Boş dosya yüklendi: {file.filename}")
+        return jsonify({'error': 'Yüklenen dosya tamamen boş veya veri içermiyor.'}), 400
+    except UnicodeDecodeError as e:
+        logger.error(f"Kodlama hatası ({file.filename}): {e}")
+        return jsonify({
+            'error': 'Dosya karakter kodlaması çözülemedi. Lütfen dosyanın UTF-8 veya Windows-1254 (Türkçe) formatında olduğundan emin olun.'
+        }), 400
+    except ValueError as e:
+        logger.error(f"Doğrulama hatası ({file.filename}): {e}")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.exception(f"Dosya yükleme hatası ({file.filename}): {e}")
+        return jsonify({'error': f'Dosya işlenirken bir hata oluştu: {str(e)}'}), 400
 
 # ═════════ 1. ÇOKLU EXCEL SEKME GEÇİŞİ (Multi-Sheet) ═════════
 @app.route('/switch_sheet', methods=['POST'])
 def switch_sheet():
     excel_file, sheet_names = get_excel_data()
     
-    if excel_file is None:
-        return jsonify({'error': 'Yüklü bir Excel dosyası bulunamadı'}), 400
+    if not excel_file:
+        return jsonify({'error': 'Yüklü bir Excel dosyası bulunamadı.'}), 400
     
-    sheet_name = request.json.get('sheet_name')
+    req_json = request.get_json(silent=True) or {}
+    sheet_name = req_json.get('sheet_name')
     if not sheet_name or sheet_name not in sheet_names:
-        return jsonify({'error': 'Geçersiz sayfa adı'}), 400
+        return jsonify({'error': f"Geçersiz sayfa adı: '{sheet_name}'. Mevcut sayfalar: {', '.join(sheet_names)}"}), 400
     
     try:
-        df = excel_file.parse(sheet_name)
-        df.columns = df.columns.astype(str).str.strip()
+        if isinstance(excel_file, dict):
+            df = excel_file.get(sheet_name)
+            if df is not None:
+                df = df.copy()
+        elif hasattr(excel_file, 'parse'):
+            df = excel_file.parse(sheet_name)
+        else:
+            return jsonify({'error': 'Excel sayfa verisi okunamadı.'}), 400
+
+        if df is None or df.empty:
+            return jsonify({'error': f"'{sheet_name}' sayfası boş veya veri içermiyor."}), 400
+
+        df = clean_dataframe(df)
+        df.columns = [str(c).replace('\ufeff', '').strip() for c in df.columns]
         set_df(df, 1)
         
         numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
+
+        logger.info(f"Excel sayfası değiştirildi: {sheet_name} ({len(df)} satır, {len(df.columns)} sütun)")
 
         return jsonify({
             'success': True,
@@ -168,7 +417,8 @@ def switch_sheet():
             'categorical_columns': categorical_cols
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.exception(f"Sayfa değiştirme hatası: {e}")
+        return jsonify({'error': f'Sayfa değiştirilirken bir hata oluştu: {str(e)}'}), 400
 
 # ═════════ 2. AKILLI VERİ BİRLEŞTİRİCİ (Data Merge & Join) ═════════
 @app.route('/preview_second_file', methods=['POST'])
@@ -181,18 +431,15 @@ def preview_second_file():
     if file2.filename == '': return jsonify({'error': 'Dosya seçilmedi'}), 400
 
     try:
-        if file2.filename.endswith('.csv'): 
-            try:
-                df2 = pd.read_csv(file2)
-            except UnicodeDecodeError:
-                file2.seek(0)
-                df2 = pd.read_csv(file2, encoding='latin1')
-        elif file2.filename.endswith(('.xls', '.xlsx')): 
-            df2 = pd.read_excel(file2)
+        filename2 = file2.filename.lower()
+        if filename2.endswith('.csv'): 
+            df2 = read_csv_safely(file2)
+        elif filename2.endswith(('.xls', '.xlsx')): 
+            df2, _, _, _ = read_excel_safely(file2)
         else: 
             return jsonify({'error': 'Desteklenmeyen dosya formatı'}), 400
 
-        df2.columns = df2.columns.astype(str).str.strip()
+        df2.columns = [str(c).replace('\ufeff', '').strip() for c in df2.columns]
         
         cols1 = global_df.columns.tolist()
         cols2 = df2.columns.tolist()
@@ -248,18 +495,15 @@ def merge_datasets():
         return jsonify({'error': 'Birleştirme anahtarları (ortak sütunlar) seçilmelidir.'}), 400
 
     try:
-        if file2.filename.endswith('.csv'): 
-            try:
-                df2 = pd.read_csv(file2)
-            except UnicodeDecodeError:
-                file2.seek(0)
-                df2 = pd.read_csv(file2, encoding='latin1')
-        elif file2.filename.endswith(('.xls', '.xlsx')): 
-            df2 = pd.read_excel(file2)
+        filename2 = file2.filename.lower()
+        if filename2.endswith('.csv'): 
+            df2 = read_csv_safely(file2)
+        elif filename2.endswith(('.xls', '.xlsx')): 
+            df2, _, _, _ = read_excel_safely(file2)
         else: 
             return jsonify({'error': 'Desteklenmeyen dosya formatı'}), 400
 
-        df2.columns = df2.columns.astype(str).str.strip()
+        df2.columns = [str(c).replace('\ufeff', '').strip() for c in df2.columns]
 
         if key1 not in global_df.columns:
             return jsonify({'error': f'1. tabloda "{key1}" sütunu bulunamadı'}), 400
