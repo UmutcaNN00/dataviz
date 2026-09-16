@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataViz Pro — 3 Farklı Tasarım Konsepti Önizleme</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #05070e;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --purple: #8b5cf6;
+      --blue: #3b82f6;
+      --cyan: #06b6d4;
+      --gold: #f59e0b;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* ── TOP FLOATING SWITCHER BAR ── */
+    .top-switcher-bar {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: rgba(11, 19, 43, 0.92);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px;
+      border-radius: 999px;
+      display: flex;
+      gap: 6px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.25);
+    }
+    .switch-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 9px 20px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .switch-btn:hover { color: #fff; }
+    .switch-btn.active.navy {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.45);
+    }
+    .switch-btn.active.blue {
+      background: linear-gradient(135deg, #2563eb, #6366f1);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.45);
+    }
+    .switch-btn.active.purple {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(236, 72, 153, 0.45);
+    }
+
+    /* ── CONCEPT VIEWS ── */
+    .concept-view {
+      display: none;
+      padding-top: 85px;
+      animation: fadeIn 0.4s ease forwards;
+    }
+    .concept-view.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════════════════════
+       KONSEPT 1: ENTERPRISE BI & DATA LAB (POWERBI)
+       ═══════════════════════════════════════════════ */
+    .ent-theme {
+      background: radial-gradient(circle at 50% 0%, #0c192c 0%, #030712 80%);
+      min-height: 100vh;
+    }
+    .ent-nav {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .ent-logo {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ent-logo-badge {
+      background: #0284c7;
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .ent-hero {
+      max-width: 1280px;
+      margin: 35px auto 70px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .ent-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(2, 132, 199, 0.35);
+      color: #38bdf8;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+    .ent-title {
+      font-size: 3.4rem;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -1.2px;
+      color: #f8fafc;
+      margin-bottom: 20px;
+    }
+    .ent-cyan {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .ent-sub {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      line-height: 1.65;
+      margin-bottom: 30px;
+    }
+    .ent-btns { display: flex; gap: 14px; }
+    .btn-ent-primary {
+      background: #0284c7;
+      color: #fff;
+      padding: 14px 30px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s;
+    }
+    .btn-ent-primary:hover { background: #0369a1; transform: translateY(-2px); }
+    .btn-ent-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
+      padding: 14px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.2s;
+    }
+
+    /* ENTERPRISE INTERACTIVE DASHBOARD MATRIX */
+    .ent-dashboard-matrix {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85);
+    }
+    .ent-kpi-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .ent-kpi-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .ent-kpi-lbl { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+    .ent-kpi-val { font-size: 1.25rem; font-weight: 800; color: #f8fafc; font-family: 'JetBrains Mono', monospace; margin: 2px 0; }
+    .ent-kpi-trend { font-size: 0.7rem; color: #10b981; font-weight: 600; }
+
+    .ent-body-grid {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 14px;
+    }
+    .ent-filter-pane {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 10px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .ent-filter-title { font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .ent-tag-btn {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin: 3px 2px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      transition: all 0.2s;
+    }
+    .ent-tag-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+    .ent-chart-display {
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 10px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* ENTERPRISE PILLARS */
+    .ent-pillars {
+      max-width: 1280px;
+      margin: 0 auto 90px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .ent-pillar-card {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 26px;
+      border-top: 3px solid #0284c7;
+      transition: all 0.25s;
+    }
+    .ent-pillar-card:hover { transform: translateY(-4px); border-color: #38bdf8; }
+    .ent-p-icon { font-size: 1.8rem; margin-bottom: 14px; }
+    .ent-p-title { font-size: 1.2rem; font-weight: 800; color: #f8fafc; margin-bottom: 8px; }
+    .ent-p-desc { font-size: 0.92rem; color: #94a3b8; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════════════
+       KONSEPT 2: AKADEMİK ARAŞTIRMA & İSTATİSTİK
+       ═══════════════════════════════════════════════ */
+    .acad-theme {
+      background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 75%);
+      min-height: 100vh;
+    }
+    .acad-nav {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .acad-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.5px;
+    }
+    .acad-logo span { color: #38bdf8; font-style: italic; }
+    .acad-hero {
+      max-width: 1200px;
+      margin: 40px auto 70px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 50px;
+      align-items: center;
+    }
+    .acad-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .acad-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 3.3rem;
+      line-height: 1.15;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 20px;
+    }
+    .acad-title em { font-style: italic; color: #38bdf8; font-weight: 600; }
+    .acad-sub { color: #94a3b8; font-size: 1.12rem; line-height: 1.7; margin-bottom: 35px; }
+    .acad-btns { display: flex; gap: 16px; }
+    .btn-acad-primary {
+      background: #0284c7;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-acad-primary:hover { background: #0369a1; transform: translateY(-2px); }
+    .btn-acad-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.2s;
+    }
+
+    .acad-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+    .acad-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 20px;
+    }
+    .acad-card-tabs { display: flex; gap: 6px; }
+    .acad-tab {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid transparent;
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .acad-tab.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+    }
+    .acad-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .acad-metric-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .acad-metric-lbl { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+    .acad-metric-val { font-size: 1.45rem; font-weight: 700; color: #f8fafc; font-family: 'JetBrains Mono', monospace; margin: 4px 0; }
+    .acad-metric-sub { font-size: 0.75rem; color: #10b981; font-weight: 600; }
+    .acad-chart-mock {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      text-align: center;
+    }
+
+    /* A4 JOURNAL PREVIEW */
+    .acad-a4-section {
+      max-width: 1200px;
+      margin: 0 auto 90px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 50px;
+      align-items: center;
+    }
+    .a4-paper-mock {
+      background: #ffffff;
+      color: #0f172a;
+      aspect-ratio: 1 / 1.414;
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      font-family: 'Times New Roman', serif;
+      position: relative;
+    }
+    .a4-mock-title { font-size: 1.05rem; font-weight: bold; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 12px; }
+    .a4-mock-p { font-size: 0.76rem; line-height: 1.45; color: #334155; margin-bottom: 14px; text-align: justify; }
+    .a4-mock-box { border: 1px solid #cbd5e1; padding: 10px; font-size: 0.72rem; background: #f8fafc; border-radius: 4px; margin-bottom: 12px; font-family: sans-serif; line-height: 1.5; }
+
+    /* ═══════════════════════════════════════════════
+       KONSEPT 3: MODERN SAAS & PLAYGROUND (LINEAR)
+       ═══════════════════════════════════════════════ */
+    .saas-theme {
+      background: #050505;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+    .saas-glow {
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, transparent 70%);
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .saas-nav {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .saas-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .saas-hero {
+      max-width: 1280px;
+      margin: 30px auto 80px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .saas-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: #c084fc;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .saas-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3.8rem;
+      line-height: 1.05;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+    .neon-gradient {
+      background: linear-gradient(135deg, #c084fc 0%, #ec4899 50%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .saas-sub {
+      color: #94a3b8;
+      font-size: 1.15rem;
+      line-height: 1.6;
+      margin-bottom: 35px;
+    }
+    .btn-saas-primary {
+      background: linear-gradient(135deg, #8b5cf6, #d946ef);
+      color: #fff;
+      padding: 16px 36px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+      transition: all 0.25s;
+    }
+    .btn-saas-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(217, 70, 239, 0.5); }
+
+    .playground-box {
+      background: rgba(18, 18, 26, 0.7);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+    .playground-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .chart-selector {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .c-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .c-btn.active {
+      background: #8b5cf6;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+    .svg-container {
+      height: 230px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .pills-demo {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      align-items: center;
+    }
+    .demo-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bento-section {
+      max-width: 1280px;
+      margin: 0 auto 90px;
+      padding: 0 20px;
+    }
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .bento-card {
+      background: rgba(18, 18, 26, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .bento-card:hover {
+      border-color: rgba(139, 92, 246, 0.4);
+      transform: translateY(-4px);
+    }
+    .bento-span-2 { grid-column: span 2; }
+    .bento-icon { font-size: 2rem; margin-bottom: 16px; }
+    .bento-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; color: #f8fafc; }
+    .bento-desc { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP SWITCHER (3 KONSEPT) -->
+  <div class="top-switcher-bar">
+    <button id="btnC1" class="switch-btn active navy" onclick="switchConcept('concept1', this, 'navy')">
+      <span>🏛️</span> Konsept 1: Enterprise BI (PowerBI)
+    </button>
+    <button id="btnC2" class="switch-btn" onclick="switchConcept('concept2', this, 'blue')">
+      <span>🎓</span> Konsept 2: Akademik Suite (Jüri Odaklı)
+    </button>
+    <button id="btnC3" class="switch-btn" onclick="switchConcept('concept3', this, 'purple')">
+      <span>⚡</span> Konsept 3: Modern SaaS (Linear)
+    </button>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       KONSEPT 1: ENTERPRISE BI & DATA LAB
+       ═══════════════════════════════════════════════════ -->
+  <div id="concept1" class="concept-view ent-theme active">
+    
+    <nav class="ent-nav">
+      <div class="ent-logo">
+        <span style="color: #38bdf8;">⬡</span> DataViz Pro <span class="ent-logo-badge">ENTERPRISE BI</span>
+      </div>
+      <div style="display: flex; gap: 24px; font-size: 0.9rem; color: #94a3b8;">
+        <span style="color: #38bdf8; cursor: pointer;">Pano Yönetimi</span>
+        <span style="cursor: pointer;">Veri Birleştirici (Join)</span>
+        <span style="cursor: pointer;">Güvenlik & Sıfır-Bulut</span>
+        <span style="cursor: pointer;">A4 Yönetici Raporu</span>
+      </div>
+      <a href="#" class="btn-ent-primary" style="padding: 9px 20px; font-size: 0.85rem;">Stüdyoya Giriş →</a>
+    </nav>
+
+    <section class="ent-hero">
+      <div>
+        <div class="ent-badge">🛡️ %100 Yerel Veri Gizliliği • Zero-GPU Yüksek Performans</div>
+        <h1 class="ent-title">Büyük Veriden <span class="ent-cyan">Kurumsal İçgörüye.</span> Saniyeler İçinde.</h1>
+        <p class="ent-sub">
+          Excel ve CSV dosyalarınızı anında interaktif panolara dönüştürün. Buluta veri sızdırmadan, yerel makinenizin gücüyle güvenli, hızlı ve yönetim kurulu standartlarında iş zekası üretin.
+        </p>
+        <div class="ent-btns">
+          <a href="#" class="btn-ent-primary">Kurumsal Demoyu Başlat</a>
+          <a href="#" class="btn-ent-secondary">Güvenlik Dokümantasyonu</a>
+        </div>
+      </div>
+
+      <!-- ENTERPRISE DASHBOARD MATRIX -->
+      <div class="ent-dashboard-matrix">
+        <!-- KPI Strip -->
+        <div class="ent-kpi-bar">
+          <div class="ent-kpi-chip">
+            <div class="ent-kpi-lbl">Toplam Kayıt</div>
+            <div class="ent-kpi-val" id="entKpiRows">142,500</div>
+            <div class="ent-kpi-trend">✓ Tam Doğrulandı</div>
+          </div>
+          <div class="ent-kpi-chip">
+            <div class="ent-kpi-lbl">Konsolide Ciro</div>
+            <div class="ent-kpi-val" id="entKpiRev" style="color: #38bdf8;">₺8.42M</div>
+            <div class="ent-kpi-trend">▲ +%14.2 Büyüme</div>
+          </div>
+          <div class="ent-kpi-chip">
+            <div class="ent-kpi-lbl">Aykırı Değer</div>
+            <div class="ent-kpi-val" style="color: #10b981;">0 Eksik</div>
+            <div class="ent-kpi-trend">Data Prep Aktif</div>
+          </div>
+          <div class="ent-kpi-chip">
+            <div class="ent-kpi-lbl">İşlem Hızı</div>
+            <div class="ent-kpi-val" style="color: #fbbf24;">0.04s</div>
+            <div class="ent-kpi-trend">Yerel Pandas</div>
+          </div>
+        </div>
+
+        <!-- Body Matrix -->
+        <div class="ent-body-grid">
+          <div class="ent-filter-pane">
+            <div class="ent-filter-title">
+              <span>Bölge Dilimleyicisi</span>
+              <span style="color:#38bdf8; font-size:0.7rem;">Canlı Filtre</span>
+            </div>
+            <div>
+              <span class="ent-tag-btn active" onclick="setEntFilter('all', this)">Tüm Bölgeler</span>
+              <span class="ent-tag-btn" onclick="setEntFilter('marmara', this)">Marmara</span>
+              <span class="ent-tag-btn" onclick="setEntFilter('ege', this)">Ege</span>
+              <span class="ent-tag-btn" onclick="setEntFilter('ic', this)">İç Anadolu</span>
+            </div>
+
+            <div class="ent-filter-title" style="margin-top: 14px;">
+              <span>VLOOKUP / Left Join</span>
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; border-left: 2px solid #38bdf8;">
+              <code>Dosya 1 [Siparişler]</code> +<br>
+              <code>Dosya 2 [Müşteriler]</code><br>
+              <strong style="color: #10b981;">✓ Müşteri_ID ile Birleştirildi</strong>
+            </div>
+          </div>
+
+          <div class="ent-chart-display">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+              <span style="font-size:0.75rem; font-weight:700; color:#f8fafc;">Aylık Gelir & Satış Trendi (Plotly)</span>
+              <span style="font-size:0.65rem; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px;">Yığılmış Alan</span>
+            </div>
+            <!-- Dynamic SVG Chart -->
+            <div id="entSvgBox" style="height: 110px; display:flex; align-items:center; justify-content:center;">
+              <svg width="100%" height="110" viewBox="0 0 240 110">
+                <defs>
+                  <linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#0284c7" stop-opacity="0.6"/>
+                    <stop offset="100%" stop-color="#0284c7" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M 10 90 Q 60 40 120 60 T 230 20 L 230 100 L 10 100 Z" fill="url(#gArea)"/>
+                <path d="M 10 90 Q 60 40 120 60 T 230 20" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+                <circle cx="10" cy="90" r="3" fill="#38bdf8"/>
+                <circle cx="120" cy="60" r="3" fill="#38bdf8"/>
+                <circle cx="230" cy="20" r="3" fill="#38bdf8"/>
+              </svg>
+            </div>
+            <div style="font-size:0.68rem; color:#64748b; text-align:right;">%95 Güven Aralıklı Kurumsal Trend</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 KURUMSAL DİREK -->
+    <section class="ent-pillars">
+      <div class="ent-pillar-card">
+        <div class="ent-p-icon">🔒</div>
+        <h3 class="ent-p-title">Sıfır Bulut Bağımlılığı</h3>
+        <p class="ent-p-desc">
+          Verileriniz üçüncü parti sunuculara veya bulut API'lerine asla gitmez. Tamamı yerel makinenizde çalışır; şirket içi NDA ve KVKK gereksinimleriyle tam uyumludur.
+        </p>
+      </div>
+
+      <div class="ent-pillar-card" style="border-top-color: #38bdf8;">
+        <div class="ent-p-icon">⚡</div>
+        <h3 class="ent-p-title">Donanım Dostu İleri İstatistik</h3>
+        <p class="ent-p-desc">
+          Yüksek GPU maliyetlerine son. SciPy ve Pandas motoru 100.000+ satırlık veri setlerinde ANOVA, Korelasyon ve Regresyon testlerini 0.05 saniyede tamamlar.
+        </p>
+      </div>
+
+      <div class="ent-pillar-card" style="border-top-color: #10b981;">
+        <div class="ent-p-icon">📑</div>
+        <h3 class="ent-p-title">Yönetim Kurulu A4 PDF Çıktısı</h3>
+        <p class="ent-p-desc">
+          Tekil ekran görüntüleriyle vakit kaybetmeyin. Çoklu panonuzdaki tüm grafikleri A4 tuvalinde düzenleyin, notlar ekleyin ve üst yönetime sunulacak baskı kalitesinde PDF alın.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       KONSEPT 2: AKADEMİK ARAŞTIRMA & İSTATİSTİK SUITE
+       ═══════════════════════════════════════════════════ -->
+  <div id="concept2" class="concept-view acad-theme">
+    
+    <nav class="acad-nav">
+      <div class="acad-logo">DataViz <span>Research</span></div>
+      <div style="display: flex; gap: 24px; font-size: 0.9rem; color: #94a3b8;">
+        <span style="color: #38bdf8; cursor: pointer;">Hipotez Testleri</span>
+        <span style="cursor: pointer;">SciPy Algoritmaları</span>
+        <span style="cursor: pointer;">A4 Tez Raporu</span>
+        <span style="cursor: pointer;">Metodoloji</span>
+      </div>
+      <a href="#" class="btn-acad-primary" style="padding: 8px 18px; font-size: 0.85rem;">Analiz Laboratuvarı →</a>
+    </nav>
+
+    <section class="acad-hero">
+      <div>
+        <div class="acad-badge">🔬 SciPy 1.11+ İstatistik Motoru • Sıfır Halüsinasyon</div>
+        <h1 class="acad-title">Bilimsel Araştırmalarınız İçin <em>Kesin İstatistiksel</em> Çıktılar.</h1>
+        <p class="acad-sub">
+          SPSS ve R kod karmaşasına son. Ham verilerinizi saniyeler içinde <strong>Tek Yönlü ANOVA</strong>, <strong>Bağımsız T-Testi</strong>, <strong>OLS Regresyon</strong> ve <strong>%95 Güven Aralıklarıyla</strong> akademik makale ve tez formatında raporlayın.
+        </p>
+        <div class="acad-btns">
+          <a href="#" class="btn-acad-primary">Tez / Makale Analizi Başlat</a>
+          <a href="#" class="btn-acad-secondary">Örnek Hipotez Raporu</a>
+        </div>
+      </div>
+
+      <!-- İNTERAKTİF HİPOTEZ KARTI -->
+      <div class="acad-card">
+        <div class="acad-card-header">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #f8fafc;">📊 Parametrik Test Panosu</span>
+          <div class="acad-card-tabs">
+            <button class="acad-tab active" onclick="setAcadTab('anova', this)">ANOVA</button>
+            <button class="acad-tab" onclick="setAcadTab('reg', this)">Regresyon (R²)</button>
+            <button class="acad-tab" onclick="setAcadTab('ttest', this)">T-Testi</button>
+          </div>
+        </div>
+
+        <div id="acadDynamicContent">
+          <div class="acad-stat-grid">
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">F-İstatistiği</div>
+              <div class="acad-metric-val" style="color: #38bdf8;">14.825</div>
+              <div class="acad-metric-sub">✓ Anlamlı Varyans</div>
+            </div>
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">P-Değeri (Anlamlılık)</div>
+              <div class="acad-metric-val" style="color: #10b981;">0.00012</div>
+              <div class="acad-metric-sub">p &lt; 0.01 (İleri Düzey)</div>
+            </div>
+          </div>
+          <div class="acad-chart-mock">
+            <svg width="100%" height="80" viewBox="0 0 300 80">
+              <line x1="30" y1="40" x2="110" y2="40" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="50" y="20" width="40" height="40" fill="rgba(56,189,248,0.2)" stroke="#38bdf8" stroke-width="2"/>
+              <line x1="70" y1="20" x2="70" y2="60" stroke="#fbbf24" stroke-width="2"/>
+
+              <line x1="170" y1="40" x2="260" y2="40" stroke="#a78bfa" stroke-width="2"/>
+              <rect x="190" y="15" width="50" height="50" fill="rgba(167,139,250,0.2)" stroke="#a78bfa" stroke-width="2"/>
+              <line x1="220" y1="15" x2="220" y2="65" stroke="#fbbf24" stroke-width="2"/>
+            </svg>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">Gruplar Arası Kutu & Dağılım Grafiği (Frekans Yayılımı)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A4 JOURNAL SECTION -->
+    <section class="acad-a4-section">
+      <div class="a4-paper-mock">
+        <div class="a4-mock-title">BÖLÜM 4: BULGULAR VE İSTATİSTİKSEL TARTIŞMA</div>
+        <div class="a4-mock-p">
+          Yapılan tek yönlü ANOVA analizi sonucunda gruplar arasındaki farkın istatistiksel açıdan ileri düzeyde anlamlı olduğu saptanmıştır (F(2, 147) = 14.82, p &lt; 0.001). Bağımsız değişkenin çıktı üzerindeki etki büyüklüğü yüksek düzeydedir.
+        </div>
+        <div class="a4-mock-box">
+          <strong>Tablo 4.1: OLS Regresyon Modeli Katsayıları</strong><br>
+          R² = 0.891 • Düzeltilmiş R² = 0.884 • Standart Hata = 0.042<br>
+          Model Denklemi: Y = 2.41(X) + 15.30 (Güven Aralığı: %95)
+        </div>
+        <div style="height: 45px; background: #e2e8f0; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; color:#64748b;">
+          [Şekil 1: Güven Bantlı Dağılım Çizimi]
+        </div>
+      </div>
+
+      <div>
+        <div class="acad-badge" style="color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.1);">
+          📄 Etkileşimli A4 PDF Rapor Stüdyosu
+        </div>
+        <h2 style="font-family: 'Playfair Display', serif; font-size: 2.3rem; margin-bottom: 20px; line-height: 1.2;">
+          Jüriye Sunmaya Hazır, Sayfalanmış Bilimsel Çıktılar.
+        </h2>
+        <p style="color: #94a3b8; line-height: 1.7; font-size: 1.05rem; margin-bottom: 24px;">
+          Ham grafik görüntülerini kesip yapıştırmakla uğraşmayın. A4 Stüdyosu'nda grafiklerinizi yukarı/aşağı sürükleyin, aralarına kendi akademik notlarınızı ekleyin ve tek tıkla baskıya hazır çok sayfalı PDF'e dönüştürün.
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="border-left: 2px solid #38bdf8; padding-left: 12px;">
+            <strong style="color: #f8fafc; font-size: 0.95rem;">%95 Güven Bandı</strong>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Regresyon tahminlerinde alt ve üst güven aralıkları otomatik çizilir.</p>
+          </div>
+          <div style="border-left: 2px solid #10b981; padding-left: 12px;">
+            <strong style="color: #f8fafc; font-size: 0.95rem;">Akademik Metin Motoru</strong>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Sonuçlar tez standartlarına uygun objektif bir dille özetlenir.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       KONSEPT 3: MODERN SAAS & PLAYGROUND (VERCEL/LINEAR)
+       ═══════════════════════════════════════════════════ -->
+  <div id="concept3" class="concept-view saas-theme">
+    <div class="saas-glow"></div>
+
+    <nav class="saas-nav">
+      <div class="saas-logo">
+        <span style="color: #8b5cf6;">⬡</span> DataViz <span style="background: rgba(139,92,246,0.15); color:#c084fc; font-size:0.7rem; padding: 2px 8px; border-radius:4px;">PRO</span>
+      </div>
+      <div style="display: flex; gap: 28px; font-size: 0.9rem; color: #94a3b8;">
+        <span style="color: #fff; cursor: pointer;">Özellikler</span>
+        <span style="cursor: pointer;">50+ Grafik</span>
+        <span style="cursor: pointer;">Bento Vitrini</span>
+        <span style="cursor: pointer;">PDF Stüdyo</span>
+      </div>
+      <a href="#" class="btn-saas-primary" style="padding: 10px 22px; font-size: 0.88rem; border-radius: 8px;">Uygulamayı Aç →</a>
+    </nav>
+
+    <section class="saas-hero">
+      <div>
+        <div class="saas-badge">✨ v6.0 Enterprise • Sürükle-Bırak İş Zekası</div>
+        <h1 class="saas-title">Verinizi Görselleştirmenin <span class="neon-gradient">En Şık Yolu.</span></h1>
+        <p class="saas-sub">
+          Tek satır kod yazmadan ham Excel ve CSV dosyalarınızı 50+ interaktif Plotly grafiğine, canlı dilimleyicilere ve düzenlenebilir A4 PDF raporlarına dönüştürün.
+        </p>
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <a href="#" class="btn-saas-primary">Hemen Analize Başla ⚡</a>
+          <span style="color: #64748b; font-size: 0.85rem;">📁 Kurulum Yok • Tarayıcıda Çalışır</span>
+        </div>
+      </div>
+
+      <!-- ÇALIŞAN CANLI MİNİ PLAYGROUND -->
+      <div class="playground-box">
+        <div class="playground-top">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #e2e8f0;">⚡ Canlı Grafik Deneyimi</span>
+          <div class="chart-selector">
+            <button class="c-btn active" onclick="setPlaygroundChart('bar', this)">📊 Çubuk</button>
+            <button class="c-btn" onclick="setPlaygroundChart('donut', this)">🥧 Donut</button>
+            <button class="c-btn" onclick="setPlaygroundChart('line', this)">📈 Çizgi</button>
+            <button class="c-btn" onclick="setPlaygroundChart('radar', this)">🕸️ Radar</button>
+          </div>
+        </div>
+
+        <div class="svg-container" id="playgroundCanvas">
+          <svg width="280" height="170" viewBox="0 0 280 170" id="liveSvg">
+            <line x1="30" y1="140" x2="260" y2="140" stroke="rgba(255,255,255,0.1)"/>
+            <rect x="50" y="50" width="30" height="90" rx="4" fill="#8b5cf6"/>
+            <rect x="100" y="20" width="30" height="120" rx="4" fill="#ec4899"/>
+            <rect x="150" y="70" width="30" height="70" rx="4" fill="#06b6d4"/>
+            <rect x="200" y="35" width="30" height="105" rx="4" fill="#10b981"/>
+          </svg>
+        </div>
+
+        <div class="pills-demo">
+          <div class="demo-pill" style="border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.1); color: #c084fc;">
+            <span>X:</span> Kategori (Departman)
+          </div>
+          <div class="demo-pill" style="border-color: rgba(236,72,153,0.3); background: rgba(236,72,153,0.1); color: #f472b6;">
+            <span>Y:</span> Gelir (₺)
+          </div>
+          <div class="demo-pill" style="margin-left: auto; color: #10b981; border:none; background: transparent;">
+            ✨ Otomatik Önerildi
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BENTO GRID SECTION -->
+    <section class="bento-section">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.3rem; font-weight: 700;">Her Şey Tek Bir Grid İçinde.</h2>
+        <p style="color: #94a3b8;">Karmaşık Excel tablolarından saniyeler içinde kurtulun.</p>
+      </div>
+
+      <div class="bento-grid">
+        <div class="bento-card bento-span-2">
+          <div class="bento-icon">🧠</div>
+          <h3 class="bento-title">50+ Grafik & Akıllı Kural Motoru</h3>
+          <p class="bento-desc">
+            Seçtiğiniz eksenlerin sayısal, kategorik veya tarih olmasına göre en doğru grafiği akıllıca önerir. Radar'dan Sankey'e, 3D Yüzey'den Şelale'ye hiçbir grafik atıl kalmaz.
+          </p>
+          <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size:0.75rem; background: rgba(139,92,246,0.15); color:#c084fc; padding: 4px 10px; border-radius:6px;">📈 Waterfall</span>
+            <span style="font-size:0.75rem; background: rgba(236,72,153,0.15); color:#f472b6; padding: 4px 10px; border-radius:6px;">🕸️ Radar</span>
+            <span style="font-size:0.75rem; background: rgba(6,182,212,0.15); color:#38bdf8; padding: 4px 10px; border-radius:6px;">〰️ Sankey</span>
+            <span style="font-size:0.75rem; background: rgba(16,185,129,0.15); color:#34d399; padding: 4px 10px; border-radius:6px;">🌳 Treemap</span>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div class="bento-icon">📄</div>
+          <h3 class="bento-title">A4 PDF Stüdyosu</h3>
+          <p class="bento-desc">
+            Sürükle-bırak tuvali ile raporunuzu dizayn edin, yönetici notları ekleyin ve anında çok sayfalı PDF indirin.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div class="bento-icon">⚡</div>
+          <h3 class="bento-title">Zero-GPU Hız</h3>
+          <p class="bento-desc">
+            Ağır yapay zeka beklemesi yok. Tamamen yerel SciPy ve Pandas kütüphaneleriyle 0.02 saniyede hesaplanır.
+          </p>
+        </div>
+
+        <div class="bento-card bento-span-2">
+          <div class="bento-icon">🪟</div>
+          <h3 class="bento-title">Windows Tek Tıkla Başlatıcı</h3>
+          <p class="bento-desc">
+            Terminal komutlarıyla uğraşmayın. `DEMO_BASLAT.bat` dosyasına çift tıklayın; yerel sunucu ve tarayıcı otomatik açılır.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function switchConcept(id, btn, colorClass) {
+      document.querySelectorAll('.concept-view').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.switch-btn').forEach(b => {
+        b.classList.remove('active', 'navy', 'blue', 'purple');
+      });
+      
+      const target = document.getElementById(id);
+      target.classList.add('active');
+      btn.classList.add('active', colorClass);
+    }
+
+    // Concept 1 Enterprise Interactive Filter
+    function setEntFilter(region, btn) {
+      document.querySelectorAll('.ent-tag-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const kpiRows = document.getElementById('entKpiRows');
+      const kpiRev = document.getElementById('entKpiRev');
+      const svgBox = document.getElementById('entSvgBox');
+
+      if (region === 'all') {
+        kpiRows.textContent = '142,500';
+        kpiRev.textContent = '₺8.42M';
+        svgBox.innerHTML = `
+          <svg width="100%" height="110" viewBox="0 0 240 110">
+            <defs><linearGradient id="gArea1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0284c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#0284c7" stop-opacity="0.0"/></linearGradient></defs>
+            <path d="M 10 90 Q 60 40 120 60 T 230 20 L 230 100 L 10 100 Z" fill="url(#gArea1)"/>
+            <path d="M 10 90 Q 60 40 120 60 T 230 20" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+            <circle cx="10" cy="90" r="3" fill="#38bdf8"/><circle cx="120" cy="60" r="3" fill="#38bdf8"/><circle cx="230" cy="20" r="3" fill="#38bdf8"/>
+          </svg>
+        `;
+      } else if (region === 'marmara') {
+        kpiRows.textContent = '68,200';
+        kpiRev.textContent = '₺4.85M';
+        svgBox.innerHTML = `
+          <svg width="100%" height="110" viewBox="0 0 240 110">
+            <rect x="20" y="30" width="30" height="70" rx="3" fill="#0284c7"/>
+            <rect x="70" y="15" width="30" height="85" rx="3" fill="#38bdf8"/>
+            <rect x="120" y="45" width="30" height="55" rx="3" fill="#0284c7"/>
+            <rect x="170" y="25" width="30" height="75" rx="3" fill="#38bdf8"/>
+          </svg>
+        `;
+      } else if (region === 'ege') {
+        kpiRows.textContent = '41,100';
+        kpiRev.textContent = '₺2.15M';
+        svgBox.innerHTML = `
+          <svg width="100%" height="110" viewBox="0 0 240 110">
+            <path d="M 15 80 Q 70 20 130 50 T 225 35" fill="none" stroke="#10b981" stroke-width="3"/>
+            <circle cx="15" cy="80" r="4" fill="#10b981"/><circle cx="130" cy="50" r="4" fill="#10b981"/><circle cx="225" cy="35" r="4" fill="#10b981"/>
+          </svg>
+        `;
+      } else if (region === 'ic') {
+        kpiRows.textContent = '33,200';
+        kpiRev.textContent = '₺1.42M';
+        svgBox.innerHTML = `
+          <svg width="100%" height="110" viewBox="0 0 240 110">
+            <circle cx="120" cy="55" r="40" fill="transparent" stroke="#f59e0b" stroke-width="18" stroke-dasharray="140 250"/>
+            <circle cx="120" cy="55" r="40" fill="transparent" stroke="#38bdf8" stroke-width="18" stroke-dasharray="110 250" stroke-dashoffset="-140"/>
+          </svg>
+        `;
+      }
+    }
+
+    // Concept 2 Interactive Tabs
+    function setAcadTab(type, btn) {
+      document.querySelectorAll('.acad-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      const box = document.getElementById('acadDynamicContent');
+
+      if (type === 'anova') {
+        box.innerHTML = `
+          <div class="acad-stat-grid">
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">F-İstatistiği</div>
+              <div class="acad-metric-val" style="color: #38bdf8;">14.825</div>
+              <div class="acad-metric-sub">✓ Anlamlı Varyans</div>
+            </div>
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">P-Değeri (Anlamlılık)</div>
+              <div class="acad-metric-val" style="color: #10b981;">0.00012</div>
+              <div class="acad-metric-sub">p &lt; 0.01 (İleri Düzey)</div>
+            </div>
+          </div>
+          <div class="acad-chart-mock">
+            <svg width="100%" height="80" viewBox="0 0 300 80">
+              <line x1="30" y1="40" x2="110" y2="40" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="50" y="20" width="40" height="40" fill="rgba(56,189,248,0.2)" stroke="#38bdf8" stroke-width="2"/>
+              <line x1="70" y1="20" x2="70" y2="60" stroke="#fbbf24" stroke-width="2"/>
+              <line x1="170" y1="40" x2="260" y2="40" stroke="#a78bfa" stroke-width="2"/>
+              <rect x="190" y="15" width="50" height="50" fill="rgba(167,139,250,0.2)" stroke="#a78bfa" stroke-width="2"/>
+              <line x1="220" y1="15" x2="220" y2="65" stroke="#fbbf24" stroke-width="2"/>
+            </svg>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">Gruplar Arası Kutu & Dağılım Grafiği (Frekans Yayılımı)</div>
+          </div>
+        `;
+      } else if (type === 'reg') {
+        box.innerHTML = `
+          <div class="acad-stat-grid">
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">Belirlilik Katsayısı (R²)</div>
+              <div class="acad-metric-val" style="color: #fbbf24;">0.891</div>
+              <div class="acad-metric-sub">✓ %89.1 Açıklanan Varyans</div>
+            </div>
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">Doğrusal Denklem</div>
+              <div class="acad-metric-val" style="font-size: 1.1rem; color: #f8fafc;">y = 2.41x + 15.3</div>
+              <div class="acad-metric-sub">Korelasyon: r = 0.944</div>
+            </div>
+          </div>
+          <div class="acad-chart-mock">
+            <svg width="100%" height="80" viewBox="0 0 300 80">
+              <line x1="30" y1="65" x2="270" y2="15" stroke="#f43f5e" stroke-width="2.5"/>
+              <polygon points="30,60 270,10 270,25 30,75" fill="rgba(244,63,94,0.15)"/>
+              <circle cx="60" cy="55" r="4" fill="#38bdf8"/>
+              <circle cx="110" cy="45" r="4" fill="#38bdf8"/>
+              <circle cx="160" cy="30" r="4" fill="#38bdf8"/>
+              <circle cx="210" cy="25" r="4" fill="#38bdf8"/>
+              <circle cx="240" cy="18" r="4" fill="#38bdf8"/>
+            </svg>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">Doğrusal Regresyon Eğrisi & %95 Güven Bandı</div>
+          </div>
+        `;
+      } else if (type === 'ttest') {
+        box.innerHTML = `
+          <div class="acad-stat-grid">
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">T-İstatistiği (t)</div>
+              <div class="acad-metric-val" style="color: #a78bfa;">3.412</div>
+              <div class="acad-metric-sub">Serbestlik Derecesi (df): 98</div>
+            </div>
+            <div class="acad-metric-box">
+              <div class="acad-metric-lbl">Çift Yönlü P-Değeri</div>
+              <div class="acad-metric-val" style="color: #10b981;">0.0009</div>
+              <div class="acad-metric-sub">İki Grup Ortalaması Farklı</div>
+            </div>
+          </div>
+          <div class="acad-chart-mock">
+            <div style="padding: 12px; font-size: 0.82rem; color: #cbd5e1; line-height: 1.5;">
+              H₀ Hipotezi Reddedildi: Grup 1 (Ort: 142.3) ile Grup 2 (Ort: 118.7) arasında p &lt; 0.05 düzeyinde anlamlı fark bulunmuştur.
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Concept 3 Playground Chart Switcher
+    function setPlaygroundChart(type, btn) {
+      document.querySelectorAll('.c-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const canvas = document.getElementById('playgroundCanvas');
+
+      if (type === 'bar') {
+        canvas.innerHTML = `
+          <svg width="280" height="170" viewBox="0 0 280 170">
+            <line x1="30" y1="140" x2="260" y2="140" stroke="rgba(255,255,255,0.1)"/>
+            <rect x="50" y="50" width="30" height="90" rx="4" fill="#8b5cf6"/>
+            <rect x="100" y="20" width="30" height="120" rx="4" fill="#ec4899"/>
+            <rect x="150" y="70" width="30" height="70" rx="4" fill="#06b6d4"/>
+            <rect x="200" y="35" width="30" height="105" rx="4" fill="#10b981"/>
+          </svg>
+        `;
+      } else if (type === 'donut') {
+        canvas.innerHTML = `
+          <svg width="280" height="170" viewBox="0 0 280 170">
+            <circle cx="140" cy="85" r="55" fill="transparent" stroke="#8b5cf6" stroke-width="24" stroke-dasharray="140 345" stroke-dashoffset="0"/>
+            <circle cx="140" cy="85" r="55" fill="transparent" stroke="#ec4899" stroke-width="24" stroke-dasharray="90 345" stroke-dashoffset="-140"/>
+            <circle cx="140" cy="85" r="55" fill="transparent" stroke="#06b6d4" stroke-width="24" stroke-dasharray="70 345" stroke-dashoffset="-230"/>
+            <circle cx="140" cy="85" r="55" fill="transparent" stroke="#10b981" stroke-width="24" stroke-dasharray="45 345" stroke-dashoffset="-300"/>
+            <text x="140" y="90" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">Toplam</text>
+          </svg>
+        `;
+      } else if (type === 'line') {
+        canvas.innerHTML = `
+          <svg width="280" height="170" viewBox="0 0 280 170">
+            <path d="M 40 130 Q 80 40 130 85 T 220 30 T 260 65" fill="none" stroke="#38bdf8" stroke-width="3"/>
+            <circle cx="40" cy="130" r="5" fill="#38bdf8"/>
+            <circle cx="130" cy="85" r="5" fill="#38bdf8"/>
+            <circle cx="220" cy="30" r="5" fill="#38bdf8"/>
+            <circle cx="260" cy="65" r="5" fill="#38bdf8"/>
+          </svg>
+        `;
+      } else if (type === 'radar') {
+        canvas.innerHTML = `
+          <svg width="280" height="170" viewBox="0 0 280 170">
+            <polygon points="140,20 195,55 195,115 140,150 85,115 85,55" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+            <polygon points="140,45 175,65 175,105 140,125 105,105 105,65" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            <polygon points="140,30 185,60 165,110 140,135 95,95 110,60" fill="rgba(139,92,246,0.3)" stroke="#c084fc" stroke-width="2"/>
+          </svg>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

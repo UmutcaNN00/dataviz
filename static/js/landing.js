@@ -1,155 +1,167 @@
-﻿
-/* ── NAVBAR SCROLL & MENU ── */
-const navbar = document.querySelector('.navbar');
-const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-const navLinks = document.querySelector('.nav-links');
+// ═══════════════════════════════════════════════════════════
+// DATAVIZ RESEARCH — LANDING INTERACTION ENGINE
+// ═══════════════════════════════════════════════════════════
 
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 20) navbar.classList.add('scrolled');
-  else navbar.classList.remove('scrolled');
-});
+document.addEventListener('DOMContentLoaded', () => {
 
-if (mobileMenuBtn) {
-  mobileMenuBtn.addEventListener('click', () => {
-    navLinks.classList.toggle('active');
+  // 1. SCROLL PROGRESS BAR
+  window.addEventListener('scroll', () => {
+    const winScroll = document.documentElement.scrollTop;
+    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrolled = (winScroll / height) * 100;
+    const bar = document.getElementById('scrollProgress');
+    if (bar) bar.style.width = scrolled + '%';
   });
-}
 
-/* ── REVEAL ANIMATIONS ── */
-const revealElements = document.querySelectorAll('[data-reveal], .reveal-up, .reveal-right');
-const revealOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-const revealObserver = new IntersectionObserver((entries, observer) => {
-  entries.forEach(entry => {
-    if(entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
-  });
-}, revealOptions);
-revealElements.forEach(el => revealObserver.observe(el));
+  // 2. HERO INTERACTIVE HYPOTHESIS TABS
+  const heroTabs = document.getElementById('heroTabs');
+  const heroDynamicBody = document.getElementById('heroDynamicBody');
 
-/* ── FAQ ACCORDION ── */
-document.querySelectorAll('.faq-q').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const item = btn.parentElement;
-    const ans = item.querySelector('.faq-a');
-    const isOpen = item.classList.contains('open');
-    document.querySelectorAll('.faq-item').forEach(i => {
-      i.classList.remove('open');
-      i.querySelector('.faq-a').style.maxHeight = null;
-      i.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
-    });
-    if(!isOpen) {
-      item.classList.add('open');
-      ans.style.maxHeight = ans.scrollHeight + 'px';
-      btn.setAttribute('aria-expanded', 'true');
-    }
-  });
-});
+  const tabContents = {
+    anova: {
+      metrics: [
+        { label: 'F-İstatistiği (F-Value)', val: '14.825', cls: 'highlight-blue', badge: '✓ Gruplar Arası Anlamlı' },
+        { label: 'P-Değeri (Asymptotic Sig.)', val: '0.00012', cls: 'highlight-green', badge: 'p < 0.01 (İleri Düzey)' }
+      ],
+      svg: `
+        <svg width="100%" height="95" viewBox="0 0 340 95" class="mock-svg">
+          <line x1="40" y1="48" x2="130" y2="48" stroke="#38bdf8" stroke-width="2"/>
+          <rect x="60" y="24" width="50" height="48" fill="rgba(56,189,248,0.18)" stroke="#38bdf8" stroke-width="2" rx="4"/>
+          <line x1="85" y1="24" x2="85" y2="72" stroke="#f59e0b" stroke-width="2.5"/>
 
-/* ── HELP MODAL ── */
-const helpModal = document.getElementById('helpModal');
-const openHelpBtn = document.getElementById('openHelpModal');
-const closeHelpBtn = document.getElementById('closeHelpModal');
-
-function openModal(){ if(helpModal) { helpModal.classList.add('open'); document.body.style.overflow='hidden'; } }
-function closeModal(){ if(helpModal) { helpModal.classList.remove('open'); document.body.style.overflow=''; } }
-
-if(openHelpBtn)  openHelpBtn.addEventListener('click', openModal);
-if(closeHelpBtn) closeHelpBtn.addEventListener('click', closeModal);
-if(helpModal) helpModal.addEventListener('click', e => { if(e.target===helpModal) closeModal(); });
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
-
-/* ── MODAL TABS ── */
-document.querySelectorAll('.modal-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.modal-content').forEach(c=>c.classList.add('hidden'));
-    tab.classList.add('active');
-    const target = document.getElementById('mtab-'+tab.dataset.mtab);
-    if(target) target.classList.remove('hidden');
-  });
-});
-
-/* ── SCROLLYTELLING SYNC ── */
-const scrollySteps = document.querySelectorAll('.scrolly-step');
-const svIcon = document.getElementById('svIcon');
-const svTitle = document.getElementById('svTitle');
-const svDesc = document.getElementById('svDesc');
-const stickyGlow = document.querySelector('.sticky-glow');
-
-const scrollyData = [
-  { icon: '🧹', title: 'Veri Temizliği', desc: 'Kirli veriler geçmişte kaldı.', glow: 'rgba(167,139,250,0.3)', hex: 0xa78bfa },
-  { icon: '📊', title: 'Çoklu Pano', desc: 'Bütünleşik analiz deneyimi.', glow: 'rgba(249,115,22,0.3)', hex: 0xf97316 },
-  { icon: '🤖', title: 'Yerel Yapay Zeka', desc: 'Güvenli, bulutsuz zeka.', glow: 'rgba(244,114,182,0.3)', hex: 0xf472b6 },
-  { icon: '🔍', title: 'Dinamik Dilimleyici', desc: 'Gerçek zamanlı filtreleme.', glow: 'rgba(96,165,250,0.3)', hex: 0x60a5fa }
-];
-
-if (scrollySteps.length > 0) {
-  const scrollyObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(entry.isIntersecting) {
-        scrollySteps.forEach(s => s.classList.remove('active'));
-        entry.target.classList.add('active');
-        
-        const index = Array.from(scrollySteps).indexOf(entry.target);
-        if(scrollyData[index]) {
-          const infoCard = document.getElementById('svInfoCard');
-          if (infoCard) {
-            infoCard.style.transform = 'translateY(10px)';
-            infoCard.style.opacity = '0';
-          }
+          <line x1="200" y1="48" x2="300" y2="48" stroke="#818cf8" stroke-width="2"/>
+          <rect x="225" y="18" width="55" height="60" fill="rgba(129,140,248,0.18)" stroke="#818cf8" stroke-width="2" rx="4"/>
+          <line x1="255" y1="18" x2="255" y2="78" stroke="#f59e0b" stroke-width="2.5"/>
+        </svg>
+      `,
+      caption: 'Gruplar Arası Kutu (Box Plot) Yayılımı & Medyan Çizgisi',
+      verdict: '<strong>Akademik Yorum:</strong> H₀ Hipotezi Reddedildi. Gruplar arasında %99 güven düzeyinde istatistiksel açıdan anlamlı bir varyans farkı saptanmıştır.'
+    },
+    regression: {
+      metrics: [
+        { label: 'Belirlilik Katsayısı (R²)', val: '0.891', cls: 'highlight-gold', badge: '✓ %89.1 Açıklanan Varyans' },
+        { label: 'Model Denklemi', val: 'y = 2.41x + 15.3', cls: 'highlight-blue', badge: 'Korelasyon: r = 0.944' }
+      ],
+      svg: `
+        <svg width="100%" height="95" viewBox="0 0 340 95" class="mock-svg">
+          <line x1="30" y1="75" x2="310" y2="20" stroke="#f43f5e" stroke-width="2.5"/>
+          <polygon points="30,70 310,12 310,28 30,85" fill="rgba(244,63,94,0.15)"/>
+          <circle cx="60" cy="70" r="4" fill="#38bdf8"/>
+          <circle cx="110" cy="58" r="4" fill="#38bdf8"/>
+          <circle cx="170" cy="45" r="4" fill="#38bdf8"/>
+          <circle cx="230" cy="35" r="4" fill="#38bdf8"/>
+          <circle cx="280" cy="25" r="4" fill="#38bdf8"/>
+        </svg>
+      `,
+      caption: 'Doğrusal Regresyon Eğrisi & %95 Güven Aralığı Bandı',
+      verdict: '<strong>Akademik Yorum:</strong> Bağımsız değişken, hedef metrikteki değişimin %89.1\'ini doğrusal olarak açıklamaktadır (p < 0.001).'
+    },
+    ttest: {
+      metrics: [
+        { label: 'T-İstatistiği (t)', val: '3.412', cls: 'highlight-indigo', badge: 'Serbestlik Derecesi (df): 98' },
+        { label: 'Çift Yönlü P-Değeri', val: '0.0009', cls: 'highlight-green', badge: 'p < 0.01 Düzeyinde Anlamlı' }
+      ],
+      svg: `
+        <svg width="100%" height="95" viewBox="0 0 340 95" class="mock-svg">
+          <path d="M 30 80 Q 90 80 120 20 Q 150 80 210 80" fill="rgba(56,189,248,0.15)" stroke="#38bdf8" stroke-width="2"/>
+          <path d="M 130 80 Q 190 80 220 25 Q 250 80 310 80" fill="rgba(129,140,248,0.15)" stroke="#818cf8" stroke-width="2"/>
+          <line x1="120" y1="20" x2="120" y2="80" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4"/>
+          <line x1="220" y1="25" x2="220" y2="80" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4"/>
+        </svg>
+      `,
+      caption: 'İki Bağımsız Örneklem T-Dağılımı Çakışma Analizi',
+      verdict: '<strong>Akademik Yorum:</strong> İki grup ortalaması arasındaki fark istatistiksel açıdan anlamlıdır. Ortalamalar şans eseri farklılaşmamıştır.'
+    },
+    corr: {
+      metrics: [
+        { label: 'Pearson Katsayısı (r)', val: '+0.884', cls: 'highlight-green', badge: 'Kuvvetli Pozitif Doğrusal İlişki' },
+        { label: 'Anlamlılık (2-tailed)', val: '0.0000', cls: 'highlight-blue', badge: 'p < 0.001 Seviyesi' }
+      ],
+      svg: `
+        <svg width="100%" height="95" viewBox="0 0 340 95" class="mock-svg">
+          <rect x="50" y="15" width="60" height="60" fill="rgba(56,189,248,0.8)" rx="4"/>
+          <text x="80" y="50" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">1.00</text>
           
-          setTimeout(() => {
-            if(svIcon) svIcon.innerText = scrollyData[index].icon;
-            if(svTitle) svTitle.innerText = scrollyData[index].title;
-            if(svDesc) svDesc.innerText = scrollyData[index].desc;
-            
-            const svGlow = document.getElementById('svGlow');
-            if (svGlow) svGlow.style.background = scrollyData[index].glow;
-            
-            if (window.THREE && typeof window.threeTargetColor !== 'undefined') {
-              window.threeTargetColor = new THREE.Color(scrollyData[index].hex);
+          <rect x="140" y="15" width="60" height="60" fill="rgba(56,189,248,0.5)" rx="4"/>
+          <text x="170" y="50" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">0.88</text>
+          
+          <rect x="230" y="15" width="60" height="60" fill="rgba(56,189,248,0.2)" rx="4"/>
+          <text x="260" y="50" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">0.34</text>
+        </svg>
+      `,
+      caption: 'Pearson Korelasyon Matrisi (Korelasyon Isı Haritası)',
+      verdict: '<strong>Akademik Yorum:</strong> İncelenen iki değişken arasında çok yüksek pozitif yönlü ilişki bulunmaktadır.'
+    }
+  };
+
+  if (heroTabs && heroDynamicBody) {
+    heroTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.c-tab');
+      if (!btn) return;
+      heroTabs.querySelectorAll('.c-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const tabKey = btn.dataset.tab;
+      const data = tabContents[tabKey];
+      if (!data) return;
+
+      heroDynamicBody.innerHTML = `
+        <div class="metrics-row">
+          <div class="metric-box">
+            <span class="m-label">${data.metrics[0].label}</span>
+            <span class="m-val ${data.metrics[0].cls}">${data.metrics[0].val}</span>
+            <span class="m-badge">${data.metrics[0].badge}</span>
+          </div>
+          <div class="metric-box">
+            <span class="m-label">${data.metrics[1].label}</span>
+            <span class="m-val ${data.metrics[1].cls}">${data.metrics[1].val}</span>
+            <span class="m-badge">${data.metrics[1].badge}</span>
+          </div>
+        </div>
+
+        <div class="chart-box-mock">
+          ${data.svg}
+          <div class="chart-caption">${data.caption}</div>
+        </div>
+
+        <div class="academic-verdict">
+          ${data.verdict}
+        </div>
+      `;
+    });
+  }
+
+  // 3. ANIMATED NUMBER COUNTERS (INTERSECTION OBSERVER)
+  const counters = document.querySelectorAll('.counter-num');
+  let counted = false;
+
+  const countObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !counted) {
+        counted = true;
+        counters.forEach(counter => {
+          const target = +counter.getAttribute('data-target');
+          const duration = 1200;
+          const stepTime = 20;
+          const steps = duration / stepTime;
+          const inc = target / steps;
+          let current = 0;
+
+          const timer = setInterval(() => {
+            current += inc;
+            if (current >= target) {
+              counter.textContent = target;
+              clearInterval(timer);
+            } else {
+              counter.textContent = Math.ceil(current);
             }
-            
-            if (infoCard) {
-              infoCard.style.transform = 'translateY(0)';
-              infoCard.style.opacity = '1';
-            }
-          }, 200);
-        }
+          }, stepTime);
+        });
       }
     });
-  }, { rootMargin: '-40% 0px -40% 0px', threshold: 0.1 });
+  }, { threshold: 0.3 });
 
-  scrollySteps.forEach(step => scrollyObserver.observe(step));
-}
+  const countersSection = document.getElementById('counters');
+  if (countersSection) countObserver.observe(countersSection);
 
-
-/* ── MAGNETIC BUTTONS ── */
-document.querySelectorAll('[data-magnetic]').forEach(btn => {
-  btn.addEventListener('mousemove', (e) => {
-    const rect = btn.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
-  });
-  btn.addEventListener('mouseleave', () => {
-    btn.style.transform = 'translate(0px, 0px)';
-  });
 });
-
-/* ── HERO MOCKUP 3D PARALLAX ── */
-const heroSection = document.getElementById('hero');
-const heroMockup = document.getElementById('heroMockup');
-
-if(heroSection && heroMockup) {
-  heroSection.addEventListener('mousemove', (e) => {
-    const x = (window.innerWidth / 2 - e.pageX) / 40;
-    const y = (window.innerHeight / 2 - e.pageY) / 40;
-    heroMockup.style.transform = `rotateY(${x}deg) rotateX(${y + 5}deg)`;
-  });
-  heroSection.addEventListener('mouseleave', () => {
-    heroMockup.style.transform = `rotateY(0deg) rotateX(8deg)`;
-  });
-}
