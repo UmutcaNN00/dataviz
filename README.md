@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # DataViz Pro
 
@@ -105,8 +105,8 @@
 
 ```bash
 # Repoyu klonlayin
-git clone https://github.com/UmutcaNN00/dataviz-pro-demo.git
-cd dataviz-pro-demo
+git clone https://github.com/UmutcaNN00/dataviz.git
+cd dataviz
 
 # Bagimliliklari yukleyin
 uv venv
