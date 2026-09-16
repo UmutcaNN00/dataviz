@@ -150,19 +150,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // DATA PREP MODAL ACTIONS
+  // DATA PREP (VERİ SAĞLIĞI & NAN TEMİZLEME)
+  async function openDataPrepModal() {
+    const modal = document.getElementById('dataPrepModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const msgEl = document.getElementById('dpMessage');
+    const missEl = document.getElementById('dpMissingRows');
+    const totEl = document.getElementById('dpTotalRows');
+    const missCellsEl = document.getElementById('dpMissingCells');
+    const dropBtn = document.getElementById('dpDropBtn');
+    const fillBtn = document.getElementById('dpFillBtn');
+    const fillZeroBtn = document.getElementById('dpFillZeroBtn');
+
+    if (msgEl) msgEl.textContent = "⏳ Veri sağlığı ve eksik değerler taranıyor...";
+
+    try {
+      const res = await fetch('/check_health');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Veri kontrol edilemedi');
+
+      if (missEl) missEl.textContent = data.missing_rows || 0;
+      if (totEl) totEl.textContent = data.total_rows || 0;
+      if (missCellsEl) missCellsEl.textContent = data.missing_cells || 0;
+
+      if (data.missing_rows > 0) {
+        if (msgEl) msgEl.innerHTML = `<span style="color:var(--orange); font-weight:700;">⚠️ ${data.missing_rows} satırda toplam ${data.missing_cells} adet boş (NaN) hücre tespit edildi.</span><br>Grafiklerin ve istatistik testlerinin kusursuz çalışması için aşağıdaki yöntemlerden birini seçebilirsiniz:`;
+        if (dropBtn) dropBtn.style.display = 'inline-block';
+        if (fillBtn) fillBtn.style.display = 'inline-block';
+        if (fillZeroBtn) fillZeroBtn.style.display = 'inline-block';
+      } else {
+        if (msgEl) msgEl.innerHTML = `<span style="color:var(--green); font-weight:700;">✓ Tebrikler! Veri setinizde hiç eksik değer (NaN) bulunmuyor.</span><br>Tüm satır ve sütunlar eksiksiz ve analize %100 hazır.`;
+        if (dropBtn) dropBtn.style.display = 'none';
+        if (fillBtn) fillBtn.style.display = 'none';
+        if (fillZeroBtn) fillZeroBtn.style.display = 'none';
+      }
+    } catch (err) {
+      if (msgEl) msgEl.textContent = "Hata: " + err.message;
+    }
+  }
+
+  ['btnOpenDataPrepModalS2', 'btnOpenDataPrepModalPool', 'btnOpenDataPrepModalS3'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', openDataPrepModal);
+  });
+
+  document.getElementById('btnCloseDataPrepModal')?.addEventListener('click', () => {
+    document.getElementById('dataPrepModal')?.classList.add('hidden');
+  });
+
   document.getElementById('dpSkipBtn')?.addEventListener('click', () => {
     document.getElementById('dataPrepModal')?.classList.add('hidden');
-    proceedToStep2();
+    if (document.getElementById('step1-upload')?.classList.contains('active')) {
+      proceedToStep2();
+    }
   });
-  
+
   document.getElementById('dpDropBtn')?.addEventListener('click', () => callCleanData('drop'));
   document.getElementById('dpFillBtn')?.addEventListener('click', () => callCleanData('fill_mean'));
+  document.getElementById('dpFillZeroBtn')?.addEventListener('click', () => callCleanData('fill_zero'));
 
   async function callCleanData(action) {
     const msgEl = document.getElementById('dpMessage');
-    const origMsg = msgEl.textContent;
-    msgEl.textContent = "⏳ Temizleniyor...";
+    const origMsg = msgEl ? msgEl.textContent : '';
+    if (msgEl) msgEl.textContent = "⏳ Temizleniyor...";
     try {
       const res = await fetch('/clean_data', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:action}) });
       const data = await res.json();
@@ -171,11 +222,19 @@ document.addEventListener('DOMContentLoaded', () => {
       categoricalColumns = data.categorical_columns || [];
       globalColumns = [...categoricalColumns, ...numericColumns];
       document.getElementById('dataPrepModal').classList.add('hidden');
-      proceedToStep2();
+      
+      if (document.getElementById('step1-upload')?.classList.contains('active')) {
+        proceedToStep2();
+      } else {
+        initDragDropPool();
+        if (typeof renderChartGrid === 'function') renderChartGrid('all');
+        if (typeof evaluateCharts === 'function') evaluateCharts();
+        alert(`✓ Veri temizleme başarıyla tamamlandı!\nGüncel Satır Sayısı: ${data.total_rows}`);
+      }
     } catch(err) {
       alert("Hata: " + err.message);
       document.getElementById('dataPrepModal').classList.add('hidden');
-      msgEl.textContent = origMsg;
+      if (msgEl) msgEl.textContent = origMsg;
     }
   }
 
@@ -440,7 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const calcNewColName = document.getElementById('calcNewColName');
   let selectedCalcOp = '+';
 
-  document.getElementById('btnOpenCalcModal')?.addEventListener('click', () => {
+  ['btnOpenCalcModal', 'btnOpenCalcModalS2'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () => {
     calcCol1Select.innerHTML = '';
     calcCol2Select.innerHTML = '';
     numericColumns.forEach(c => {
@@ -522,7 +582,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnExecuteMerge = document.getElementById('btnExecuteMerge');
   let selectedFile2 = null;
 
-  document.getElementById('btnOpenMergeModal')?.addEventListener('click', () => {
+  ['btnOpenMergeModal', 'btnOpenMergeModalS2', 'btnOpenMergeModalS3'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () => {
     selectedFile2 = null;
     mergeFileInput.value = '';
     mergeFileStatus.style.display = 'none';

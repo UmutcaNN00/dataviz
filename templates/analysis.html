@@ -13,20 +13,44 @@
 </head>
 <body>
 
-<!-- ══════════ DATA PREP (SAĞLIK) MODALI ══════════ -->
+<!-- ══════════ DATA PREP (VERİ SAĞLIĞI & NAN TEMİZLEME) MODALI ══════════ -->
 <div id="dataPrepModal" class="modal-overlay hidden">
-  <div class="modal-content">
-    <div class="modal-icon">🩺</div>
-    <h2>Veri Check-Up</h2>
-    <p id="dpMessage">Yüklediğiniz veride eksik hücreler veya hatalı satırlar tespit ettik. Sağlıklı bir grafik çizimi için bu hataları otomatik temizleyebiliriz.</p>
-    <ul class="dp-stats">
-      <li>Tespit Edilen Boş Satır: <strong id="dpMissingRows" style="color:var(--orange);">0</strong></li>
-      <li>Toplam Satır: <strong id="dpTotalRows">0</strong></li>
-    </ul>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="dpSkipBtn">Geç (Olduğu Gibi Bırak)</button>
-      <button class="btn-secondary" id="dpFillBtn">Ortalama İle Doldur</button>
-      <button class="btn-primary" id="dpDropBtn">Boş Satırları Sil</button>
+  <div class="modal-content filter-modal-content" style="max-width: 580px;">
+    <div class="modal-header-row">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.4rem;">🩺</span>
+        <h3>Veri Sağlığı &amp; Eksik Değer (NaN) Temizleme</h3>
+      </div>
+      <button class="modal-close-btn" id="btnCloseDataPrepModal">×</button>
+    </div>
+    <p id="dpMessage" class="filter-hint" style="margin-top:8px;">Veri setinizdeki boş satırlar ve eksik hücreler taranıyor...</p>
+    
+    <div class="dp-stats-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:16px 0;">
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:0.75rem; color:var(--muted);">Toplam Satır</div>
+        <div id="dpTotalRows" style="font-size:1.3rem; font-weight:700; color:var(--text); margin-top:4px;">0</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:0.75rem; color:var(--muted);">Boş Hücre (Hücre Bazlı)</div>
+        <div id="dpMissingCells" style="font-size:1.3rem; font-weight:700; color:var(--cyan); margin-top:4px;">0</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+        <div style="font-size:0.75rem; color:var(--muted);">Eksik Satır Sayısı</div>
+        <div id="dpMissingRows" style="font-size:1.3rem; font-weight:700; color:var(--orange); margin-top:4px;">0</div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+      <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:4px;">Temizleme veya Doldurma Yöntemi Seçin:</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+        <button class="btn-primary" id="dpDropBtn" style="background:#ef4444; border-color:#ef4444; font-size:0.82rem; padding:10px;">🗑️ Boş Satırları Sil</button>
+        <button class="btn-secondary" id="dpFillBtn" style="font-size:0.82rem; padding:10px;">📈 Ortalamayla Doldur</button>
+        <button class="btn-secondary" id="dpFillZeroBtn" style="font-size:0.82rem; padding:10px;">0️⃣ Sıfır (0) ile Doldur</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
+      <button class="btn-ghost" id="dpSkipBtn" style="width:100%;">Kapat / Olduğu Gibi Bırak</button>
     </div>
   </div>
 </div>
@@ -249,6 +273,31 @@
        </span>
     </div>
 
+    <!-- ── ADIM 1: YETENEK ÖNİZLEME STRİPİ ── -->
+    <div class="s1-features-strip">
+      <div class="s1-feat-card">
+        <span class="s1-feat-icon">🩺</span>
+        <div class="s1-feat-text">
+          <strong>Otomatik Veri Sağlığı &amp; NaN Temizleme</strong>
+          <p>Eksik değerleri anında tespit edip ortalama/sıfır ile doldurun veya tek tıkla silin.</p>
+        </div>
+      </div>
+      <div class="s1-feat-card">
+        <span class="s1-feat-icon">🔗</span>
+        <div class="s1-feat-text">
+          <strong>Çoklu Veri Seti Birleştirme (Join)</strong>
+          <p>2. bir Excel/CSV dosyası yükleyip ortak sütun üzerinden tabloları bağlayın.</p>
+        </div>
+      </div>
+      <div class="s1-feat-card">
+        <span class="s1-feat-icon">🧮</span>
+        <div class="s1-feat-text">
+          <strong>Hesaplanmış Sütun &amp; Formül Motoru</strong>
+          <p>Sütunlar arasında toplama, çıkarma ve oran formülleriyle yeni değişkenler üretin.</p>
+        </div>
+      </div>
+    </div>
+
     <div id="mainUploadStatus" class="status-msg hidden" style="margin-top:20px; font-size:1rem; z-index: 10;"></div>
   </div>
 </div>
@@ -257,6 +306,16 @@
   <header class="s2-header">
     <div class="s2-header-left">
       <span class="s2-file-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> <span id="s2FileName">veri.xlsx</span></span>
+      
+      <!-- HIZLI VERİ ARAÇLARI (DATA TOOLBAR) -->
+      <div class="s2-quick-tools">
+        <button type="button" class="btn-quick-data-tool" id="btnOpenDataPrepModalS2" title="Eksik değerleri (NaN) tespit et ve temizle">
+          🩺 Veri Temizleme &amp; NaN
+        </button>
+        <button type="button" class="btn-quick-data-tool btn-tool-merge" id="btnOpenMergeModalS2" title="2. bir Excel/CSV dosyası yükleyip tabloları birleştirin">
+          🔗 2. Dosyayı Birleştir (Join)
+        </button>
+      </div>
     </div>
 
     <!-- Ortada Stüdyo Geçiş Butonları -->
@@ -321,9 +380,10 @@
             <h4>Veri Havuzu</h4>
             <span id="poolCountBadge" class="pool-total-badge">0 Sütun</span>
           </div>
-          <div style="display:flex; gap:6px;">
-            <button type="button" class="btn-calc-col" id="btnOpenCalcModal">🧮 + Formül</button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn-calc-col" id="btnOpenDataPrepModalPool" title="Eksik (NaN) Verileri Temizle" style="color:var(--cyan); border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.1);">🩺 NaN Temizle</button>
             <button type="button" class="btn-calc-col" id="btnOpenMergeModal" style="color:var(--green); border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.1);">🔗 2. Dosyayı Birleştir</button>
+            <button type="button" class="btn-calc-col" id="btnOpenCalcModal">🧮 + Formül</button>
           </div>
         </div>
 
@@ -420,6 +480,14 @@
     </div>
 
     <div class="topbar-right">
+      <!-- VERİ İŞLEMLERİ BUTONLARI -->
+      <button type="button" class="btn-topbar-action" id="btnOpenDataPrepModalS3" title="Eksik değerleri (NaN) incele ve temizle">
+        🩺 Veri Temizle (NaN)
+      </button>
+      <button type="button" class="btn-topbar-action" id="btnOpenMergeModalS3" title="2. bir dosya birleştirin">
+        🔗 2. Dosya Birleştir
+      </button>
+
       <!-- PANOYA EKLEME BUTONU -->
       <button class="btn-pin" id="btnPinToDashboard" title="Bu grafiği Çoklu Gösterge Panosuna ekle">
         <span>📌</span> Panoya Ekle
