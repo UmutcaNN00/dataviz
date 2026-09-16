@@ -309,6 +309,66 @@ def analysis():
 def a4_demo():
     return render_template('a4_demo.html')
 
+@app.route('/load_sample', methods=['GET', 'POST'])
+def load_sample():
+    try:
+        sample_path = None
+        for candidate in ['ornek_veri_seti.xlsx', '1_Satis_Islemleri_Devasa.xlsx', 'test_satislar.csv', 'test.csv']:
+            if os.path.exists(candidate):
+                sample_path = candidate
+                break
+        
+        sheet_names = []
+        active_sheet = None
+
+        if sample_path and sample_path.endswith('.xlsx'):
+            with open(sample_path, 'rb') as f:
+                df, sheets_dict, sheet_names, active_sheet = read_excel_safely(f)
+            set_df(df, 1)
+            set_excel_data(sheets_dict, sheet_names)
+        elif sample_path and sample_path.endswith('.csv'):
+            with open(sample_path, 'rb') as f:
+                df = read_csv_safely(f)
+            set_df(df, 1)
+            set_excel_data(None, [])
+        else:
+            np.random.seed(42)
+            categories = ['Elektronik', 'Mobilya', 'Giyim', 'Gıda', 'Kırtasiye', 'Kozmetik']
+            regions = ['Marmara', 'Ege', 'İç Anadolu', 'Akdeniz', 'Karadeniz']
+            months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos']
+            n = 120
+            df = pd.DataFrame({
+                'Kategori': np.random.choice(categories, n),
+                'Bölge': np.random.choice(regions, n),
+                'Dönem': np.random.choice(months, n),
+                'Satış_Tutarı': np.random.randint(1000, 50000, n),
+                'Kar': np.random.randint(200, 15000, n),
+                'Maliyet': np.random.randint(800, 35000, n),
+                'Müşteri_Memnuniyeti': np.random.uniform(3.0, 5.0, n).round(2),
+                'İşlem_Adedi': np.random.randint(1, 20, n)
+            })
+            df = clean_dataframe(df)
+            set_df(df, 1)
+            set_excel_data(None, [])
+
+        df = get_df(1)
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
+
+        return jsonify({
+            'success': True,
+            'file_name': 'Akademik_Ornek_Veri_Seti.xlsx',
+            'total_rows': len(df),
+            'total_cols': len(df.columns),
+            'sheet_names': sheet_names,
+            'active_sheet': active_sheet or (sheet_names[0] if sheet_names else None),
+            'numeric_columns': numeric_cols,
+            'categorical_columns': categorical_cols
+        })
+    except Exception as e:
+        logger.exception(f"Örnek veri hatası: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
