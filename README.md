@@ -1,205 +1,230 @@
 <div align="center">
 
 # ⬡ DataViz Pro
-### Yeni Nesil İnteraktif Veri Analizi, İstatistik ve İş Zekası (BI) Platformu
+### Excel ve CSV Dosyalarınızı 3 Adımda Etkileşimli Grafikler ve Profesyonel Raporlara Dönüştürün
 
 <p align="center">
-  <strong>Ham Excel ve CSV veri kümelerini; akıllı kural motoruyla 50+ interaktif grafiğe, ileri düzey parametrik hipotez testlerine (ANOVA, T-Test, Regresyon) ve dinamik A4 PDF raporlama stüdyosuna dönüştüren hafif, donanım dostu web platformu.</strong>
+  <strong>Karmaşık formüllerle, pahalı yazılım lisanslarıyla veya teknik istatistik jargonuyla uğraşmayın.<br>
+  Verinizi sürükleyip bırakın; 47 farklı interaktif grafikle keşfedin, bilimsel testleri tek tıkla çalıştırın ve baskıya hazır A4 PDF raporunuzu saniyeler içinde indirin.</strong>
+</p>
+
+<!-- Statü ve Rozetler -->
+<p align="center">
+  <img src="https://img.shields.io/badge/Sürüm-v6.0_Açık_Kaynak-8b5cf6?style=for-the-badge" alt="Sürüm">
+  <img src="https://img.shields.io/badge/Grafik_Motoru-47_Plotly.js-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Grafikler">
+  <img src="https://img.shields.io/badge/İstatistik-SciPy_Motoru-10b981?style=for-the-badge&logo=scipy&logoColor=white" alt="İstatistik">
+  <img src="https://img.shields.io/badge/Donanım-Sıfır_GPU_%2F_Hafif-f59e0b?style=for-the-badge" alt="Donanım">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/S%C3%BCr%C3%BCm-v6.0%20Enterprise-8b5cf6?style=for-the-badge" alt="Version">
-  <img src="https://img.shields.io/badge/Grafik%20Motoru-50%2B%20Plotly.js-3b82f6?style=for-the-badge" alt="Charts">
-  <img src="https://img.shields.io/badge/%C4%B0statistik-SciPy%20Engine-10b981?style=for-the-badge" alt="Stats">
-  <img src="https://img.shields.io/badge/Donan%C4%B1m-Zero--GPU%20%2F%20Hafif-f59e0b?style=for-the-badge" alt="Hardware">
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/Flask-3.0%2B-000000?logo=flask&logoColor=white" alt="Flask">
-  <img src="https://img.shields.io/badge/Pandas-2.0%2B-150458?logo=pandas&logoColor=white" alt="Pandas">
-  <img src="https://img.shields.io/badge/SciPy-1.11%2B-8CAAE6?logo=scipy&logoColor=white" alt="SciPy">
-  <img src="https://img.shields.io/badge/Plotly.js-2.26%2B-3F4F75?logo=plotly&logoColor=white" alt="Plotly">
-  <img src="https://img.shields.io/badge/Lisans-Akademik%20%2F%20A%C3%A7%C4%B1k%20Kaynak-success" alt="License">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-3.0+-000000?style=flat-square&logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/Pandas-2.0+-150458?style=flat-square&logo=pandas&logoColor=white" alt="Pandas">
+  <img src="https://img.shields.io/badge/SciPy-1.11+-8CAAE6?style=flat-square&logo=scipy&logoColor=white" alt="SciPy">
+  <img src="https://img.shields.io/badge/openpyxl-Uyumlu-107c41?style=flat-square&logo=microsoft-excel&logoColor=white" alt="openpyxl">
+  <img src="https://img.shields.io/badge/uv-Uyumlu-DE5FE9?style=flat-square&logo=astral&logoColor=white" alt="uv">
+  <img src="https://img.shields.io/badge/Lisans-MIT-success?style=flat-square" alt="Lisans">
 </p>
 
 <br>
 
-> ⚡ **Sıfır Bulut Bağımlılığı & Donanım Dostu:** Ağır yapay zeka modelleri (LLM) veya yüksek GPU maliyetleri gerektirmez. Tüm veri işleme ve hipotez testleri yerel Python ve SciPy algoritmalarıyla milisaniyeler içinde gerçekleştirilir.
+<!-- Arayüz Önizleme Görseli -->
+<img src="static/img/dataviz_pro_linkedin.jpg" alt="DataViz Pro Arayüz Önizlemesi" width="100%" style="border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.25);">
+
+<br><br>
+
+> 🔒 **%100 Yerel ve Güvenli:** Verileriniz asla yabancı bir buluta yüklenmez. Tüm hesaplamalar kendi bilgisayarınızda milisaniyeler içinde yapılır. Ağır yapay zeka (GPU) donanımı veya API ücreti gerektirmez.
 
 </div>
 
 ---
 
-## 📌 İçindekiler
-- [Mimari Genel Bakış](#-mimari-genel-bakış)
-- [Akıllı Grafik Öneri Motoru](#-akıllı-grafik-öneri-motoru)
-- [Temel Özellikler](#-temel-özellikler)
-  - [1. Veri Hazırlama & Formül Motoru](#1-veri-hazırlama--formül-motoru)
-  - [2. 50+ İnteraktif Görselleştirme](#2-50-interaktif-görselleştirme)
-  - [3. Akademik İstatistik & Hipotez Testleri](#3-akademik-istatistik--hipotez-testleri)
-  - [4. Etkileşimli A4 PDF Rapor Stüdyosu](#4-etkileşimli-a4-pdf-rapor-stüdyosu)
-- [Hızlı Başlangıç & Kurulum](#-hızlı-başlangıç--kurulum)
-- [Proje Mimarisi & Dosya Yapısı](#-proje-mimarisi--dosya-yapısı)
-- [API Uç Noktaları (Endpoints)](#-api-uç-noktaları-endpoints)
-- [Geliştirici & Katkıda Bulunma](#-geliştirici--katkıda-bulunma)
+## 🧭 İçindekiler
+- [Bu Proje Ne İşe Yarar? (Kısaca)](#-bu-proje-ne-işe-yarar-kısaca)
+- [3 Adımda Nasıl Çalışır?](#-3-adımda-nasıl-çalışır)
+- [Öne Çıkan Özellikler](#-öne-çıkan-özellikler)
+- [Hızlı Başlangıç (1 Dakikada Çalıştırın)](#-hızlı-başlangıç-1-dakikada-çalıştırın)
+- [Mimarisi & Klasör Yapısı](#-mimarisi--klasör-yapısı)
+- [REST API Uç Noktaları](#-rest-api-uç-noktaları)
+- [Teknoloji Yığını](#-teknoloji-yığını)
+- [Geliştirici & Lisans](#-geliştirici--lisans)
 
 ---
 
-## 🏛 Mimari Genel Bakış
+## 🎯 Bu Proje Ne İşe Yarar? (Kısaca)
 
-DataViz Pro, kurumsal iş zekası (BI) araçlarının hantallığını ortadan kaldırmak ve veri bilimi süreçlerini akademik hassasiyetle web arayüzüne taşımak amacıyla tasarlanmıştır.
+Elinizde bir Excel veya CSV tablosu var ama ne grafik çizeceğinizi, verideki eğilimleri nasıl bulacağınızı veya bunu yöneticinize/hocanıza nasıl sunacağınızı bilmiyor musunuz?
+
+**DataViz Pro**, tam olarak bu zahmeti ortadan kaldırır:
+1. **Düşünmenize gerek bırakmaz:** Sütunlarınızı seçtiğiniz anda verinin türüne (tarih, metin, sayı) göre en uygun grafikleri kendisi önerir.
+2. **Akademik istatistiği herkesin anlayacağı dile döker:** Gruplar arasındaki farkın şans eseri mi yoksa gerçek mi olduğunu (ANOVA, T-Testi, Regresyon) hesaplar ve Türkçe cümlelerle açıklar.
+3. **Kes-yapıştır yapmadan rapor üretir:** Grafikleri sıralayabileceğiniz, aralarına kendi yorumlarınızı yazabileceğiniz bir A4 stüdyosu sunar; tek tıkla çok sayfalı PDF verir.
+
+---
+
+## ⚡ 3 Adımda Nasıl Çalışır?
 
 ```mermaid
-graph LR
-    A[Excel / CSV Dosyası] --> B(Flask Backend & Pandas)
-    B --> C{Akıllı Kural Motoru}
-    C -->|Veri Tipi Analizi| D[50+ Plotly.js Grafiği]
-    C -->|Parametrik Testler| E[SciPy İstatistik Motoru]
-    D --> F[İnteraktif Dashboard]
-    E --> F
-    F --> G[A4 PDF Rapor Stüdyosu]
+flowchart LR
+    A["📂 1. Dosyanı Yükle\n(Excel / CSV Sürükle)"] --> B["📊 2. Analizini Seç\n(47 Grafik & İstatistik)"]
+    B --> C["📄 3. Raporunu İndir\n(Baskıya Hazır A4 PDF)"]
 ```
 
----
-
-## 🎯 Akıllı Grafik Öneri Motoru
-
-Platform, rastgele grafikler sunmak yerine seçilen eksenlerin **matematiksel tipolojisini**, **kardinalitesini** ve **zaman serisi özelliklerini** analiz eden yerleşik bir kural motoruna (`evaluateCharts`) sahiptir:
-
-| Eksen Kombinasyonu | Veri Türü Dinamiği | Önerilen Grafikler (✨ Rozetli) |
-|---|---|---|
-| **X (Tarih) + 1 Sayısal Y** | Zaman Serisi / Trend | `Çizgi (Line)`, `Yumuşak Çizgi (Spline)`, `Alan (Area)`, `Basamak (Step)`, `Şelale (Waterfall)` *(Finansal kolonlar varsa: `Mum (Candlestick)`, `OHLC`)* |
-| **X (Tarih) + 2+ Sayısal Y** | Kümülatif & Çoklu Trend | `Çoklu Çizgi`, `Yığılmış Alan (Stacked Area)`, `Gruplu Çubuk`, `Yığılmış Çubuk` |
-| **X (Kategori) + 1 Sayısal Y** | Tekil Karşılaştırma & Dağılım | `Çubuk`, `Yatay Çubuk`, `Pasta`, `Donut`, `Radar (Örümcek)`, `Ağaç (Treemap)`, `Sunburst`, `Huni (Funnel)`, `Nokta Kıyas (Dotplot)`, `Şelale`, `Bullet (KPI)` |
-| **X (Kategori) + 2+ Sayısal Y** | Çok Boyutlu Profilleme | `Radar`, `Gruplu Çubuk`, `Yığılmış Çubuk`, `Isı Haritası (Heatmap)`, `Sarkıt (Icicle)`, `Akış (Sankey)`, `Paralel Kategoriler (Parcats)` |
-| **X (Sayısal) + 1 Sayısal Y** | İki Değişkenli Korelasyon | `Dağılım (Scatter)`, `Balon (Bubble)`, `2D Yoğunluk (Density2D)`, `2D Histogram`, `Çizgi` |
-| **3 Sayısal Değişken** | Uzaysal / 3D Dağılım | `3D Scatter`, `3D Çizgi`, `3D Yüzey (Surface)`, `Kontur`, `Ternary (Üçgen)` |
-| **4+ Sayısal Değişken** | Çok Değişkenli Matris | `Scatter Matrix (SPLOM)`, `Paralel Koordinatlar (Parcoords)`, `Isı Haritası (Heatmap)` |
-| **Yalnızca 1 Sayısal Y (X Yok)** | Tek Değişkenli İstatistiksel Dağılım | `Histogram`, `Kutu (Box Plot)`, `Keman (Violin)`, `Şerit (Strip)`, `Halı (Rug)`, `Bullet (KPI)` |
+| Adım | Ne Yaparsınız? | Ne Kazanırsınız? |
+|:---:|:---|:---|
+| **1️⃣ Yükle** | `.xlsx`, `.xls` veya `.csv` dosyanızı sürükleyip bırakın (veya tek tıkla hazır örnek veriyi açın). | Başlıklar, sekmeler ve veri tipleri otomatik algılanır. Kodlama veya ayar gerekmez. |
+| **2️⃣ Keşfet** | İncelemek istediğiniz sütunları sürükleyin; sistemin önerdiği grafiğe tıklayın. | Trendleri, dağılımları ve korelasyonları anında görün. İstatistik sekmesinde ANOVA/T-test sonuçlarına ulaşın. |
+| **3️⃣ Raporla** | Beğendiğiniz grafikleri panoya ekleyin; A4 stüdyosunda yorumlarınızı yazıp indirin. | Saatlerce slayt hazırlamak yerine doğrudan toplantıya veya ödeve uygun PDF çıktısı alın. |
 
 ---
 
-## 🚀 Temel Özellikler
+## ✨ Öne Çıkan Özellikler
 
-### 1. Veri Hazırlama & Formül Motoru
-* **Çoklu Format Desteği:** `.xlsx`, `.xls` ve `.csv` dosyalarını sürükle-bırak yöntemiyle yükleme.
-* **Akıllı Sayfa Yönetimi:** Excel çalışma kitaplarındaki farklı sayfaları (sheets) anında seçebilme.
-* **Veri Birleştirme (Join/Merge):** İki bağımsız veri setini ortak bir anahtar sütun (`Left`, `Right`, `Inner`, `Outer`) üzerinden tekilleştirme.
-* **Aritmetik Formül Üretici:** Sayısal sütunlar arasında Dört İşlem (Toplama, Çıkarma, Çarpma, Bölme) ile anında yeni türetilmiş sütunlar oluşturma (Sıfıra bölünme ve NaN korumalı).
-* **Dinamik Dilimleyiciler (Slicers):** Metinsel veya sayısal aralık bazlı anlık veri filtreleme.
+### 📊 1. 47 İnteraktif Grafik & Akıllı Öneri Motoru
+* **Akıllı Rozetler:** Seçilen sütunlara göre (örneğin Tarih + Sayısal kolon seçildiğinde Trend grafikleri; Metin + Sayısal seçildiğinde Karşılaştırma grafikleri) en uygun grafik türlerini ışıldayan rozetlerle tavsiye eder.
+* **Zengin Görsel Kütüphanesi:**
+  * **Trend:** Çizgi, Yumuşak Çizgi (Spline), Basamak, Alan, Yığılmış Alan, Şelale (Waterfall), Finansal Mum (Candlestick), OHLC
+  * **Karşılaştırma:** Çubuk, Yatay Çubuk, Gruplu Çubuk, Yığılmış Çubuk, Huni (Funnel), Radar, Nokta Kıyas (Dotplot), Bullet (KPI)
+  * **Dağılım:** Histogram, 2D Histogram, Kutu (Box Plot), Keman (Violin), Şerit (Strip), Halı (Rug), 2D Yoğunluk, Hata Çubukları (Errorbar)
+  * **İlişki & Matris:** Dağılım (Scatter), Balon (Bubble), Scatter Matrix (SPLOM), Isı Haritası (Heatmap), Paralel Koordinatlar (Parcoords), Paralel Kategoriler (Parcats)
+  * **Parça-Bütün:** Pasta, Donut, Sunburst, Ağaç (Treemap), Funnel Area, Sarkıt (Icicle), Akış (Sankey)
+  * **3D & Bilimsel:** 3D Scatter, 3D Çizgi, 3D Yüzey (Surface), Kontur, Polar Çubuk, Polar Scatter, Rüzgar Gülü (Windrose), Üçgen (Ternary), Halı (Carpet), Dünya Haritası (Scattergeo)
 
-### 2. 50+ İnteraktif Görselleştirme
-* **Plotly.js Entegrasyonu:** Tüm grafiklerde donanım hızlandırmalı yakınlaştırma (zoom), kaydırma (pan) ve fare ile üzerine gelme (tooltip) desteği.
-* **Sürüklenebilir Bölücü (Splitter):** Değişken havuzu ile grafik seçim paneli arasındaki dikey ayırıcıyı fareyle esnetebilme.
-* **Karanlık Mod & Özel Renk Paletleri:** Apple/Mac standartlarında 6px ultra-ince kaydırma çubukları, neon vurgular ve glassmorphism kart tasarımı.
+### 🔬 2. Anlaşılır Akademik İstatistik Laboratuvarı
+* **Şans mı, Gerçek Fark mı? (ANOVA & T-Testi):** İki veya daha fazla grup (ör. Şube A ve Şube B satışları) arasındaki farkın tesadüf olup olmadığını SciPy motoruyla kuramsal olarak test eder ($F$ ve $t$ istatistikleri, $p$-değeri).
+* **Doğrusal İlişki & Regresyon:** Sayısal iki değişken arasındaki bağı korelasyon katsayısı ($r$), belirlilik katsayısı ($R^2$) ve açık matematiksel denklemle ($y = mx + c$) gösterir.
+* **Akademik Özet:** İstatistiksel bulguları, araştırmacıların ve karar vericilerin doğrudan kullanabileceği akademik bir dille otomatik özetler.
 
-### 3. Akademik İstatistik & Hipotez Testleri
-Veri setinde seçilen sayısal metrikler, Python'un `scipy.stats` kütüphanesi üzerinden kuramsal testlerden geçirilir:
-* **Merkezi Eğilim & Yayılım:** Ortalama, Medyan, Minimum, Maksimum, Standart Sapma, Eksik Veri Frekansı.
-* **Tek Yönlü Varyans Analizi (One-Way ANOVA):** Kategorik grupların ortalamaları arasındaki istatistiksel anlamlılığı test eder ($F$ İstatistiği ve $p$-değeri).
-* **Bağımsız Örneklem T-Testi:** İki grup arasındaki ortalama farkının şans eseri olup olmadığını belirler ($t$ İstatistiği ve $p$-değeri).
-* **Pearson Korelasyon & OLS Regresyon:** Değişkenler arası doğrusal ilişki katsayısı ($r$), Belirlilik Katsayısı ($R^2$) ve açık Regresyon Denklemi ($y = mx + c$).
-* **Akademik Raporlayıcı:** İstatistiksel sonuçları resmi ve bilimsel bir terminolojiyle otomatik yorumlar.
+### 📄 3. Etkileşimli A4 PDF Rapor Stüdyosu
+* **Birebir A4 Önizleme:** Grafikler ve üst düzey KPI kartları A4 tuvalinde sıralanır.
+* **Sırala & Çıkar:** Rapor bloklarını `↑` ve `↓` butonlarıyla yukarı-aşağı taşıyabilir, istemediğiniz grafikleri tek tıkla silebilirsiniz.
+* **Serbest Yönetici Notları:** `+ Metin Ekle` butonuyla grafiklerin arasına kendi yorum ve analizlerinizi doğrudan yazabilirsiniz.
+* **Akıllı Sayfalama:** `html2pdf.js` motoru sayesinde grafikleri ortadan ikiye bölmeden temiz, çok sayfalı kurumsal PDF üretir.
 
-### 4. Etkileşimli A4 PDF Rapor Stüdyosu
-* **İnteraktif Düzenleme Tuvali:** İndirmeden önce raporunuzu birebir A4 sayfa oranlarında önizleyin.
-* **Yeniden Sıralama & Çıkarma:** Blokları `↑` ve `↓` butonlarıyla yukarı-aşağı taşıyın, istemediğiniz grafikleri tek tıkla rapordan kaldırın.
-* **Dinamik Yönetici Notları:** "+ Metin Ekle" butonu ile grafiklerin arasına `contenteditable` serbest yorum alanları yerleştirin.
-* **Akıllı Çoklu Sayfalama:** 10+ grafik veya tablo eklendiğinde grafikleri ortadan ikiye bölmeden, mantıklı sayfa sonlarıyla (`pagebreak: avoid-all`) çok sayfalı A4 PDF oluşturma.
+### 🛠 4. Pratik Veri Hazırlama & Formül Sihirbazı
+* **Çoklu Sekme (Multi-Sheet):** Excel kitaplarındaki farklı sayfalar arasında anında geçiş.
+* **Tablo Birleştirme (Join/Merge):** İki bağımsız Excel/CSV tablosunu ortak bir anahtar sütun üzerinden (`Left`, `Right`, `Inner`, `Outer`) eşleştirip tek tabloda birleştirme.
+* **Formül Sihirbazı:** Dört işlemle (`+`, `-`, `*`, `/`) veya sabit katsayıyla saniyeler içinde yeni hesaplanmış sütunlar türetme (sıfıra bölünme korumalı).
+* **Veri Temizleme:** Eksik hücreleri (NaN) tek tıkla ortalama veya sıfırla doldurma, ya da boş satırları ayıklama.
+* **Canlı Dilimleyiciler (Slicers):** Metin seçimleri veya sayısal aralık kaydırıcılarıyla tüm analizleri anlık filtreleme.
 
 ---
 
-## 💻 Hızlı Başlangıç & Kurulum
+## 🚀 Hızlı Başlangıç (1 Dakikada Çalıştırın)
 
-### Gereksinimler
-* **Python 3.10 veya üzeri**
-* **[uv](https://docs.astral.sh/uv/getting-started/installation/)** (Önerilen modern paket yöneticisi) veya geleneksel `pip`
+Sisteminizde **Python 3.10 veya üzeri** bir sürümün kurulu olması yeterlidir.
 
-### 1. Projeyi Klonlayın
+### Seçenek 1: 🪟 Windows İçin Tek Tıkla Başlatıcı (Önerilen)
+Komut satırıyla uğraşmak istemiyorsanız:
+1. Projeyi indirin veya klonlayın.
+2. Klasördeki **`DEMO_BASLAT.bat`** dosyasına çift tıklayın.
+3. Sunucu otomatik başlar ve varsayılan tarayıcınızda `http://127.0.0.1:5000` açılır!
+
+---
+
+### Seçenek 2: ⚡ `uv` ile Hızlı Başlatma (Geliştiriciler İçin)
+Modern ve ultra hızlı paket yöneticisi **uv** ile:
 ```bash
+# Repoyu klonlayın
 git clone https://github.com/UmutcaNN00/dataviz.git
 cd dataviz
-```
 
-### 2. Sanal Ortamı Hazırlayın ve Bağımlılıkları Yükleyin
-```bash
-# uv kullanarak (Önerilen - saniyeler içinde tamamlanır)
-uv venv
-uv pip install -r requirements.txt
-
-# veya geleneksel pip ile:
-python -m venv .venv
-source .venv/bin/activate  # Windows için: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 3. Uygulamayı Başlatın
-```bash
+# Çalıştırın (bağımlılıkları otomatik çözer)
 uv run python app.py
-# veya
-python app.py
 ```
 Tarayıcınızda **`http://127.0.0.1:5000`** adresine gidin.
 
-### 🪟 Windows İçin Tek Tıkla Başlatıcı
-Proje dizininde yer alan **`DEMO_BASLAT.bat`** dosyasına çift tıklamanız yeterlidir. Sunucu otomatik başlatılacak ve varsayılan tarayıcınızda analiz ekranı açılacaktır.
+---
+
+### Seçenek 3: Standart `pip` ile Kurulum
+```bash
+git clone https://github.com/UmutcaNN00/dataviz.git
+cd dataviz
+
+python -m venv .venv
+source .venv/bin/activate    # Windows için: .venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
 
 ---
 
-## 📂 Proje Mimarisi & Dosya Yapısı
+## 📂 Mimarisi & Klasör Yapısı
 
-```
+```text
 dataviz/
-├── app.py                      # Flask ana uygulama motoru, REST API ve istatistik servisleri
-├── requirements.txt            # Çekirdek Python bağımlılıkları (Flask, Pandas, SciPy, NumPy)
-├── DEMO_BASLAT.bat             # Windows tek tıkla otomatik başlatma komut dosyası
-├── README.md                   # Kapsamlı kurumsal dokümantasyon
-├── modules/
-│   ├── __init__.py
-│   └── data_processing.py      # Veri temizleme, filtreleme ve toplulaştırma yardımcıları
+├── app.py                      # Flask backend, veri motoru ve REST API servisleri
+├── requirements.txt            # Çekirdek Python bağımlılıkları (flask, pandas, openpyxl, scipy)
+├── DEMO_BASLAT.bat             # Windows tek tıkla otomatik başlatıcı
+├── README.md                   # Kapsamlı ve doğrulanmış proje dokümantasyonu
 ├── templates/
-│   ├── landing.html            # 3D karşılama ve tanıtım arayüzü
-│   ├── analysis.html           # 3 adımlı sihirbaz ve ana analiz laboratuvarı
-│   └── index.html              # Akıllı yönlendirme şablonu
+│   ├── landing.html            # Açılış ve karşılama vitrini
+│   ├── analysis.html           # 3 adımlı ana analiz laboratuvarı ve PDF stüdyosu
+│   └── a4_demo.html            # A4 PDF Stüdyosu etkileşimli simülatörü
 └── static/
     ├── css/
-    │   ├── analysis.css        # Analiz laboratuvarı, cam efekti (glassmorphism) ve scrollbar stilleri
-    │   ├── landing.css         # Açılış sayfası tipografi ve responsive düzeni
-    │   └── style.css           # Global CSS değişkenleri ve yardımcı sınıflar
-    └── js/
-        ├── app.js              # Kural motoru, Plotly çizicileri, sürükle-bırak ve PDF stüdyosu
-        ├── landing.js          # Karşılama sayfası etkileşimleri
-        ├── three_scene.js      # Three.js 3D interaktif arka plan animasyonu
-        └── modules/
-            ├── charts_config.js # 50 grafik tipinin meta-veri ve kategori tanımları
-            └── globals.js       # Durum yönetimi (State) ve global değişkenler
+    │   ├── analysis.css        # Analiz arayüzü, cam efekti (glassmorphism) stilleri
+    │   ├── landing.css         # Açılış sayfası düzeni ve tipografi
+    │   └── style.css           # Global değişkenler ve yardımcı sınıflar
+    ├── js/
+    │   ├── app.js              # Kural motoru, Plotly çizicileri ve PDF üretim mantığı
+    │   ├── landing.js          # Açılış sayfası etkileşimleri
+    │   ├── three_scene.js      # Three.js interaktif 3D arka plan
+    │   └── modules/
+    │       ├── charts_config.js # 47 grafik türünün meta-veri tanımları
+    │       └── globals.js       # Reaktif durum yönetimi (State)
+    └── img/
+        └── dataviz_pro_linkedin.jpg # Ürün tanıtım ve vitrin görseli
 ```
 
 ---
 
-## 🔌 API Uç Noktaları (Endpoints)
+## 🔌 REST API Uç Noktaları
 
-| Endpoint | Metot | Açıklama |
+| Uç Nokta | Metot | Açıklama |
 |---|---|---|
-| `/upload` | `POST` | Excel/CSV dosyasını yükler, sütun tiplerini ayrıştırır. |
-| `/get_chart_data` | `POST` | Seçilen eksenler ve filtreler için ham/toplulaştırılmış grafik verisi üretir. |
-| `/get_stats` | `POST` | Sayısal değişkenler için ANOVA, T-Test, Korelasyon ve temel dağılımları hesaplar. |
-| `/generate_insight` | `POST` | İstatistiksel verileri bilimsel bir özet metnine dönüştürür. |
-| `/merge_datasets` | `POST` | İki farklı veri tablosunu ortak anahtarla birleştirir. |
-| `/create_calculated_column` | `POST` | Veri kümesine yeni aritmetik formüllü sütun ekler. |
-| `/clean_data` | `POST` | Eksik değer doldurma ve aykırı değer temizleme işlemlerini icra eder. |
+| `/` | `GET` | Tanıtım ve karşılama sayfasını görüntüler. |
+| `/analysis` | `GET` | 3 adımlı ana analiz laboratuvarını açar. |
+| `/a4-demo` | `GET` | A4 PDF Stüdyosu bağımsız önizleme simülatörünü açar. |
+| `/load_sample` | `POST` | Tek tıkla analiz için hazır örnek veri setini yükler. |
+| `/upload` | `POST` | Excel (`.xlsx`, `.xls`) ve CSV dosyalarını yükler, başlık ve tipleri ayrıştırır. |
+| `/switch_sheet` | `POST` | Excel çalışma kitabındaki aktif sayfayı değiştirir. |
+| `/preview_second_file` | `POST` | Birleştirilecek (Merge/Join) 2. dosyanın eşleşme anahtarlarını tarar. |
+| `/merge_datasets` | `POST` | İki tabloyu seçilen ortak anahtar üzerinden birleştirir (Left, Right, Inner, Outer). |
+| `/create_calculated_column` | `POST` | Dört işlemle yeni türetilmiş sayısal sütun oluşturur. |
+| `/check_health` | `GET` | Verideki toplam eksik (NaN) hücre ve satır sayısını raporlar. |
+| `/clean_data` | `POST` | Eksik değerleri ortalamayla veya sıfırla doldurur ya da boş satırları siler. |
+| `/get_column_details` | `POST` | Dilimleyiciler (Slicers) için sütunların min/max değerlerini ve kategorilerini döner. |
+| `/get_kpi_summary` | `POST` | Pano için toplam kayıt, ana toplam ve dağılım KPI kartlarını üretir. |
+| `/get_chart_data` | `POST` | Filtrelenmiş veriyle 47 grafik tipine uygun ham veya toplulaştırılmış veri üretir. |
+| `/get_stats` | `POST` | ANOVA, T-Testi, Korelasyon, Regresyon ve temel dağılım istatistiklerini hesaplar. |
+| `/generate_insight` | `POST` | İstatistiksel verileri bilimsel ve akademik bir yorum metnine dönüştürür. |
+| `/export_data` | `POST` | Filtrelenmiş aktif veriyi `.csv` veya `.xlsx` formatında indirir. |
+
+---
+
+## 🛠 Teknoloji Yığını
+
+| Katman | Teknoloji | Görevi |
+|---|---|---|
+| **Backend & API** | `Python 3.10+`, `Flask 3.0+` | Hafif, donanım dostu ve hızlı REST sunucu mimarisi. |
+| **Veri İşleme** | `Pandas 2.0+`, `NumPy` | Tablo filtreleme, birleştirme (merge) ve formül hesaplamaları. |
+| **Excel Desteği** | `openpyxl` | Modern `.xlsx` çalışma kitaplarını okuma ve dışa aktarma. |
+| **İstatistik Motoru** | `SciPy 1.11+` | ANOVA ($F$), Welch's T-Testi ($t$), Korelasyon ($r$) ve OLS Regresyon. |
+| **Görselleştirme** | `Plotly.js 2.27.0` | 47 grafik türünde WebGL hızlandırmalı interaktif çizim. |
+| **PDF Raporlama** | `html2pdf.js 0.10.1` | A4 ölçekli, sayfa kesme korumalı kurumsal PDF çıktısı. |
+| **Paket Yönetimi** | `Astral uv` / `pip` | Sıfır bekleme süreli sanal ortam ve tek komutla çalıştırma. |
 
 ---
 
 ## 👨‍💻 Geliştirici & Lisans
 
-Bu proje **Umutcan** ([@UmutcaNN00](https://github.com/UmutcaNN00)) tarafından üniversite akademik sunumu, veri bilimi araştırmaları ve modern iş zekası ihtiyaçları doğrultusunda geliştirilmiştir.
+Bu proje **Umutcan** ([@UmutcaNN00](https://github.com/UmutcaNN00)) tarafından veri bilimi çalışmaları, akademik sunumlar ve modern iş zekası ihtiyaçları doğrultusunda geliştirilmiştir.
 
-Akademik ve açık kaynak kullanımına uygundur.
+Proje **[MIT Lisansı](LICENSE)** kapsamında açık kaynak olarak sunulmuştur.
 
 <br>
 
 <div align="center">
-  <sub>Modern Veri Analitiği için Titizlikle Geliştirildi • 2026</sub>
+  <sub>Modern Veri Analitiği için Titizlikle Geliştirildi • <b>DataViz Pro</b> 2026</sub>
 </div>
