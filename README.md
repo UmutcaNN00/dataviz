@@ -22,7 +22,6 @@
   <img src="https://img.shields.io/badge/SciPy-1.11+-8CAAE6?style=flat-square&logo=scipy&logoColor=white" alt="SciPy">
   <img src="https://img.shields.io/badge/openpyxl-Uyumlu-107c41?style=flat-square&logo=microsoft-excel&logoColor=white" alt="openpyxl">
   <img src="https://img.shields.io/badge/uv-Uyumlu-DE5FE9?style=flat-square&logo=astral&logoColor=white" alt="uv">
-  <img src="https://img.shields.io/badge/Lisans-MIT-success?style=flat-square" alt="Lisans">
 </p>
 
 </div>
@@ -37,7 +36,7 @@
 - [Mimarisi & Klasör Yapısı](#-mimarisi--klasör-yapısı)
 - [REST API Uç Noktaları](#-rest-api-uç-noktaları)
 - [Teknoloji Yığını](#-teknoloji-yığını)
-- [Geliştirici & Lisans](#-geliştirici--lisans)
+- [Geliştirici](#-geliştirici)
 
 ---
 
@@ -205,11 +204,9 @@ dataviz/
 
 ---
 
-## 👨‍💻 Geliştirici & Lisans
+## 👨‍💻 Geliştirici
 
 Bu proje **Umutcan** ([@UmutcaNN00](https://github.com/UmutcaNN00)) tarafından veri bilimi çalışmaları, akademik sunumlar ve modern iş zekası ihtiyaçları doğrultusunda geliştirilmiştir.
-
-Proje **[MIT Lisansı](LICENSE)** kapsamında açık kaynak olarak sunulmuştur.
 
 <br>
 
