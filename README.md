@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⬡ DataViz Pro
+# ⬡ DataViz
 ### Excel ve CSV Dosyalarınızı 3 Adımda Etkileşimli Grafikler ve Profesyonel Raporlara Dönüştürün
 
 <p align="center">
@@ -10,10 +10,9 @@
 
 <!-- Statü ve Rozetler -->
 <p align="center">
-  <img src="https://img.shields.io/badge/Sürüm-v6.0_Açık_Kaynak-8b5cf6?style=for-the-badge" alt="Sürüm">
+  <img src="https://img.shields.io/badge/Sürüm-Açık_Kaynak-8b5cf6?style=for-the-badge" alt="Sürüm">
   <img src="https://img.shields.io/badge/Grafik_Motoru-47_Plotly.js-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Grafikler">
   <img src="https://img.shields.io/badge/İstatistik-SciPy_Motoru-10b981?style=for-the-badge&logo=scipy&logoColor=white" alt="İstatistik">
-  <img src="https://img.shields.io/badge/Donanım-Sıfır_GPU_%2F_Hafif-f59e0b?style=for-the-badge" alt="Donanım">
 </p>
 
 <p align="center">
@@ -25,15 +24,6 @@
   <img src="https://img.shields.io/badge/uv-Uyumlu-DE5FE9?style=flat-square&logo=astral&logoColor=white" alt="uv">
   <img src="https://img.shields.io/badge/Lisans-MIT-success?style=flat-square" alt="Lisans">
 </p>
-
-<br>
-
-<!-- Arayüz Önizleme Görseli -->
-<img src="static/img/dataviz_pro_linkedin.jpg" alt="DataViz Pro Arayüz Önizlemesi" width="100%" style="border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.25);">
-
-<br><br>
-
-> 🔒 **%100 Yerel ve Güvenli:** Verileriniz asla yabancı bir buluta yüklenmez. Tüm hesaplamalar kendi bilgisayarınızda milisaniyeler içinde yapılır. Ağır yapay zeka (GPU) donanımı veya API ücreti gerektirmez.
 
 </div>
 
@@ -55,7 +45,7 @@
 
 Elinizde bir Excel veya CSV tablosu var ama ne grafik çizeceğinizi, verideki eğilimleri nasıl bulacağınızı veya bunu yöneticinize/hocanıza nasıl sunacağınızı bilmiyor musunuz?
 
-**DataViz Pro**, tam olarak bu zahmeti ortadan kaldırır:
+**DataViz**, tam olarak bu zahmeti ortadan kaldırır:
 1. **Düşünmenize gerek bırakmaz:** Sütunlarınızı seçtiğiniz anda verinin türüne (tarih, metin, sayı) göre en uygun grafikleri kendisi önerir.
 2. **Akademik istatistiği herkesin anlayacağı dile döker:** Gruplar arasındaki farkın şans eseri mi yoksa gerçek mi olduğunu (ANOVA, T-Testi, Regresyon) hesaplar ve Türkçe cümlelerle açıklar.
 3. **Kes-yapıştır yapmadan rapor üretir:** Grafikleri sıralayabileceğiniz, aralarına kendi yorumlarınızı yazabileceğiniz bir A4 stüdyosu sunar; tek tıkla çok sayfalı PDF verir.
@@ -163,18 +153,16 @@ dataviz/
 │   └── a4_demo.html            # A4 PDF Stüdyosu etkileşimli simülatörü
 └── static/
     ├── css/
-    │   ├── analysis.css        # Analiz arayüzü, cam efekti (glassmorphism) stilleri
+    │   ├── analysis.css        # Analiz arayüzü stilleri
     │   ├── landing.css         # Açılış sayfası düzeni ve tipografi
     │   └── style.css           # Global değişkenler ve yardımcı sınıflar
-    ├── js/
-    │   ├── app.js              # Kural motoru, Plotly çizicileri ve PDF üretim mantığı
-    │   ├── landing.js          # Açılış sayfası etkileşimleri
-    │   ├── three_scene.js      # Three.js interaktif 3D arka plan
-    │   └── modules/
-    │       ├── charts_config.js # 47 grafik türünün meta-veri tanımları
-    │       └── globals.js       # Reaktif durum yönetimi (State)
-    └── img/
-        └── dataviz_pro_linkedin.jpg # Ürün tanıtım ve vitrin görseli
+    └── js/
+        ├── app.js              # Kural motoru, Plotly çizicileri ve PDF üretim mantığı
+        ├── landing.js          # Açılış sayfası etkileşimleri
+        ├── three_scene.js      # Three.js interaktif 3D arka plan
+        └── modules/
+            ├── charts_config.js # 47 grafik türünün meta-veri tanımları
+            └── globals.js       # Reaktif durum yönetimi (State)
 ```
 
 ---
@@ -207,7 +195,7 @@ dataviz/
 
 | Katman | Teknoloji | Görevi |
 |---|---|---|
-| **Backend & API** | `Python 3.10+`, `Flask 3.0+` | Hafif, donanım dostu ve hızlı REST sunucu mimarisi. |
+| **Backend & API** | `Python 3.10+`, `Flask 3.0+` | Modüler ve hızlı REST sunucu mimarisi. |
 | **Veri İşleme** | `Pandas 2.0+`, `NumPy` | Tablo filtreleme, birleştirme (merge) ve formül hesaplamaları. |
 | **Excel Desteği** | `openpyxl` | Modern `.xlsx` çalışma kitaplarını okuma ve dışa aktarma. |
 | **İstatistik Motoru** | `SciPy 1.11+` | ANOVA ($F$), Welch's T-Testi ($t$), Korelasyon ($r$) ve OLS Regresyon. |
@@ -226,5 +214,5 @@ Proje **[MIT Lisansı](LICENSE)** kapsamında açık kaynak olarak sunulmuştur.
 <br>
 
 <div align="center">
-  <sub>Modern Veri Analitiği için Titizlikle Geliştirildi • <b>DataViz Pro</b> 2026</sub>
+  <sub>Modern Veri Analitiği için Titizlikle Geliştirildi • <b>DataViz</b> 2026</sub>
 </div>
