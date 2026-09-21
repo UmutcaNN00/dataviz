@@ -931,3 +931,23 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
   }
 }
 
+/* ── DATA HEALER & ANOMALY REPAIR MODAL STYLES ── */
+.dp-anomaly-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.dp-anomaly-card:hover {
+  border-color: rgba(167, 139, 250, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+.btn-heal-col {
+  transition: all 0.2s ease;
+}
+.btn-heal-col:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+}
+.btn-heal-col:active {
+  transform: translateY(0);
+}
+

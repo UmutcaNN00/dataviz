@@ -1,20 +1,20 @@
-﻿@echo off
+@echo off
 chcp 65001 >nul
-title DataViz Pro - Demo Sunucusu
+title DataViz - Büyük Veri ve Analitik Platformu
 echo.
 echo  ========================================================
-echo     DataViz Pro  -  Demo Surumu
-echo     Akademik Istatistik ve Veri Analizi
+echo     DataViz - Büyük Veri ve Analitik Platformu
+echo     Polars Engine ^& Akademik İstatistik
 echo  ========================================================
 echo.
-echo  [1/2] Sunucu baslatiliyor...
+echo  [1/2] Sunucu başlatılıyor (Polars ^& Flask)...
 start /B uv run python app.py > sunucu.log 2>&1
-echo  [2/2] Tarayici aciliyor...
+echo  [2/2] Tarayıcı açılıyor...
 timeout /t 3 /nobreak >nul
 start http://127.0.0.1:5000
 echo.
-echo  Demo aktif!  ->  http://127.0.0.1:5000
+echo  Platform aktif!  -^>  http://127.0.0.1:5000
 echo.
-echo  Bu pencereyi KAPATMAYIN - kapatirsan sunucu durur.
+echo  Bu pencereyi KAPATMAYIN - kapatırsanız sunucu durur.
 echo.
 pause

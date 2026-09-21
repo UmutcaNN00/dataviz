@@ -1,10 +1,13 @@
 import os
 import io
 import csv
+import re
 import logging
 import pandas as pd
 import numpy as np
 import json
+import polars as pl
+import pyarrow
 from scipy import stats as sp_stats
 from flask import Flask, request, jsonify, render_template, send_file, session
 
@@ -17,7 +20,7 @@ import uuid
 from flask import session
 
 app.secret_key = 'dataviz_secret_super_key'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB (Big Data / Polars)
 
 def safe_float(val, default=None):
     """NaN, Infinity ve -Infinity değerlerini JSON uyumlu hale getirir."""
@@ -28,6 +31,174 @@ def safe_float(val, default=None):
         return f if np.isfinite(f) else default
     except Exception:
         return default
+
+
+def compute_robust_correlation(x_vals, y_vals, method='pearson'):
+    """
+    Pearson, Spearman ve Kendall korelasyonlarını matematiksel doğrulukla ve NaN korumalı hesaplar.
+    """
+    valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
+    x_clean = np.asarray(x_vals)[valid_mask]
+    y_clean = np.asarray(y_vals)[valid_mask]
+    
+    if len(x_clean) < 3 or np.all(x_clean == x_clean[0]) or np.all(y_clean == y_clean[0]):
+        return {
+            'coef': 0.0,
+            'p_value': None,
+            'method': method,
+            'interpretation': 'Yetersiz veya sabit varyanslı veri',
+            'sample_size': int(len(x_clean))
+        }
+
+    try:
+        if method == 'spearman':
+            res = sp_stats.spearmanr(x_clean, y_clean)
+            coef = safe_float(res.statistic if hasattr(res, 'statistic') else res[0], 0.0)
+            p_val = safe_float(res.pvalue if hasattr(res, 'pvalue') else res[1], None)
+        elif method == 'kendall':
+            res = sp_stats.kendalltau(x_clean, y_clean)
+            coef = safe_float(res.statistic if hasattr(res, 'statistic') else res[0], 0.0)
+            p_val = safe_float(res.pvalue if hasattr(res, 'pvalue') else res[1], None)
+        else: # pearson
+            res = sp_stats.pearsonr(x_clean, y_clean)
+            coef = safe_float(res.statistic if hasattr(res, 'statistic') else res[0], 0.0)
+            p_val = safe_float(res.pvalue if hasattr(res, 'pvalue') else res[1], None)
+    except Exception as e:
+        logger.warning(f"Korelasyon hesaplama hatası ({method}): {e}")
+        coef, p_val = 0.0, None
+
+    abs_c = abs(coef) if coef is not None else 0
+    sign = "Pozitif" if (coef or 0) >= 0 else "Negatif"
+    if abs_c >= 0.8: strength = f"Çok Güçlü {sign} İlişki"
+    elif abs_c >= 0.6: strength = f"Güçlü {sign} İlişki"
+    elif abs_c >= 0.4: strength = f"Orta Düzey {sign} İlişki"
+    elif abs_c >= 0.2: strength = f"Zayıf {sign} İlişki"
+    else: strength = "İlişki Yok / İhmal Edilebilir"
+
+    return {
+        'coef': round(coef, 4) if coef is not None else 0.0,
+        'p_value': p_val,
+        'method': method,
+        'interpretation': strength,
+        'sample_size': int(len(x_clean))
+    }
+
+
+def compute_robust_regression(x_vals, y_vals, model_type='linear', num_points=100):
+    """
+    Doğrusal, Polinom (2. ve 3. derece), Logaritmik ve Üstel regresyon eğrilerini ve
+    istatistiklerini (R², denklem, standart hata, p-değeri) hesaplar.
+    """
+    valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
+    x_clean = np.asarray(x_vals)[valid_mask]
+    y_clean = np.asarray(y_vals)[valid_mask]
+
+    if len(x_clean) < 3 or np.all(x_clean == x_clean[0]) or np.all(y_clean == y_clean[0]):
+        return {
+            'equation': 'Yetersiz veya sabit varyanslı veri',
+            'r_squared': 0.0,
+            'se': None,
+            'p_value': None,
+            'model_type': model_type,
+            'trend_x': [],
+            'trend_y': []
+        }
+
+    x_min, x_max = float(np.min(x_clean)), float(np.max(x_clean))
+    x_curve = np.linspace(x_min, x_max, num_points)
+    
+    eq_str = ""
+    r_squared = 0.0
+    se = None
+    p_val = None
+    y_curve = np.zeros_like(x_curve)
+
+    try:
+        if model_type == 'poly2':
+            coeffs = np.polyfit(x_clean, y_clean, 2)
+            y_pred = np.polyval(coeffs, x_clean)
+            y_curve = np.polyval(coeffs, x_curve)
+            a, b, c = coeffs
+            sign_b = "+" if b >= 0 else "-"
+            sign_c = "+" if c >= 0 else "-"
+            eq_str = f"y = {a:.4f}x² {sign_b} {abs(b):.4f}x {sign_c} {abs(c):.4f}"
+            
+            ss_res = np.sum((y_clean - y_pred)**2)
+            ss_tot = np.sum((y_clean - np.mean(y_clean))**2)
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+        elif model_type == 'poly3':
+            coeffs = np.polyfit(x_clean, y_clean, 3)
+            y_pred = np.polyval(coeffs, x_clean)
+            y_curve = np.polyval(coeffs, x_curve)
+            a, b, c, d = coeffs
+            sign_b = "+" if b >= 0 else "-"
+            sign_c = "+" if c >= 0 else "-"
+            sign_d = "+" if d >= 0 else "-"
+            eq_str = f"y = {a:.4f}x³ {sign_b} {abs(b):.4f}x² {sign_c} {abs(c):.4f}x {sign_d} {abs(d):.4f}"
+            
+            ss_res = np.sum((y_clean - y_pred)**2)
+            ss_tot = np.sum((y_clean - np.mean(y_clean))**2)
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+        elif model_type == 'log':
+            pos_mask = x_clean > 0
+            if np.sum(pos_mask) >= 3:
+                x_pos = x_clean[pos_mask]
+                y_pos = y_clean[pos_mask]
+                slope, intercept, r_val, p_val, std_err = sp_stats.linregress(np.log(x_pos), y_pos)
+                r_squared = safe_float(r_val**2, 0.0)
+                se = safe_float(std_err, None)
+                sign_int = "+" if intercept >= 0 else "-"
+                eq_str = f"y = {slope:.4f}·ln(x) {sign_int} {abs(intercept):.4f}"
+                
+                x_curve_pos = np.linspace(max(x_min, 1e-4), x_max, num_points)
+                y_curve = slope * np.log(x_curve_pos) + intercept
+                x_curve = x_curve_pos
+            else:
+                eq_str = "Logaritmik regresyon için X değerleri pozitif (>0) olmalıdır."
+
+        elif model_type == 'exp':
+            pos_mask = y_clean > 0
+            if np.sum(pos_mask) >= 3:
+                x_pos = x_clean[pos_mask]
+                y_pos = y_clean[pos_mask]
+                slope, intercept, r_val, p_val, std_err = sp_stats.linregress(x_pos, np.log(y_pos))
+                a = np.exp(intercept)
+                b = slope
+                sign_b = "+" if b >= 0 else "-"
+                eq_str = f"y = {a:.4f}·e^({b:.4f}x)"
+                r_squared = safe_float(r_val**2, 0.0)
+                se = safe_float(std_err, None)
+                y_curve = a * np.exp(b * x_curve)
+            else:
+                eq_str = "Üstel regresyon için Y değerleri pozitif (>0) olmalıdır."
+
+        else: # linear
+            slope, intercept, r_val, p_val, std_err = sp_stats.linregress(x_clean, y_clean)
+            r_squared = safe_float(r_val**2, 0.0)
+            se = safe_float(std_err, None)
+            sign_int = "+" if intercept >= 0 else "-"
+            eq_str = f"y = {slope:.4f}x {sign_int} {abs(intercept):.4f}"
+            y_curve = slope * x_curve + intercept
+
+    except Exception as e:
+        logger.warning(f"Regresyon hesaplama hatası ({model_type}): {e}")
+        eq_str = f"Hesaplama hatası: {str(e)}"
+
+    finite_mask = np.isfinite(x_curve) & np.isfinite(y_curve)
+    trend_x = [round(float(v), 4) for v in x_curve[finite_mask]]
+    trend_y = [round(float(v), 4) for v in y_curve[finite_mask]]
+
+    return {
+        'equation': eq_str,
+        'r_squared': round(float(r_squared), 4) if r_squared is not None and np.isfinite(r_squared) else 0.0,
+        'se': round(float(se), 4) if se is not None and np.isfinite(se) else None,
+        'p_value': p_val,
+        'model_type': model_type,
+        'trend_x': trend_x,
+        'trend_y': trend_y
+    }
 
 
 DATA_STORE = {}
@@ -78,9 +249,11 @@ def clean_dataframe(df):
     if df.empty:
         return df
 
-    # 2. Formül hata metinlerini NaN'a dönüştür
+    # 2. Formül hata metinlerini NaN'a dönüştür (sadece metin sütunları ve <300k satırlarda hızlıca uygula)
     excel_error_strings = {'#VALUE!', '#REF!', '#DIV/0!', '#NAME?', '#NUM!', '#NULL!', '#N/A', '#N/A N/A'}
-    df = df.replace(list(excel_error_strings), np.nan)
+    str_cols = df.select_dtypes(include=['object', 'string']).columns
+    if len(str_cols) > 0 and len(df) < 300000:
+        df[str_cols] = df[str_cols].replace(list(excel_error_strings), np.nan)
 
     # 3. Başlık satırının veri içinde kalıp kalmadığını (header offset) kontrol et
     cols = [str(c).replace('\ufeff', '').strip() for c in df.columns]
@@ -188,15 +361,21 @@ def read_csv_safely(file_input):
         else:
             detected_delim = ','
 
-    # 3. Pandas ile ayrıştırma
+    # 3. Polars / Pandas ile ayrıştırma (Önce Polars çok çekirdekli hızlı motor)
     df = None
     errors = []
 
     if detected_delim:
         try:
-            df = pd.read_csv(io.StringIO(decoded_text), sep=detected_delim, engine='python')
-        except Exception as e:
-            errors.append(e)
+            pldf = pl.read_csv(io.StringIO(decoded_text), separator=detected_delim, ignore_errors=True)
+            df = pldf.to_pandas()
+            logger.info("CSV Polars hızlı motoru ile ayrıştırıldı.")
+        except Exception as e_pl:
+            logger.debug(f"Polars CSV ayrıştırma fallback: {e_pl}")
+            try:
+                df = pd.read_csv(io.StringIO(decoded_text), sep=detected_delim, engine='python')
+            except Exception as e:
+                errors.append(e)
 
     if df is None:
         try:
@@ -269,8 +448,53 @@ def read_excel_safely(file_input):
     return active_df, cleaned_sheets, valid_sheet_names, active_sheet_name
 
 
+def read_parquet_safely(file_input):
+    """
+    Apache Parquet (.parquet) dosyalarını Polars çok çekirdekli motoru ile anında okur,
+    ardından Pandas DataFrame olarak döner.
+    """
+    if hasattr(file_input, 'read'):
+        file_bytes = file_input.read()
+    elif isinstance(file_input, bytes):
+        file_bytes = file_input
+    else:
+        raise ValueError("Geçersiz dosya nesnesi.")
+
+    if not file_bytes:
+        raise pd.errors.EmptyDataError("Parquet dosyası tamamen boş.")
+
+    try:
+        # Polars ile ultra hızlı çok çekirdekli okuma
+        pldf = pl.read_parquet(io.BytesIO(file_bytes))
+        df = pldf.to_pandas()
+        logger.info(f"Parquet dosyası Polars ile okundu: {len(df)} satır, {len(df.columns)} sütun")
+    except Exception as e_pl:
+        logger.warning(f"Polars parquet okuma başarısız, pyarrow/pandas deneniyor: {e_pl}")
+        try:
+            df = pd.read_parquet(io.BytesIO(file_bytes), engine='pyarrow')
+        except Exception as e_pa:
+            raise ValueError(f"Parquet dosyası açılamadı: {e_pa}")
+
+    # Sütun isimlerini normalize et (BOM ve gereksiz boşlukları temizle)
+    cleaned_cols = []
+    seen = {}
+    for i, col in enumerate(df.columns):
+        col_str = str(col).replace('\ufeff', '').strip()
+        if not col_str:
+            col_str = f'Sütun_{i+1}'
+        if col_str in seen:
+            seen[col_str] += 1
+            col_str = f'{col_str}_{seen[col_str]}'
+        else:
+            seen[col_str] = 0
+        cleaned_cols.append(col_str)
+    df.columns = cleaned_cols
+
+    return df
+
+
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -399,7 +623,11 @@ def upload_file():
         sheet_names = []
         active_sheet = None
 
-        if filename.endswith('.csv'):
+        if filename.endswith('.parquet'):
+            df = read_parquet_safely(file)
+            set_df(df, 1)
+            set_excel_data(None, [])
+        elif filename.endswith('.csv'):
             df = read_csv_safely(file)
             set_df(df, 1)
             set_excel_data(None, [])
@@ -409,7 +637,7 @@ def upload_file():
             set_excel_data(sheets_dict, sheet_names)
         else:
             return jsonify({
-                'error': 'Desteklenmeyen dosya formatı. Lütfen sadece .csv, .xlsx veya .xls uzantılı dosyalar yükleyin.'
+                'error': 'Desteklenmeyen dosya formatı. Lütfen sadece .parquet, .csv, .xlsx veya .xls uzantılı dosyalar yükleyin.'
             }), 400
 
         if df is None or df.empty or len(df.columns) == 0:
@@ -507,12 +735,14 @@ def preview_second_file():
 
     try:
         filename2 = file2.filename.lower()
-        if filename2.endswith('.csv'): 
+        if filename2.endswith('.parquet'):
+            df2 = read_parquet_safely(file2)
+        elif filename2.endswith('.csv'): 
             df2 = read_csv_safely(file2)
         elif filename2.endswith(('.xls', '.xlsx')): 
             df2, _, _, _ = read_excel_safely(file2)
         else: 
-            return jsonify({'error': 'Desteklenmeyen dosya formatı'}), 400
+            return jsonify({'error': 'Desteklenmeyen dosya formatı. Lütfen .parquet, .csv veya .xlsx dosyası yükleyin.'}), 400
 
         df2.columns = [str(c).replace('\ufeff', '').strip() for c in df2.columns]
         
@@ -571,12 +801,14 @@ def merge_datasets():
 
     try:
         filename2 = file2.filename.lower()
-        if filename2.endswith('.csv'): 
+        if filename2.endswith('.parquet'):
+            df2 = read_parquet_safely(file2)
+        elif filename2.endswith('.csv'): 
             df2 = read_csv_safely(file2)
         elif filename2.endswith(('.xls', '.xlsx')): 
             df2, _, _, _ = read_excel_safely(file2)
         else: 
-            return jsonify({'error': 'Desteklenmeyen dosya formatı'}), 400
+            return jsonify({'error': 'Desteklenmeyen dosya formatı. Lütfen .parquet, .csv veya .xlsx dosyası yükleyin.'}), 400
 
         df2.columns = [str(c).replace('\ufeff', '').strip() for c in df2.columns]
 
@@ -703,22 +935,227 @@ def create_calculated_column():
     except Exception as e:
         return jsonify({'error': f'Hesaplama hatası: {str(e)}'}), 500
 
-# ═════════ 4. VERİ SAĞLIĞI (Data Prep) ═════════
+def robust_parse_numeric_string(v):
+    """
+    Metinsel olarak girilmiş sayıları, para birimlerini, yüzdeleri ve sözel sayıları float'a çevirir.
+    Dönüştürülemezse veya 'yok', 'n/a' vb. ise None döner.
+    """
+    if v is None or pd.isna(v):
+        return None
+    if isinstance(v, (int, float, np.number)):
+        return float(v) if np.isfinite(v) else None
+
+    s = str(v).strip().lower()
+    if s in ['yok', 'n/a', 'nan', 'null', 'none', 'bilinmiyor', 'belirtilmedi', 'tanımsız', 'tbd', '-', '', 'bilgi yok', 'kayıp', 'iptal', 'hata']:
+        return None
+    if s in ['sıfır', 'sifir', 'zero']:
+        return 0.0
+    if s in ['bir', 'one']:
+        return 1.0
+
+    # Tarih formatları (2024-01-15, 15/01/2024, 15.01.2024 vb.) sayısal veri olarak ele alınmamalıdır
+    if re.search(r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}$', s) or re.search(r'^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$', s):
+        return None
+
+    # Para birimi, yüzde ve yaygın birim eklerini temizle
+    s = re.sub(r'[₺$€£%]', '', s)
+    s = re.sub(r'\b(tl|try|usd|eur|adet|kg|gr|km|m|cm|ay|yil|yıl|gün|gun|saat|dakika|dk)\b', '', s)
+    s = s.strip()
+
+    if not re.search(r'\d', s):
+        return None
+
+    # Nokta ve virgül ayracı analizi
+    if '.' in s and ',' in s:
+        if s.rfind(',') > s.rfind('.'):  # 1.250,50 (Avrupa/TR)
+            s = s.replace('.', '').replace(',', '.')
+        else:  # 1,250.50 (ABD)
+            s = s.replace(',', '')
+    elif '.' in s:
+        if s.count('.') > 1:
+            s = s.replace('.', '')
+        else:
+            parts = s.split('.')
+            if len(parts) == 2 and len(parts[1]) == 3 and parts[1] == '000':
+                s = s.replace('.', '')
+    elif ',' in s:
+        if s.count(',') > 1:
+            s = s.replace(',', '')
+        else:
+            parts = s.split(',')
+            if len(parts) == 2 and len(parts[1]) == 3 and parts[1] == '000':
+                s = s.replace(',', '')
+            else:
+                s = s.replace(',', '.')
+
+    s = re.sub(r'\s+', '', s)
+    try:
+        f = float(s)
+        return f if np.isfinite(f) else None
+    except Exception:
+        return None
+
+
+def detect_column_anomalies(df):
+    """
+    DataFrame'deki sütunları tarar; sayısal olması gerekirken sözel/metin girilmiş sütunları (type mismatch) tespit eder.
+    Büyük veri setlerinde (örneğin 1M+ satır) tespiti anında (milisaniyeler içinde) yapmak için akıllı örnekleme uygular.
+    """
+    if df is None:
+        return []
+    if hasattr(df, 'empty') and df.empty:
+        return []
+    if hasattr(df, 'is_empty') and df.is_empty():
+        return []
+    if len(df) == 0:
+        return []
+
+    anomalies = []
+    total_rows = len(df)
+
+    # 15.000 satırdan büyükse tespiti anlık kılmak için 10.000'lik temsil edici örnek al
+    is_sampled = total_rows > 15000
+    if is_sampled:
+        sample_size = 10000
+        sample_df = df.sample(n=sample_size, random_state=42)
+    else:
+        sample_df = df
+        sample_size = total_rows
+
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            continue
+
+        series = sample_df[col]
+        parsed_vals = series.apply(robust_parse_numeric_string)
+        sample_valid_numeric_count = int(parsed_vals.notna().sum())
+
+        # Eğer sütunda en az 2 sayı varsa ve değerlerin en az %15'i sayısal türe çevrilebiliyorsa
+        # ancak geri kalanında sayıya çevrilemeyen sözel değerler varsa:
+        if sample_valid_numeric_count >= 2 and (sample_valid_numeric_count / sample_size) >= 0.15:
+            invalid_mask = parsed_vals.isna() & series.notna() & (series.astype(str).str.strip() != '')
+            sample_invalid_count = int(invalid_mask.sum())
+            if sample_invalid_count > 0:
+                raw_invalid = series[invalid_mask].dropna().unique()
+                sample_invalids = [str(x).strip() for x in raw_invalid if str(x).strip()][:8]
+
+                if is_sampled:
+                    scale = total_rows / sample_size
+                    valid_numeric_count = int(sample_valid_numeric_count * scale)
+                    invalid_count = int(sample_invalid_count * scale)
+                else:
+                    valid_numeric_count = sample_valid_numeric_count
+                    invalid_count = sample_invalid_count
+
+                anomalies.append({
+                    'column': col,
+                    'total_rows': total_rows,
+                    'numeric_count': valid_numeric_count,
+                    'invalid_count': invalid_count,
+                    'invalid_pct': round((sample_invalid_count / sample_size) * 100, 1),
+                    'sample_invalid_values': sample_invalids,
+                    'suggested_action': 'smart_heal'
+                })
+
+    return anomalies
+
+
+# ═════════ 4. VERİ SAĞLIĞI & AKILLI TİP ONARIMI (Data Prep) ═════════
 @app.route('/check_health', methods=['GET'])
 def check_health():
     global_df = get_df(1)
-    global_df_2 = get_df(2)
-    if global_df is None: return jsonify({'error': 'Veri yok'}), 400
+    if global_df is None or len(global_df) == 0:
+        return jsonify({'error': 'Aktif veri seti bulunamadı. Lütfen önce bir dosya yükleyin.'}), 400
     
-    missing_count = int(global_df.isnull().sum().sum())
-    missing_rows = int(global_df.isnull().any(axis=1).sum())
-    
-    return jsonify({
-        'has_issues': missing_rows > 0,
-        'missing_cells': missing_count,
-        'missing_rows': missing_rows,
-        'total_rows': len(global_df)
-    })
+    try:
+        missing_count = int(global_df.isnull().sum().sum())
+        missing_rows = int(global_df.isnull().any(axis=1).sum())
+        anomalies = detect_column_anomalies(global_df)
+        
+        resp = jsonify({
+            'success': True,
+            'has_issues': missing_rows > 0 or len(anomalies) > 0,
+            'missing_cells': missing_count,
+            'missing_rows': missing_rows,
+            'total_rows': len(global_df),
+            'anomalies': anomalies,
+            'has_anomalies': len(anomalies) > 0
+        })
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return resp
+    except Exception as e:
+        logger.exception(f"check_health hatası: {e}")
+        return jsonify({'error': f"Veri sağlığı kontrol edilirken bir hata oluştu: {str(e)}"}), 500
+
+
+@app.route('/repair_column_anomalies', methods=['POST'])
+def repair_column_anomalies():
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({'error': 'Aktif veri seti bulunamadı.'}), 400
+
+    data = request.json or {}
+    target_column = data.get('column', '__all__')
+    repair_mode = data.get('repair_mode', 'smart_heal')  # smart_heal, fill_zero, fill_mean, fill_median, coerce_nan, drop_rows
+
+    try:
+        detected_anomalies = detect_column_anomalies(global_df)
+        if target_column == '__all__':
+            cols_to_repair = [a['column'] for a in detected_anomalies]
+        elif target_column in global_df.columns:
+            cols_to_repair = [target_column]
+        else:
+            return jsonify({'error': f"'{target_column}' sütunu veri setinde bulunamadı."}), 400
+
+        if not cols_to_repair:
+            return jsonify({
+                'success': True,
+                'message': 'Onarılacak uyumsuz sütun bulunamadı.',
+                'total_rows': len(global_df),
+                'numeric_columns': global_df.select_dtypes(include=['number']).columns.tolist(),
+                'categorical_columns': global_df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
+            })
+
+        for col in cols_to_repair:
+            series = global_df[col]
+            parsed = series.apply(robust_parse_numeric_string)
+
+            if repair_mode == 'drop_rows':
+                valid_rows = parsed.notna()
+                global_df = global_df[valid_rows].copy()
+                global_df[col] = parsed[valid_rows].astype(float)
+            elif repair_mode == 'fill_zero':
+                global_df[col] = parsed.fillna(0.0).astype(float)
+            elif repair_mode == 'fill_mean':
+                mean_val = float(parsed.mean()) if pd.notnull(parsed.mean()) else 0.0
+                global_df[col] = parsed.fillna(mean_val).astype(float)
+            elif repair_mode == 'fill_median':
+                med_val = float(parsed.median()) if pd.notnull(parsed.median()) else 0.0
+                global_df[col] = parsed.fillna(med_val).astype(float)
+            elif repair_mode == 'coerce_nan':
+                global_df[col] = parsed.astype(float)
+            else:  # smart_heal
+                mean_val = float(parsed.mean()) if pd.notnull(parsed.mean()) else 0.0
+                global_df[col] = parsed.fillna(mean_val).astype(float)
+
+        set_df(global_df, 1)
+
+        numeric_cols = global_df.select_dtypes(include=['number']).columns.tolist()
+        categorical_cols = global_df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
+        remaining = detect_column_anomalies(global_df)
+
+        return jsonify({
+            'success': True,
+            'repaired_columns': cols_to_repair,
+            'repair_mode': repair_mode,
+            'total_rows': len(global_df),
+            'numeric_columns': numeric_cols,
+            'categorical_columns': categorical_cols,
+            'remaining_anomalies': remaining
+        })
+    except Exception as e:
+        logger.error(f"Sütun onarma hatası: {e}")
+        return jsonify({'error': f'Onarma işlemi sırasında hata: {str(e)}'}), 500
 
 @app.route('/clean_data', methods=['POST'])
 def clean_data():
@@ -1028,13 +1465,15 @@ def get_stats():
     global_df = get_df(1)
     global_df_2 = get_df(2)
     if global_df is None: return jsonify({'error': 'Veri yok'}), 400
-    data = request.json
+    data = request.json or {}
     cols = data.get('columns', [])
     filters = data.get('filters', [])
     x_col = data.get('x_col')
+    corr_method = data.get('corr_method', 'pearson')
+    reg_model = data.get('reg_model', 'linear')
     
     active_df = apply_filters(global_df, filters)
-    active_df = active_df.replace([np.inf, -np.inf, np.nan], 0)
+    active_df = active_df.replace([np.inf, -np.inf], np.nan)
     if not cols or active_df.empty: return jsonify({'stats': {}, 'advanced': {}, 'total_active_rows': len(active_df)})
     
     stats = {}
@@ -1052,8 +1491,8 @@ def get_stats():
             
     advanced = {}
     if x_col and x_col in active_df.columns:
-        x_series = active_df[x_col]
-        is_x_num = pd.api.types.is_numeric_dtype(x_series)
+        x_series = pd.to_numeric(active_df[x_col], errors='coerce') if pd.api.types.is_numeric_dtype(active_df[x_col]) else active_df[x_col]
+        is_x_num = pd.api.types.is_numeric_dtype(active_df[x_col])
         
         for y_col in cols:
             if y_col not in active_df.columns or not pd.api.types.is_numeric_dtype(active_df[y_col]): continue
@@ -1065,16 +1504,20 @@ def get_stats():
                 if is_x_num:
                     x_vals = valid_df[x_col].values
                     y_vals = valid_df[y_col].values
-                    try:
-                        slope, intercept, r_value, p_value, std_err = sp_stats.linregress(x_vals, y_vals)
-                        r_clean = safe_float(r_value, 0.0)
-                        adv_info['correlation'] = r_clean
-                        adv_info['r_squared'] = safe_float(r_clean**2, 0.0)
-                        adv_info['regression'] = f"y = {slope:.4f}x + {intercept:.4f}" if np.isfinite(slope) and np.isfinite(intercept) else "Hesaplanan regresyon tanımsız"
-                        adv_info['p_value'] = safe_float(p_value, None)
-                        adv_info['type'] = 'numeric'
-                    except Exception:
-                        pass
+                    
+                    corr_res = compute_robust_correlation(x_vals, y_vals, method=corr_method)
+                    reg_res = compute_robust_regression(x_vals, y_vals, model_type=reg_model)
+                    
+                    adv_info['correlation'] = corr_res['coef']
+                    adv_info['corr_method'] = corr_res['method']
+                    adv_info['interpretation'] = corr_res['interpretation']
+                    adv_info['p_value'] = corr_res['p_value']
+                    adv_info['r_squared'] = reg_res['r_squared']
+                    adv_info['regression'] = reg_res['equation']
+                    adv_info['se'] = reg_res['se']
+                    adv_info['reg_model'] = reg_res['model_type']
+                    adv_info['sample_size'] = corr_res['sample_size']
+                    adv_info['type'] = 'numeric'
                 else:
                     groups = [group[y_col].values for name, group in valid_df.groupby(x_col) if len(group) > 0]
                     if len(groups) == 2:
@@ -1096,6 +1539,50 @@ def get_stats():
             advanced[y_col] = adv_info
 
     return jsonify({'stats': stats, 'advanced': advanced, 'total_active_rows': len(active_df)})
+
+
+@app.route('/get_regression_curve', methods=['POST'])
+def get_regression_curve():
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({'error': 'Aktif veri seti bulunamadı.'}), 400
+
+    data = request.json or {}
+    x_col = data.get('x_col')
+    y_col = data.get('y_col')
+    model_type = data.get('model_type', 'linear')
+    corr_method = data.get('corr_method', 'pearson')
+    filters = data.get('filters', [])
+
+    if not x_col or not y_col:
+        return jsonify({'error': 'X ve Y sütunları seçilmelidir.'}), 400
+
+    active_df = apply_filters(global_df, filters)
+    if x_col not in active_df.columns or y_col not in active_df.columns:
+        return jsonify({'error': 'Seçilen sütunlar veri setinde bulunamadı.'}), 400
+
+    x_series = pd.to_numeric(active_df[x_col], errors='coerce')
+    y_series = pd.to_numeric(active_df[y_col], errors='coerce')
+
+    valid_mask = x_series.notna() & y_series.notna() & np.isfinite(x_series) & np.isfinite(y_series)
+    x_vals = x_series[valid_mask].values
+    y_vals = y_series[valid_mask].values
+
+    if len(x_vals) < 3:
+        return jsonify({'error': 'Regresyon ve korelasyon için en az 3 geçerli sayısal değer gereklidir.'}), 400
+
+    reg_result = compute_robust_regression(x_vals, y_vals, model_type=model_type)
+    corr_result = compute_robust_correlation(x_vals, y_vals, method=corr_method)
+
+    return jsonify({
+        'success': True,
+        'x_col': x_col,
+        'y_col': y_col,
+        'model_type': model_type,
+        'corr_method': corr_method,
+        'regression': reg_result,
+        'correlation': corr_result
+    })
 
 # ═════════ 9. CANLI PIVOT TABLO (EXCEL-STYLE PIVOT MATRIX) ═════════
 @app.route('/get_pivot_data', methods=['POST'])
@@ -1293,6 +1780,15 @@ def export_data():
             active_df.to_excel(writer, index=False, sheet_name='Veri_Seti')
         mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         download_name = 'Aktarilan_Veri.xlsx'
+    elif export_format in ['parquet']:
+        try:
+            pl_df = pl.from_pandas(active_df)
+            pl_df.write_parquet(output, compression='snappy')
+        except Exception as e_pl:
+            logger.warning(f"Polars parquet yazma hatası, pandas deneniyor: {e_pl}")
+            active_df.to_parquet(output, engine='pyarrow', compression='snappy')
+        mimetype = 'application/octet-stream'
+        download_name = 'Aktarilan_Veri.parquet'
     else:
         csv_str = active_df.to_csv(index=False, encoding='utf-8-sig')
         output.write(csv_str.encode('utf-8-sig'))
@@ -1303,5 +1799,12 @@ def export_data():
     return send_file(output, mimetype=mimetype, as_attachment=True, download_name=download_name)
 
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok', 'service': 'DataViz', 'engine': 'Polars'}), 200
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ['true', '1']
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

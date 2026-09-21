@@ -131,6 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mainUploadStatus) mainUploadStatus.style.display = 'none';
 
       proceedToStep2();
+
+      try {
+        const healthRes = await fetch('/check_health');
+        const healthData = await healthRes.json();
+        if (typeof updateAnomalyBadges === 'function') updateAnomalyBadges(healthData);
+      } catch (healthErr) {
+        console.warn('Veri kontrol uyarısı:', healthErr);
+      }
     } catch (err) {
       console.error('Örnek veri yükleme hatası:', err);
       alert('Örnek veri yüklenemedi: ' + err.message);
@@ -188,12 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Doğrudan 2. Aşamaya geç (hata durumunda bile showScreen(2) garantilenmiştir)
       proceedToStep2();
 
-      // Arka planda eksik değer kontrolü (varsa kullanıcıyı bilgilendirir)
+      // Arka planda eksik değer ve tip uyuşmazlığı kontrolü (varsa kullanıcıyı bilgilendirir)
       try {
-        const healthRes = await fetch('/check_health');
+        const healthRes = await fetch('/check_health', { cache: 'no-store' });
         const healthData = await healthRes.json();
+        if (typeof updateAnomalyBadges === 'function') updateAnomalyBadges(healthData);
         if (healthData && healthData.has_issues) {
-          openDataPrepModal();
+          openDataPrepModal(null, healthData);
         }
       } catch (healthErr) {
         console.warn('Veri kontrol uyarısı:', healthErr);
@@ -279,12 +288,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // DATA PREP (VERİ SAĞLIĞI & NAN TEMİZLEME)
-  async function openDataPrepModal() {
+  // ── DATA PREP: VERİ SAĞLIĞI, TİP ONARIMI & NAN TEMİZLEME ──
+  let lastHealthData = null;
+
+  function updateAnomalyBadges(healthData) {
+    const anomCount = healthData?.anomalies?.length || 0;
+    const s2Badge = document.getElementById('s2AnomalyBadge');
+    const poolBadge = document.getElementById('poolAnomalyBadge');
+    const s3Badge = document.getElementById('s3AnomalyBadge');
+
+    [s2Badge, poolBadge, s3Badge].forEach(badge => {
+      if (badge) {
+        if (anomCount > 0) {
+          badge.textContent = anomCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+    });
+  }
+
+  // Modal Sekme Değiştirici
+  document.querySelectorAll('.dp-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.dp-tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'transparent';
+        b.style.color = 'var(--muted)';
+        b.style.borderColor = 'transparent';
+      });
+      document.querySelectorAll('.dp-pane').forEach(p => p.classList.add('hidden'));
+
+      btn.classList.add('active');
+      btn.style.background = 'rgba(167,139,250,0.15)';
+      btn.style.color = 'var(--purple)';
+      btn.style.borderColor = 'rgba(167,139,250,0.3)';
+
+      const tab = btn.dataset.dptab;
+      if (tab === 'anomalies') {
+        document.getElementById('dpPaneAnomalies')?.classList.remove('hidden');
+      } else {
+        document.getElementById('dpPaneNans')?.classList.remove('hidden');
+      }
+    });
+  });
+
+  async function openDataPrepModal(targetTab = null, preloadedData = null) {
     const modal = document.getElementById('dataPrepModal');
     if (!modal) return;
     modal.classList.remove('hidden');
 
+    const cardsList = document.getElementById('dpAnomalyCardsList');
+    const headerBanner = document.getElementById('dpAnomalyHeaderBanner');
+    const batchBar = document.getElementById('dpBatchActionBar');
+    const anomTabCount = document.getElementById('dpAnomalyTabCount');
+    const nanTabCount = document.getElementById('dpNanTabCount');
     const msgEl = document.getElementById('dpMessage');
     const missEl = document.getElementById('dpMissingRows');
     const totEl = document.getElementById('dpTotalRows');
@@ -293,16 +352,124 @@ document.addEventListener('DOMContentLoaded', () => {
     const fillBtn = document.getElementById('dpFillBtn');
     const fillZeroBtn = document.getElementById('dpFillZeroBtn');
 
-    if (msgEl) msgEl.textContent = "⏳ Veri sağlığı ve eksik değerler taranıyor...";
+    if (cardsList) cardsList.innerHTML = '<div style="color:var(--muted); text-align:center; padding:20px; font-size:0.85rem;"><div class="spinner" style="margin-bottom:8px;"></div>Veri sağlığı ve sütun tipleri taranıyor...</div>';
+    if (totEl && (!totEl.textContent || totEl.textContent === '0')) totEl.textContent = '...';
+    if (missCellsEl && (!missCellsEl.textContent || missCellsEl.textContent === '0')) missCellsEl.textContent = '...';
+    if (missEl && (!missEl.textContent || missEl.textContent === '0')) missEl.textContent = '...';
 
     try {
-      const res = await fetch('/check_health');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Veri kontrol edilemedi');
+      let data = preloadedData;
+      if (!data) {
+        const res = await fetch('/check_health', { cache: 'no-store' });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Veri kontrol edilemedi');
+      }
+      lastHealthData = data;
+      updateAnomalyBadges(data);
 
-      if (missEl) missEl.textContent = data.missing_rows || 0;
+      const anomalies = data.anomalies || [];
+      const hasAnomalies = anomalies.length > 0;
+
+      // Tab Sayaçları
+      if (anomTabCount) {
+        if (hasAnomalies) {
+          anomTabCount.textContent = anomalies.length;
+          anomTabCount.classList.remove('hidden');
+        } else {
+          anomTabCount.classList.add('hidden');
+        }
+      }
+
+      if (nanTabCount) {
+        if (data.missing_rows > 0) {
+          nanTabCount.textContent = data.missing_rows;
+          nanTabCount.classList.remove('hidden');
+        } else {
+          nanTabCount.classList.add('hidden');
+        }
+      }
+
+      // Hangi sekme aktif açılsın?
+      if (targetTab === 'nans' || (!hasAnomalies && data.missing_rows > 0)) {
+        document.getElementById('dpTabBtnNans')?.click();
+      } else {
+        document.getElementById('dpTabBtnAnomalies')?.click();
+      }
+
+      // ── SEKME 1: ANOMALİ KARTLARI ──
+      if (hasAnomalies) {
+        if (headerBanner) {
+          headerBanner.innerHTML = `
+            <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:10px 14px; font-size:0.85rem; color:#fca5a5; line-height:1.5;">
+              ⚠️ <strong>${anomalies.length} adet sütunda</strong> sayısal alana sözel işlem/metin girildiği tespit edildi. Bu sütunları grafiklerde sayısal eksen (Y) olarak kullanabilmek için aşağıdaki onarma yöntemlerinden birini uygulayın:
+            </div>
+          `;
+        }
+        if (batchBar) batchBar.classList.remove('hidden');
+
+        if (cardsList) {
+          cardsList.innerHTML = anomalies.map(anom => `
+            <div class="dp-anomaly-card" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <strong style="font-size:1.05rem; color:#fff;">${anom.column}</strong>
+                  <span style="font-size:0.72rem; background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); padding:2px 8px; border-radius:50px; font-weight:700;">
+                    ${anom.invalid_count} hücre (%${anom.invalid_pct}) sözel
+                  </span>
+                </div>
+                <span style="font-size:0.78rem; color:var(--muted);">${anom.numeric_count} geçerli sayı / ${anom.total_rows} satır</span>
+              </div>
+              
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span style="font-size:0.75rem; color:var(--muted);">Tespit edilen sözel değerler:</span>
+                ${(anom.sample_invalid_values || []).map(val => `<span style="font-family:monospace; font-size:0.75rem; background:rgba(0,0,0,0.3); border:1px dashed rgba(255,255,255,0.2); padding:2px 7px; border-radius:4px; color:#fbbf24;">${val}</span>`).join(' ')}
+              </div>
+
+              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+                <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="smart_heal" style="background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#34d399; font-size:0.78rem; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer;" title="Sayıları ayıklar, para/yüzde temizler, kalan sözelleri ortalamaya eşitler">
+                  🪄 Akıllı Onar (Sayı Ayıkla)
+                </button>
+                <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="fill_zero" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--text); font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sözel değerleri 0 ile ikame eder">
+                  0️⃣ Sözelleri 0 Yap
+                </button>
+                <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="fill_mean" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--text); font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sözel değerleri sütun ortalaması ile ikame eder">
+                  📈 Ortalamayla Doldur
+                </button>
+                <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="coerce_nan" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--text); font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sözelleri boş (NaN) yapar, sütunu sayısal tipe geçirir">
+                  🗑️ Boş (NaN) Yap
+                </button>
+                <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="drop_rows" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Bu sütunda sözel değer olan satırları tablodan çıkarır">
+                  ❌ Satırları Sil
+                </button>
+              </div>
+            </div>
+          `).join('');
+
+          // Kart butonlarını bağla
+          cardsList.querySelectorAll('.btn-heal-col').forEach(b => {
+            b.addEventListener('click', (e) => {
+              const col = e.currentTarget.dataset.col;
+              const mode = e.currentTarget.dataset.mode;
+              callRepairColumn(col, mode);
+            });
+          });
+        }
+      } else {
+        if (headerBanner) {
+          headerBanner.innerHTML = `
+            <div style="background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); border-radius:8px; padding:14px; font-size:0.9rem; color:#6ee7b7; line-height:1.5;">
+              ✓ <strong>Mükemmel!</strong> Veri setinizdeki tüm sayısal sütunlar saf ve hatasız. Sayısal alanlara sözel metin girilmemiş.
+            </div>
+          `;
+        }
+        if (batchBar) batchBar.classList.add('hidden');
+        if (cardsList) cardsList.innerHTML = '';
+      }
+
+      // ── SEKME 2: NAN İSTATİSTİKLERİ ──
       if (totEl) totEl.textContent = data.total_rows || 0;
       if (missCellsEl) missCellsEl.textContent = data.missing_cells || 0;
+      if (missEl) missEl.textContent = data.missing_rows || 0;
 
       if (data.missing_rows > 0) {
         if (msgEl) msgEl.innerHTML = `<span style="color:var(--orange); font-weight:700;">⚠️ ${data.missing_rows} satırda toplam ${data.missing_cells} adet boş (NaN) hücre tespit edildi.</span><br>Grafiklerin ve istatistik testlerinin kusursuz çalışması için aşağıdaki yöntemlerden birini seçebilirsiniz:`;
@@ -315,13 +482,67 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fillBtn) fillBtn.style.display = 'none';
         if (fillZeroBtn) fillZeroBtn.style.display = 'none';
       }
+
     } catch (err) {
-      if (msgEl) msgEl.textContent = "Hata: " + err.message;
+      if (cardsList) cardsList.innerHTML = `<div style="color:var(--red); padding:10px;">Hata: ${err.message}</div>`;
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--red); font-weight:700;">Hata: ${err.message}</span>`;
+      if (totEl && totEl.textContent === '...') totEl.textContent = '-';
+      if (missCellsEl && missCellsEl.textContent === '...') missCellsEl.textContent = '-';
+      if (missEl && missEl.textContent === '...') missEl.textContent = '-';
+    }
+  }
+
+  // Toplu Onarım Butonu
+  document.getElementById('btnHealAllColumns')?.addEventListener('click', () => {
+    callRepairColumn('__all__', 'smart_heal');
+  });
+
+  async function callRepairColumn(columnName, mode) {
+    const btnHealAll = document.getElementById('btnHealAllColumns');
+    const origText = btnHealAll ? btnHealAll.textContent : '';
+    if (btnHealAll) {
+      btnHealAll.disabled = true;
+      btnHealAll.textContent = '⏳ Onarılıyor...';
+    }
+
+    try {
+      const res = await fetch('/repair_column_anomalies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ column: columnName, repair_mode: mode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Onarma işlemi başarısız oldu.');
+
+      numericColumns = data.numeric_columns || [];
+      categoricalColumns = data.categorical_columns || [];
+      globalColumns = [...categoricalColumns, ...numericColumns];
+
+      initDragDropPool();
+      if (typeof renderChartGrid === 'function') renderChartGrid('all');
+      if (typeof evaluateCharts === 'function') evaluateCharts();
+
+      if (currentChartData && currentPlotType) {
+        refreshActiveChart();
+      }
+
+      await openDataPrepModal('anomalies');
+
+      const colNameText = columnName === '__all__' ? 'Tüm uyumsuz sütunlar' : `"${columnName}" sütunu`;
+      alert(`✓ ${colNameText} başarıyla sayısal tipe onarıldı!\nArtık grafiklerde ve istatistik testlerinde sayısal bir metrik olarak kullanılabilir.`);
+
+    } catch (err) {
+      alert("Onarma Hatası: " + err.message);
+    } finally {
+      if (btnHealAll) {
+        btnHealAll.disabled = false;
+        btnHealAll.textContent = origText;
+      }
     }
   }
 
   ['btnOpenDataPrepModalS2', 'btnOpenDataPrepModalPool', 'btnOpenDataPrepModalS3'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', openDataPrepModal);
+    document.getElementById(id)?.addEventListener('click', () => openDataPrepModal());
   });
 
   document.getElementById('btnCloseDataPrepModal')?.addEventListener('click', () => {
@@ -350,19 +571,16 @@ document.addEventListener('DOMContentLoaded', () => {
       numericColumns = data.numeric_columns || [];
       categoricalColumns = data.categorical_columns || [];
       globalColumns = [...categoricalColumns, ...numericColumns];
-      document.getElementById('dataPrepModal').classList.add('hidden');
       
-      if (document.getElementById('step1-upload')?.classList.contains('active')) {
-        proceedToStep2();
-      } else {
-        initDragDropPool();
-        if (typeof renderChartGrid === 'function') renderChartGrid('all');
-        if (typeof evaluateCharts === 'function') evaluateCharts();
-        alert(`✓ Veri temizleme başarıyla tamamlandı!\nGüncel Satır Sayısı: ${data.total_rows}`);
-      }
+      initDragDropPool();
+      if (typeof renderChartGrid === 'function') renderChartGrid('all');
+      if (typeof evaluateCharts === 'function') evaluateCharts();
+      if (currentChartData && currentPlotType) refreshActiveChart();
+
+      await openDataPrepModal('nans');
+      alert(`✓ Boş değer temizleme başarıyla tamamlandı!\nGüncel Satır Sayısı: ${data.total_rows}`);
     } catch(err) {
       alert("Hata: " + err.message);
-      document.getElementById('dataPrepModal').classList.add('hidden');
       if (msgEl) msgEl.textContent = origMsg;
     }
   }
@@ -1053,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!res.ok) throw new Error(data.error);
       
       currentChartData = data;
-      drawMegaPlotly('chartArea', data, currentPlotType); const loader = document.getElementById('megaChartLoader'); if(loader) loader.remove();
+      await drawMegaPlotly('chartArea', data, currentPlotType); const loader = document.getElementById('megaChartLoader'); if(loader) loader.remove();
       
       let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
       if(!statCols.length) statCols = numericColumns.slice(0, 6);
@@ -1064,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function drawMegaPlotly(targetElementId, data, type, isMini = false) {
+  async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
     const mainColor = document.getElementById('chartColor')?.value || '#a78bfa';
     const bg = document.getElementById('chartBgColor')?.value || '#070711';
     const sGrid = document.getElementById('showGrid')?.checked ?? true;
@@ -1364,6 +1582,128 @@ document.addEventListener('DOMContentLoaded', () => {
             if (type === 'area' || type === 'stackedarea') tr.fill = i === 0 ? 'tozeroy' : (type === 'stackedarea' ? 'tonexty' : 'tozeroy');
             traces.push(tr);
           });
+        }
+      }
+
+      // ════════ 4. CANLI TRENDLINE & KORELASYON OVERLAY ════════
+      if (!isMini && targetElementId === 'chartArea') {
+        const isXNum = axisConfig.x && numericColumns.includes(axisConfig.x);
+        const firstY = axisConfig.y && axisConfig.y.length > 0 ? axisConfig.y[0] : null;
+        const isYNum = firstY && numericColumns.includes(firstY);
+        const badgeEl = document.getElementById('chartStatsBadge');
+        const showTrend = document.getElementById('showTrendline')?.checked ?? false;
+        const regModel = document.getElementById('regModelSelect')?.value || 'linear';
+        const corrMethod = document.getElementById('corrMethodSelect')?.value || 'pearson';
+
+        if (isXNum && isYNum) {
+          try {
+            const regRes = await fetch('/get_regression_curve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                x_col: axisConfig.x,
+                y_col: firstY,
+                model_type: regModel,
+                corr_method: corrMethod,
+                filters: activeFilters
+              })
+            });
+            const regData = await regRes.json();
+            if (regData.success && regData.regression && regData.correlation) {
+              const reg = regData.regression;
+              const corr = regData.correlation;
+
+              // 1. Canlı İstatistik Sonuç Kartını Güncelle (Inspector)
+              const corrSymbol = corrMethod === 'spearman' ? 'ρ' : (corrMethod === 'kendall' ? 'τ' : 'r');
+              
+              const corrMetricNameEl = document.getElementById('corrMetricName');
+              if (corrMetricNameEl) corrMetricNameEl.textContent = corrSymbol;
+              
+              const statCorrValEl = document.getElementById('statCorrVal');
+              if (statCorrValEl) statCorrValEl.textContent = corr.coef != null ? corr.coef.toFixed(4) : '-';
+              
+              const statInterpretationEl = document.getElementById('statInterpretation');
+              if (statInterpretationEl) statInterpretationEl.textContent = corr.interpretation || '';
+
+              const statR2ValEl = document.getElementById('statR2Val');
+              if (statR2ValEl) statR2ValEl.textContent = reg.r_squared != null ? reg.r_squared.toFixed(4) : '-';
+
+              const statEquationValEl = document.getElementById('statEquationVal');
+              if (statEquationValEl) statEquationValEl.textContent = reg.equation || '-';
+
+              const statPValEl = document.getElementById('statPVal');
+              if (statPValEl) {
+                if (corr.p_value != null) {
+                  statPValEl.textContent = corr.p_value < 0.0001 ? '< 0.0001' : corr.p_value.toFixed(4);
+                } else {
+                  statPValEl.textContent = '-';
+                }
+              }
+
+              const statSigBadgeEl = document.getElementById('statSignificanceBadge');
+              if (statSigBadgeEl) {
+                if (corr.p_value != null && corr.p_value < 0.05) {
+                  statSigBadgeEl.textContent = 'Anlamlı (p < 0.05)';
+                  statSigBadgeEl.style.background = 'rgba(52, 211, 153, 0.15)';
+                  statSigBadgeEl.style.color = '#34d399';
+                } else if (corr.p_value != null) {
+                  statSigBadgeEl.textContent = 'Anlamsız (p ≥ 0.05)';
+                  statSigBadgeEl.style.background = 'rgba(251, 191, 36, 0.15)';
+                  statSigBadgeEl.style.color = '#fbbf24';
+                } else {
+                  statSigBadgeEl.textContent = '-';
+                }
+              }
+
+              // 2. Trendline Çizgisi Ekle (Eğer Kullanıcı İstemişse)
+              if (showTrend && reg.trend_x && reg.trend_x.length > 0) {
+                traces.push({
+                  type: 'scatter',
+                  mode: 'lines',
+                  name: `Trend: ${reg.equation}`,
+                  x: reg.trend_x,
+                  y: reg.trend_y,
+                  line: {
+                    color: '#f59e0b',
+                    width: 3,
+                    dash: 'dash'
+                  },
+                  hoverinfo: 'x+y+name'
+                });
+
+                // Rozeti Göster ve Doldur
+                if (badgeEl) {
+                  badgeEl.classList.remove('hidden');
+                  const csbEquation = document.getElementById('csbEquation');
+                  const csbR2 = document.getElementById('csbR2');
+                  const csbCorrName = document.getElementById('csbCorrName');
+                  const csbCorr = document.getElementById('csbCorr');
+
+                  if (csbEquation) csbEquation.textContent = reg.equation;
+                  if (csbR2) csbR2.textContent = reg.r_squared != null ? reg.r_squared.toFixed(4) : '-';
+                  if (csbCorrName) csbCorrName.textContent = corrSymbol;
+                  if (csbCorr) csbCorr.textContent = corr.coef != null ? corr.coef.toFixed(4) : '-';
+                }
+              } else {
+                if (badgeEl) badgeEl.classList.add('hidden');
+              }
+            }
+          } catch (regErr) {
+            console.warn('Regresyon eğrisi yüklenirken hata:', regErr);
+            if (badgeEl) badgeEl.classList.add('hidden');
+          }
+        } else {
+          if (badgeEl) badgeEl.classList.add('hidden');
+          const statInterpretationEl = document.getElementById('statInterpretation');
+          if (statInterpretationEl) statInterpretationEl.textContent = 'Korelasyon ve regresyon için X ve Y eksenlerinin her ikisinin de sayısal olması gerekir.';
+          const statEquationValEl = document.getElementById('statEquationVal');
+          if (statEquationValEl) statEquationValEl.textContent = 'Sayısal değişken seçilmedi';
+          const statCorrValEl = document.getElementById('statCorrVal');
+          if (statCorrValEl) statCorrValEl.textContent = '-';
+          const statR2ValEl = document.getElementById('statR2Val');
+          if (statR2ValEl) statR2ValEl.textContent = '-';
+          const statPValEl = document.getElementById('statPVal');
+          if (statPValEl) statPValEl.textContent = '-';
         }
       }
 
@@ -1988,10 +2328,18 @@ document.getElementById('generatePdfBtn')?.addEventListener('click', async () =>
   async function fetchStats(cols) {
     if(!cols.length) return;
     try {
+        const corrMethod = document.getElementById('tabStatsCorrMethod')?.value || document.getElementById('corrMethodSelect')?.value || 'pearson';
+        const regModel = document.getElementById('tabStatsRegModel')?.value || document.getElementById('regModelSelect')?.value || 'linear';
         const res = await fetch('/get_stats', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ columns: cols, filters: activeFilters, x_col: axisConfig.x })
+            body: JSON.stringify({
+              columns: cols,
+              filters: activeFilters,
+              x_col: axisConfig.x,
+              corr_method: corrMethod,
+              reg_model: regModel
+            })
         });
         const data = await res.json();
         currentStats = data.stats;
@@ -2132,12 +2480,54 @@ document.getElementById('generatePdfBtn')?.addEventListener('click', async () =>
       document.querySelectorAll('.i-tab').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.i-pane').forEach(p => {
         p.classList.remove('active');
-        p.classList.remove('hidden');
+        p.classList.add('hidden');
       });
       btn.classList.add('active');
-      document.getElementById(`itab-${btn.dataset.itab}`).classList.add('active');
+      const targetPane = document.getElementById(`itab-${btn.dataset.itab}`);
+      if (targetPane) {
+        targetPane.classList.add('active');
+        targetPane.classList.remove('hidden');
+      }
     });
   });
+
+  // ── TRENDLINE & REGRESYON & KORELASYON DİNLEYİCİLERİ ──
+  const showTrendlineEl = document.getElementById('showTrendline');
+  const regModelSelectEl = document.getElementById('regModelSelect');
+  const corrMethodSelectEl = document.getElementById('corrMethodSelect');
+  const tabStatsCorrMethodEl = document.getElementById('tabStatsCorrMethod');
+  const tabStatsRegModelEl = document.getElementById('tabStatsRegModel');
+
+  async function handleAnalyticsChange(fromStatsTab = false) {
+    if (fromStatsTab) {
+      if (regModelSelectEl && tabStatsRegModelEl) regModelSelectEl.value = tabStatsRegModelEl.value;
+      if (corrMethodSelectEl && tabStatsCorrMethodEl) corrMethodSelectEl.value = tabStatsCorrMethodEl.value;
+    } else {
+      if (tabStatsRegModelEl && regModelSelectEl) tabStatsRegModelEl.value = regModelSelectEl.value;
+      if (tabStatsCorrMethodEl && corrMethodSelectEl) tabStatsCorrMethodEl.value = corrMethodSelectEl.value;
+    }
+
+    if (currentChartData && currentPlotType) {
+      await drawMegaPlotly('chartArea', currentChartData, currentPlotType);
+    }
+
+    let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
+    if (!statCols.length) statCols = numericColumns.slice(0, 6);
+    if (statCols.length > 0) {
+      fetchStats(statCols);
+    }
+  }
+
+  showTrendlineEl?.addEventListener('change', async () => {
+    if (currentChartData && currentPlotType) {
+      await drawMegaPlotly('chartArea', currentChartData, currentPlotType);
+    }
+  });
+
+  regModelSelectEl?.addEventListener('change', () => handleAnalyticsChange(false));
+  corrMethodSelectEl?.addEventListener('change', () => handleAnalyticsChange(false));
+  tabStatsRegModelEl?.addEventListener('change', () => handleAnalyticsChange(true));
+  tabStatsCorrMethodEl?.addEventListener('change', () => handleAnalyticsChange(true));
 
   const traceSizeInput = document.getElementById('traceSize');
   if(traceSizeInput) traceSizeInput.addEventListener('input', e => document.getElementById('traceSizeVal').textContent = e.target.value);
@@ -2147,8 +2537,37 @@ document.getElementById('generatePdfBtn')?.addEventListener('click', async () =>
   });
   
   document.getElementById('downloadPngBtn')?.addEventListener('click', () => {
-    Plotly.downloadImage('chartArea', { format: 'png', width: 1600, height: 900, filename: `DataVizPro_${currentPlotType}` });
+    Plotly.downloadImage('chartArea', { format: 'png', width: 1600, height: 900, filename: `DataViz_${currentPlotType}` });
   });
+
+  async function exportActiveDataset(format = 'parquet') {
+    try {
+      const resp = await fetch('/export_data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: format, filters: activeFilters })
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        alert(err.error || 'Dışa aktarma işlemi başarısız oldu.');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DataViz_BüyükVeri_${Date.now()}.${format === 'excel' ? 'xlsx' : format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Dışa aktarma hatası: ' + e.message);
+    }
+  }
+
+  document.getElementById('btnQuickExportParquet')?.addEventListener('click', () => exportActiveDataset('parquet'));
+  document.getElementById('downloadParquetBtn')?.addEventListener('click', () => exportActiveDataset('parquet'));
 
   const screenPivotStudio = document.getElementById('screen-pivot-studio');
 
@@ -2758,14 +3177,36 @@ function renderStatsCards(data) {
         let advHtml = '';
         if (adv) {
             if (adv.type === 'numeric') {
+                const corrMethodName = adv.corr_method === 'spearman' ? 'Spearman (ρ)' : (adv.corr_method === 'kendall' ? 'Kendall Tau (τ)' : 'Pearson (r)');
+                const regModelName = adv.reg_model === 'poly2' ? '2. Derece Polinom' : (adv.reg_model === 'poly3' ? '3. Derece Polinom' : (adv.reg_model === 'log' ? 'Logaritmik' : (adv.reg_model === 'exp' ? 'Üstel' : 'Doğrusal')));
+
                 advHtml = `
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <h4 style="font-size: 0.9rem; color: #a78bfa; margin-bottom: 8px;">Korelasyon & Regresyon</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="font-size: 0.9rem; color: #a78bfa; margin: 0;">Korelasyon & Regresyon</h4>
+                            <span style="font-size: 0.72rem; background: rgba(167, 139, 250, 0.15); color: #a78bfa; padding: 2px 6px; border-radius: 4px;">${regModelName}</span>
+                        </div>
                         <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div class="b-metric"><span>Korelasyon (r)</span><strong>${adv.correlation ? adv.correlation.toFixed(3) : '-'}</strong></div>
-                            <div class="b-metric"><span>R² Değeri</span><strong>${adv.r_squared ? adv.r_squared.toFixed(3) : '-'}</strong></div>
-                            <div class="b-metric" style="grid-column: 1 / -1;"><span>P Değeri</span><strong>${adv.p_value != null ? adv.p_value.toExponential(2) : '-'}</strong></div>
-                            <div class="b-metric" style="grid-column: 1 / -1; background: rgba(167, 139, 250, 0.1); padding: 8px; border-radius: 6px;"><span>Regresyon Denklemi</span><strong style="color: #a78bfa;">${adv.regression || '-'}</strong></div>
+                            <div class="b-metric">
+                                <span>${corrMethodName}</span>
+                                <strong style="color: #60a5fa;">${adv.correlation != null ? adv.correlation.toFixed(4) : '-'}</strong>
+                            </div>
+                            <div class="b-metric">
+                                <span>Belirlilik (R²)</span>
+                                <strong style="color: #34d399;">${adv.r_squared != null ? adv.r_squared.toFixed(4) : '-'}</strong>
+                            </div>
+                            <div class="b-metric">
+                                <span>P Değeri</span>
+                                <strong>${adv.p_value != null ? (adv.p_value < 0.0001 ? '< 0.0001' : adv.p_value.toFixed(4)) : '-'}</strong>
+                            </div>
+                            <div class="b-metric">
+                                <span>İlişki Gücü</span>
+                                <strong style="font-size: 0.82rem; color: #fbbf24;">${adv.interpretation || '-'}</strong>
+                            </div>
+                            <div class="b-metric" style="grid-column: 1 / -1; background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.2); padding: 8px 10px; border-radius: 6px;">
+                                <span style="color: #c4b5fd;">Model Denklemi:</span>
+                                <strong style="color: #fbbf24; font-family: monospace; font-size: 0.85rem; word-break: break-all;">${adv.regression || '-'}</strong>
+                            </div>
                         </div>
                     </div>
                 `;

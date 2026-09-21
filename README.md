@@ -138,12 +138,29 @@ python app.py
 
 ---
 
+### Seçenek 4: 🐳 Docker ile Tek Komutta Çalıştırma (Mac, Linux, Windows)
+Bilgisayarınızda Python kurulu olmasa bile Docker ile tamamen izole ve sıfır hata ile ayağa kaldırabilirsiniz:
+```bash
+# Docker Compose ile tek komut:
+docker compose up -d
+
+# Veya klasik Docker komutu ile:
+docker build -t dataviz .
+docker run -p 5000:5000 dataviz
+```
+Tarayıcınızda **`http://localhost:5000`** adresine gidin.
+
+---
+
 ## 📂 Mimarisi & Klasör Yapısı
 
 ```text
 dataviz/
-├── app.py                      # Flask backend, veri motoru ve REST API servisleri
-├── requirements.txt            # Çekirdek Python bağımlılıkları (flask, pandas, openpyxl, scipy)
+├── app.py                      # Flask + Polars büyük veri motoru ve REST API servisleri
+├── requirements.txt            # Çekirdek bağımlılıklar (flask, polars, pyarrow, openpyxl, scipy)
+├── Dockerfile                  # Çok platformlu Docker konteyner tanımı
+├── docker-compose.yml          # Tek komutla ayağa kaldırma yapılandırması
+├── .dockerignore               # Konteyner gereksiz dosya filtreleri
 ├── DEMO_BASLAT.bat             # Windows tek tıkla otomatik başlatıcı
 ├── README.md                   # Kapsamlı ve doğrulanmış proje dokümantasyonu
 ├── templates/

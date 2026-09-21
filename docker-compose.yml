@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  dataviz:
+    build: .
+    container_name: dataviz-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - PORT=5000
+    volumes:
+      - ./uploads:/app/uploads

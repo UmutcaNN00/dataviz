@@ -1,0 +1,14 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+env
+.git
+.gitignore
+.agents
+uploads/*
+!uploads/.gitkeep
+sunucu.log
+*.log

@@ -13,44 +13,85 @@
 </head>
 <body>
 
-<!-- ══════════ DATA PREP (VERİ SAĞLIĞI & NAN TEMİZLEME) MODALI ══════════ -->
+<!-- ══════════ DATA PREP (VERİ SAĞLIĞI, TİP ONARIMI & NAN TEMİZLEME) MODALI ══════════ -->
 <div id="dataPrepModal" class="modal-overlay hidden">
-  <div class="modal-content filter-modal-content" style="max-width: 580px;">
-    <div class="modal-header-row">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.4rem;">🩺</span>
-        <h3>Veri Sağlığı &amp; Eksik Değer (NaN) Temizleme</h3>
+  <div class="modal-content filter-modal-content" style="max-width: 660px; max-height: 88vh; display: flex; flex-direction: column;">
+    <div class="modal-header-row" style="margin-bottom: 12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.5rem;">🩺</span>
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem;">Veri Sağlığı &amp; Akıllı Tip Onarıcı</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--muted);">Sayısal alanlara girilen sözel değerleri, para/yüzde eklerini ayıklayın ve eksik verileri onarın.</p>
+        </div>
       </div>
       <button class="modal-close-btn" id="btnCloseDataPrepModal">×</button>
     </div>
-    <p id="dpMessage" class="filter-hint" style="margin-top:8px;">Veri setinizdeki boş satırlar ve eksik hücreler taranıyor...</p>
-    
-    <div class="dp-stats-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:16px 0;">
-      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
-        <div style="font-size:0.75rem; color:var(--muted);">Toplam Satır</div>
-        <div id="dpTotalRows" style="font-size:1.3rem; font-weight:700; color:var(--text); margin-top:4px;">0</div>
+
+    <!-- MODAL SEKMELERİ -->
+    <div class="dp-tabs" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 14px;">
+      <button type="button" class="dp-tab-btn active" id="dpTabBtnAnomalies" data-dptab="anomalies" style="background: rgba(167,139,250,0.15); color: var(--purple); border: 1px solid rgba(167,139,250,0.3); border-radius: 8px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <span>🧩 Sözel / Tip Uyuşmazlığı</span>
+        <span id="dpAnomalyTabCount" class="hidden" style="background: #ef4444; color: #fff; font-size: 0.68rem; padding: 1px 6px; border-radius: 10px;">0</span>
+      </button>
+      <button type="button" class="dp-tab-btn" id="dpTabBtnNans" data-dptab="nans" style="background: transparent; color: var(--muted); border: 1px solid transparent; border-radius: 8px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <span>🩺 Eksik Değer (NaN)</span>
+        <span id="dpNanTabCount" class="hidden" style="background: var(--orange); color: #fff; font-size: 0.68rem; padding: 1px 6px; border-radius: 10px;">0</span>
+      </button>
+    </div>
+
+    <!-- SEKME 1: SÖZEL / ALAKASIZ DEĞER ONARIMI -->
+    <div id="dpPaneAnomalies" class="dp-pane" style="overflow-y: auto; flex: 1; padding-right: 4px;">
+      <div id="dpAnomalyHeaderBanner" style="margin-bottom: 12px;"></div>
+      
+      <!-- Toplu Onarım Buton Barı -->
+      <div id="dpBatchActionBar" class="hidden" style="display: flex; justify-content: space-between; align-items: center; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;">
+        <div>
+          <strong style="color: #fbbf24; font-size: 0.85rem;">⚡ Hızlı Toplu Çözüm:</strong>
+          <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--muted);">Tespit edilen tüm sütunlardaki sözel ekleri ayıklar ve sayısal tipe dönüştürür.</p>
+        </div>
+        <button type="button" class="btn-primary" id="btnHealAllColumns" style="width: auto; padding: 8px 14px; font-size: 0.82rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; white-space: nowrap;">
+          🪄 Tümünü Akıllı Onar
+        </button>
       </div>
-      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
-        <div style="font-size:0.75rem; color:var(--muted);">Boş Hücre (Hücre Bazlı)</div>
-        <div id="dpMissingCells" style="font-size:1.3rem; font-weight:700; color:var(--cyan); margin-top:4px;">0</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
-        <div style="font-size:0.75rem; color:var(--muted);">Eksik Satır Sayısı</div>
-        <div id="dpMissingRows" style="font-size:1.3rem; font-weight:700; color:var(--orange); margin-top:4px;">0</div>
+
+      <!-- Sütun Anomali Kartları Listesi -->
+      <div id="dpAnomalyCardsList" style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="color: var(--muted); text-align: center; padding: 20px; font-size: 0.85rem;">Sütunlar taranıyor...</div>
       </div>
     </div>
 
-    <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
-      <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:4px;">Temizleme veya Doldurma Yöntemi Seçin:</div>
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-        <button class="btn-primary" id="dpDropBtn" style="background:#ef4444; border-color:#ef4444; font-size:0.82rem; padding:10px;">🗑️ Boş Satırları Sil</button>
-        <button class="btn-secondary" id="dpFillBtn" style="font-size:0.82rem; padding:10px;">📈 Ortalamayla Doldur</button>
-        <button class="btn-secondary" id="dpFillZeroBtn" style="font-size:0.82rem; padding:10px;">0️⃣ Sıfır (0) ile Doldur</button>
+    <!-- SEKME 2: BOŞ DEĞER (NAN) TEMİZLEME -->
+    <div id="dpPaneNans" class="dp-pane hidden" style="overflow-y: auto; flex: 1;">
+      <p id="dpMessage" class="filter-hint" style="margin-top:0;">Veri setinizdeki boş satırlar ve eksik hücreler:</p>
+      
+      <div class="dp-stats-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:14px 0;">
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--muted);">Toplam Satır</div>
+          <div id="dpTotalRows" style="font-size:1.3rem; font-weight:700; color:var(--text); margin-top:4px;">0</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--muted);">Boş Hücre (Hücre Bazlı)</div>
+          <div id="dpMissingCells" style="font-size:1.3rem; font-weight:700; color:var(--cyan); margin-top:4px;">0</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--muted);">Eksik Satır Sayısı</div>
+          <div id="dpMissingRows" style="font-size:1.3rem; font-weight:700; color:var(--orange); margin-top:4px;">0</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+        <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:4px;">Tüm Boş (NaN) Değerleri Doldur veya Sil:</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+          <button class="btn-primary" id="dpDropBtn" style="background:#ef4444; border-color:#ef4444; font-size:0.82rem; padding:10px;">🗑️ Boş Satırları Sil</button>
+          <button class="btn-secondary" id="dpFillBtn" style="font-size:0.82rem; padding:10px;">📈 Ortalamayla Doldur</button>
+          <button class="btn-secondary" id="dpFillZeroBtn" style="font-size:0.82rem; padding:10px;">0️⃣ Sıfır (0) ile Doldur</button>
+        </div>
       </div>
     </div>
 
-    <div class="modal-actions" style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
-      <button class="btn-ghost" id="dpSkipBtn" style="width:100%;">Kapat / Olduğu Gibi Bırak</button>
+    <!-- MODAL ALTI BUTONLAR -->
+    <div class="modal-actions" style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px; display: flex; justify-content: flex-end;">
+      <button class="btn-ghost" id="dpSkipBtn" style="min-width: 120px;">Kapat</button>
     </div>
   </div>
 </div>
@@ -65,13 +106,13 @@
       </div>
       <button class="modal-close-btn" id="btnCloseMergeModal">×</button>
     </div>
-    <p class="filter-hint">2. bir Excel veya CSV dosyası seçerek ortak bir sütun üzerinden iki tabloyu yan yana birleştirin:</p>
+    <p class="filter-hint">2. bir Parquet, Excel veya CSV dosyası seçerek ortak bir sütun üzerinden iki tabloyu yan yana birleştirin:</p>
     
     <!-- 2. Dosya Yükleme Alanı -->
     <div class="merge-drop-zone" id="mergeDropZone">
-      <input type="file" id="mergeFileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      <input type="file" id="mergeFileInput" accept=".xlsx,.xls,.csv,.parquet" style="display:none;">
       <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
-      <div style="font-weight: 700; font-size: 0.95rem;">2. Dosyayı Buraya Sürükleyin</div>
+      <div style="font-weight: 700; font-size: 0.95rem;">2. Dosyayı Buraya Sürükleyin (.parquet, .xlsx, .csv)</div>
       <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">veya <label for="mergeFileInput" class="gdz-link">bilgisayardan seçin</label></div>
     </div>
     <div id="mergeFileStatus" class="status-msg" style="margin-top:10px; font-size:0.85rem; display:none;"></div>
@@ -227,15 +268,15 @@
 
   <div class="s1-content premium-upload-container">
     <div class="s1-header">
-      <a href="/" class="s1-logo" style="text-decoration:none;">⬡ DataViz Pro</a>
+      <a href="/" class="s1-logo" style="text-decoration:none;">⬡ DataViz</a>
       <h1 class="gradient-title">Zekaya Açılan Kapı.</h1>
-      <p>Excel veya CSV dosyanızı yükleyin, yerel yapay zeka saniyeler içinde analiz edip interaktif panolara dönüştürsün.</p>
+      <p>Excel, CSV veya Parquet dosyanızı yükleyin, Polars destekli yerel motor saniyeler içinde analiz edip interaktif panolara dönüştürsün.</p>
     </div>
 
     <div class="dropzone-glass-card">
       <div id="mainUploadStatus" class="status-msg hidden" style="margin-bottom: 14px; font-size: 1rem; z-index: 60; display: none;"></div>
       
-      <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+      <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv,.parquet" style="display: none;">
 
       <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="region" aria-label="Dosya Yükleme Alanı" style="display: block; cursor: default; position: relative;">
         <div class="dz-icon-wrap" style="pointer-events: none;">
@@ -262,14 +303,19 @@
         </div>
 
         <div class="dz-formats" style="pointer-events: none;">
+          <span class="fmt-badge" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); color: #34d399; font-weight: 700;">⚡ .PARQUET</span>
+          <span class="fmt-badge">.CSV</span>
           <span class="fmt-badge">.XLSX</span>
           <span class="fmt-badge">.XLS</span>
-          <span class="fmt-badge">.CSV</span>
         </div>
       </div>
     </div>
 
     <div class="upload-security-badges">
+       <span style="color: #38bdf8; font-weight: 600;">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 
+         Polars Big Data Core
+       </span>
        <span>
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 
          %100 Yerel İşlem
@@ -280,7 +326,7 @@
        </span>
        <span>
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 
-         Sınırsız Satır
+         500 MB &amp; Çoklu Milyon Satır
        </span>
     </div>
 
@@ -318,14 +364,17 @@
       
       <!-- HIZLI VERİ ARAÇLARI (DATA TOOLBAR) -->
       <div class="s2-quick-tools">
-        <button type="button" class="btn-quick-data-tool" id="btnOpenDataPrepModalS2" title="Eksik değerleri (NaN) tespit et ve temizle">
-          🩺 Veri Temizleme &amp; NaN
+        <button type="button" class="btn-quick-data-tool" id="btnOpenDataPrepModalS2" title="Eksik değerleri ve sözel bozulmaları tespit et ve onar">
+          🩺 Veri &amp; Tip Onarma <span id="s2AnomalyBadge" class="hidden" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:800; margin-left:4px;">0</span>
         </button>
         <button type="button" class="btn-quick-data-tool btn-tool-merge" id="btnOpenMergeModalS2" title="2. bir Excel/CSV dosyası yükleyip tabloları birleştirin">
           🔗 2. Dosyayı Birleştir (Join)
         </button>
         <button type="button" class="btn-quick-data-tool" id="btnOpenCalcModalS2" title="Sütunlar arası formül ve yeni sütun üret">
           🧮 Formül Sihirbazı
+        </button>
+        <button type="button" class="btn-quick-data-tool" id="btnQuickExportParquet" title="Aktif veriyi sıkıştırılmış Apache Parquet formatında indir" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 600;">
+          ⚡ Parquet İndir
         </button>
       </div>
     </div>
@@ -393,7 +442,7 @@
             <span id="poolCountBadge" class="pool-total-badge">0 Sütun</span>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" class="btn-calc-col" id="btnOpenDataPrepModalPool" title="Eksik (NaN) Verileri Temizle" style="color:var(--cyan); border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.1);">🩺 NaN Temizle</button>
+            <button type="button" class="btn-calc-col" id="btnOpenDataPrepModalPool" title="Eksik Verileri ve Sözel Hataları Onar" style="color:var(--cyan); border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.1);">🩺 Onar / NaN <span id="poolAnomalyBadge" class="hidden" style="background:#ef4444; color:#fff; font-size:0.65rem; padding:1px 5px; border-radius:10px; font-weight:800; margin-left:2px;">0</span></button>
             <button type="button" class="btn-calc-col" id="btnOpenMergeModal" style="color:var(--green); border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.1);">🔗 2. Dosyayı Birleştir</button>
             <button type="button" class="btn-calc-col" id="btnOpenCalcModal">🧮 + Formül</button>
           </div>
@@ -493,8 +542,8 @@
 
     <div class="topbar-right">
       <!-- VERİ İŞLEMLERİ BUTONLARI -->
-      <button type="button" class="btn-topbar-action" id="btnOpenDataPrepModalS3" title="Eksik değerleri (NaN) incele ve temizle">
-        🩺 Veri Temizle (NaN)
+      <button type="button" class="btn-topbar-action" id="btnOpenDataPrepModalS3" title="Eksik değerleri ve sözel bozulmaları incele ve temizle">
+        🩺 Veri &amp; Tip Onarma <span id="s3AnomalyBadge" class="hidden" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:800; margin-left:4px;">0</span>
       </button>
       <button type="button" class="btn-topbar-action" id="btnOpenMergeModalS3" title="2. bir dosya birleştirin">
         🔗 2. Dosya Birleştir
@@ -545,7 +594,16 @@
       <!-- GRAFİK SEKME İÇERİĞİ -->
       <div class="tab-pane active" id="tabChart">
         
-        <div class="chart-wrapper" id="chartAreaContainer">
+        <div class="chart-wrapper" id="chartAreaContainer" style="position: relative;">
+          <!-- Canlı İstatistik ve Regresyon Rozeti (Overlay) -->
+          <div id="chartStatsBadge" class="hidden" style="position: absolute; top: 14px; right: 18px; z-index: 20; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 7px 12px; font-size: 0.8rem; color: #f8fafc; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 10px;">
+            <span id="csbEquation" style="color: #fbbf24; font-family: monospace; font-weight: 600;">y = mx + c</span>
+            <span style="color: rgba(255,255,255,0.2);">|</span>
+            <span>R² = <strong id="csbR2" style="color: #34d399;">-</strong></span>
+            <span style="color: rgba(255,255,255,0.2);">|</span>
+            <span><span id="csbCorrName">r</span> = <strong id="csbCorr" style="color: #60a5fa;">-</strong></span>
+          </div>
+
           <div id="chartArea" style="width:100%; height:100%;"></div>
         </div>
       </div>
@@ -558,10 +616,12 @@
               <h2 style="font-size: 1.6rem; font-weight: 800;">İstatistik Analizi & Yapay Zeka Özeti</h2>
               <p style="color: var(--muted); margin-top: 4px;">Seçilen eksenlerdeki veri dağılımları ve AI destekli akademik yorumlar.</p>
             </div>
-            <button id="refreshStatsBtn" class="btn-premium secondary" style="padding: 10px 20px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
-              Yenile
-            </button>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <button id="refreshStatsBtn" class="btn-premium secondary" style="padding: 8px 16px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
+                Yenile
+              </button>
+            </div>
           </div>
 
           <!-- Hızlı KPI Şeridi (Genel) -->
@@ -692,9 +752,13 @@
             Tekil PNG İndir
           </button>
           
-          <button id="downloadPdfBtn" class="btn-download" style="width:100%;">
+          <button id="downloadPdfBtn" class="btn-download" style="width:100%; margin-bottom:12px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             📄 Tekil PDF Raporu
+          </button>
+
+          <button id="downloadParquetBtn" class="btn-ghost" style="width:100%; border-color:rgba(16, 185, 129, 0.4); color:#34d399; font-weight:600;">
+            ⚡ Aktif Veriyi Parquet İndir
           </button>
         </div>
         
@@ -711,7 +775,7 @@
 
   <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260916_v12"></script>
   <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260916_v12"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=20260916_v12"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=20260921_v15"></script>
 
 <!-- ═══ UPLOAD GÜVENLİ YEDEK MOTORU ═══
      app.js yüklenemese veya hata verse bile upload çalışır (REMOVED) -->
