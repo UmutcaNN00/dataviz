@@ -375,6 +375,7 @@ async function refreshActiveChart() {
   chartArea.innerHTML = '<div class="spinner" style="margin: 40px auto;"></div>';
   const targetType = currentPlotType;
   const is3D = ['scatter3d', 'line3d', 'surface'].includes(targetType);
+  const aggVal = document.getElementById('s2AggFunc')?.value || 'sum';
 
   try {
     const res = await fetch('/get_chart_data', {
@@ -382,7 +383,10 @@ async function refreshActiveChart() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         x: axisConfig.x,
+        x_col: axisConfig.x,
         y: axisConfig.y,
+        y_cols: axisConfig.y,
+        agg_func: aggVal,
         chart_type: targetType,
         is_3d: is3D,
         filters: activeFilters
@@ -401,7 +405,9 @@ async function refreshActiveChart() {
     }
     
     fetchKpis();
-    fetchStats();
+    let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
+    if (!statCols.length) statCols = numericColumns.slice(0, 6);
+    fetchStats(statCols);
   } catch(err) {
     chartArea.innerHTML = `<div style="color:var(--red); padding:40px; text-align:center;">❌ Hata:<br>${err.message}</div>`;
   }
@@ -486,14 +492,15 @@ function renderActiveFilterChips() {
 
 /* ── 5. EXECUTIVE KPI ÖZETLERİ ── */
 async function fetchKpis() {
-  if (!axisConfig.x && axisConfig.y.length === 0) return;
   try {
-    const res = await fetch('/get_kpis', {
+    const res = await fetch('/get_kpi_summary', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         x: axisConfig.x,
+        x_col: axisConfig.x,
         y: axisConfig.y,
+        y_cols: axisConfig.y,
         filters: activeFilters
       })
     });
@@ -501,29 +508,30 @@ async function fetchKpis() {
     if (res.ok && data.kpis) {
       currentKpis = data.kpis;
       window.currentKpis = currentKpis;
-      renderKpiTiles(data.kpis);
+      renderKpiTiles('chartKpiStrip', currentKpis);
+      renderKpiTiles('dashboardKpiGrid', currentKpis);
+      renderKpiTiles('kpiTilesRow', currentKpis);
     }
   } catch (e) {
     console.error('KPI fetch error:', e);
   }
 }
 
-function renderKpiTiles(kpis) {
-  const container = document.getElementById('kpiTilesRow');
-  if (!container) return;
+function renderKpiTiles(targetId, kpiList) {
+  const container = document.getElementById(targetId);
+  if (!container || !kpiList || kpiList.length === 0) return;
   container.innerHTML = '';
-  if (!kpis || kpis.length === 0) return;
 
-  kpis.forEach(k => {
+  kpiList.forEach(k => {
     const tile = document.createElement('div');
-    tile.className = 'kpi-tile-card';
+    tile.className = `kpi-tile-card ${k.color || 'blue'}`;
     tile.innerHTML = `
-      <div class="kpi-icon">${k.icon || '📌'}</div>
-      <div class="kpi-body">
-        <span class="kpi-label">${k.label}</span>
-        <strong class="kpi-value">${k.value}</strong>
-        ${k.change ? `<span class="kpi-change ${k.change.startsWith('+') ? 'up' : 'down'}">${k.change}</span>` : ''}
+      <div class="kpi-tile-header">
+        <span class="kpi-tile-title">${k.title || k.label || ''}</span>
+        <span class="kpi-tile-icon">${k.icon || '📌'}</span>
       </div>
+      <div class="kpi-tile-val">${k.value || ''}</div>
+      <div class="kpi-tile-sub">${k.sub || k.change || ''}</div>
     `;
     container.appendChild(tile);
   });
@@ -637,33 +645,45 @@ function setupDashboardEvents() {
 }
 
 /* ── 7. STATS & AI (Qwen2.5) & EXPORT ── */
-async function fetchStats() {
-  if (!axisConfig.x && axisConfig.y.length === 0) return;
-  const statsContainer = document.getElementById('bentoStatsGrid');
-  if (!statsContainer) return;
+async function fetchStats(cols = null) {
+  if (!cols || !cols.length) {
+    cols = axisConfig.y.filter(c => numericColumns.includes(c));
+    if (!cols.length) cols = numericColumns.slice(0, 6);
+  }
+  if (!cols.length && !axisConfig.x) return;
 
-  statsContainer.innerHTML = '<div class="spinner" style="grid-column: 1 / -1; margin: 30px auto;"></div>';
+  const statsContainer = document.getElementById('statsGrid') || document.getElementById('bentoStatsGrid');
+  if (statsContainer) {
+    statsContainer.innerHTML = '<div class="spinner" style="grid-column: 1 / -1; margin: 30px auto;"></div>';
+  }
 
   try {
     const res = await fetch('/get_stats', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
+        columns: cols,
+        y: cols,
+        y_cols: cols,
         x: axisConfig.x,
-        y: axisConfig.y,
+        x_col: axisConfig.x,
         filters: activeFilters
       })
     });
     const data = await res.json();
     if (res.ok) {
-      currentStats = data;
-      window.currentStats = data;
-      statsContainer.innerHTML = renderStatsCards(data);
-    } else {
+      currentStats = data.stats;
+      window.currentStats = data.stats;
+      if (statsContainer) {
+        statsContainer.innerHTML = renderStatsCards(data);
+      }
+    } else if (statsContainer) {
       statsContainer.innerHTML = `<div style="grid-column: 1 / -1; color: var(--red); padding: 20px;">İstatistik alınamadı: ${data.error}</div>`;
     }
   } catch (e) {
-    statsContainer.innerHTML = `<div style="grid-column: 1 / -1; color: var(--red); padding: 20px;">Hata: ${e.message}</div>`;
+    if (statsContainer) {
+      statsContainer.innerHTML = `<div style="grid-column: 1 / -1; color: var(--red); padding: 20px;">Hata: ${e.message}</div>`;
+    }
   }
 }
 
@@ -1217,31 +1237,55 @@ function initChartManagerListeners() {
     ro.observe(chartAreaContainerEl);
   }
 
-  // Step 2 draggable resizer
-  const resizer = document.getElementById('step2Resizer');
-  const leftPanel = document.getElementById('step2LeftPanel');
-  if (resizer && leftPanel) {
-    let isResizing = false;
-    resizer.addEventListener('mousedown', (e) => {
-      isResizing = true;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-    window.addEventListener('mousemove', (e) => {
-      if (!isResizing) return;
-      const newWidth = e.clientX;
-      if (newWidth > 200 && newWidth < 600) {
-        leftPanel.style.width = `${newWidth}px`;
-      }
-    });
-    window.addEventListener('mouseup', () => {
-      if (isResizing) {
-        isResizing = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      }
-    });
-  }
+  // Refresh stats button
+  document.getElementById('refreshStatsBtn')?.addEventListener('click', () => {
+    let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
+    if (!statCols.length) statCols = numericColumns.slice(0, 6);
+    fetchStats(statCols);
+  });
+
+  // AI Interpretation Generator
+  document.getElementById('btnGenerateInsight')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnGenerateInsight');
+    const container = document.getElementById('aiResponseContainer');
+    const content = document.getElementById('aiResponseContent');
+    if (!btn || !container || !content) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '🔄 AI Yorumluyor...';
+    container.classList.add('hidden');
+
+    try {
+      const res = await fetch('/generate_insight', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          stats: currentStats,
+          chart_type: document.getElementById('currentChartTypeName')?.textContent || 'Grafik',
+          x_col: axisConfig.x,
+          y_cols: axisConfig.y
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI yorumu alınamadı');
+
+      let text = data.insight || '';
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/\n\*/g, '<br/>•');
+      text = text.replace(/\n/g, '<br/>');
+
+      currentAiInsight = text;
+      window.currentAiInsight = text;
+      content.innerHTML = text;
+      container.classList.remove('hidden');
+    } catch(err) {
+      content.innerHTML = `<div style="color:var(--red);">${err.message}</div>`;
+      container.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Veriyi Yorumla';
+    }
+  });
 }
 
 if (document.readyState === 'loading') {

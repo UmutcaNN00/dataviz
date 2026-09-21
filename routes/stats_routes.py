@@ -28,14 +28,20 @@ def get_stats():
         return jsonify({'error': 'Veri yok'}), 400
 
     data = request.get_json(silent=True) or {}
-    cols = data.get('columns', [])
+    cols = data.get('columns') or data.get('y_cols') or data.get('y') or []
+    if isinstance(cols, str):
+        cols = [cols] if cols else []
     filters = data.get('filters', [])
-    x_col = data.get('x_col')
+    x_col = data.get('x_col') or data.get('x')
     corr_method = data.get('corr_method', 'pearson')
     reg_model = data.get('reg_model', 'linear')
 
     active_df = apply_filters(global_df, filters)
     active_df = active_df.replace([np.inf, -np.inf], np.nan)
+    if not cols:
+        num_cols = active_df.select_dtypes(include=['number']).columns.tolist()
+        cols = num_cols[:6]
+
     if not cols or active_df.empty:
         return jsonify({'stats': {}, 'advanced': {}, 'total_active_rows': len(active_df)})
 
@@ -60,6 +66,7 @@ def get_stats():
 
 
 @stats_bp.route('/get_kpi_summary', methods=['POST'])
+@stats_bp.route('/get_kpis', methods=['POST'])
 def get_kpi_summary():
     """Generates high-level KPI tiles for the active filtered dataset."""
     global_df = get_df(1)

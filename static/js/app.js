@@ -29,7 +29,7 @@ function proceedToStep2() {
 
 async function goToStep3(chartId, chartName) {
   currentPlotType = window.currentPlotType = chartId;
-  const titleEl = document.getElementById('activeChartTitle');
+  const titleEl = document.getElementById('currentChartTypeName') || document.getElementById('activeChartTitle');
   if (titleEl && chartName) titleEl.textContent = chartName;
   showScreen(3);
   if (typeof refreshActiveChart === 'function') await refreshActiveChart();
