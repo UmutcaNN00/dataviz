@@ -372,7 +372,16 @@ async function refreshActiveChart() {
   const chartArea = document.getElementById('chartArea');
   if (!chartArea) return;
   
-  chartArea.innerHTML = '<div class="spinner" style="margin: 40px auto;"></div>';
+  // Clean any old spinner inside chartArea
+  chartArea.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+
+  // Show removable overlay loader
+  const container = document.getElementById('chartAreaContainer');
+  let loader = document.getElementById('megaChartLoader');
+  if (!loader && container) {
+    container.insertAdjacentHTML('beforeend', '<div id="megaChartLoader" class="chart-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:15; pointer-events:none;"><div class="spinner"></div><p style="margin-top:8px; font-size:0.85rem; color:var(--muted);">Grafik Çiziliyor...</p></div>');
+  }
+
   const targetType = currentPlotType;
   const is3D = ['scatter3d', 'line3d', 'surface'].includes(targetType);
   const aggVal = document.getElementById('s2AggFunc')?.value || 'sum';
@@ -404,11 +413,18 @@ async function refreshActiveChart() {
       await window.drawMegaPlotly('chartArea', data, targetType, false);
     }
     
+    // Purge loader completely
+    const l = document.getElementById('megaChartLoader');
+    if (l) l.remove();
+    chartArea.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+
     fetchKpis();
     let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
     if (!statCols.length) statCols = numericColumns.slice(0, 6);
     fetchStats(statCols);
   } catch(err) {
+    const l = document.getElementById('megaChartLoader');
+    if (l) l.remove();
     chartArea.innerHTML = `<div style="color:var(--red); padding:40px; text-align:center;">❌ Hata:<br>${err.message}</div>`;
   }
 }

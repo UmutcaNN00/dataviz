@@ -79,6 +79,13 @@ function buildLayout(bg, sGrid, sLeg, isMini = false) {
 }
 
 async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
+  const targetEl = document.getElementById(targetElementId);
+  if (targetEl) {
+    targetEl.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+  }
+  const preLoader = document.getElementById('megaChartLoader');
+  if (preLoader) preLoader.remove();
+
   const mainColor = document.getElementById('chartColor')?.value || '#a78bfa';
   const bg = document.getElementById('chartBgColor')?.value || '#070711';
   const sGrid = document.getElementById('showGrid')?.checked ?? true;
@@ -503,9 +510,23 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
       }
     }
 
-    Plotly.newPlot(targetElementId, traces, layout, { responsive: true, displayModeBar: !isMini, displaylogo: false });
+    if (targetEl) {
+      targetEl.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+    }
+    const midLoader = document.getElementById('megaChartLoader');
+    if (midLoader) midLoader.remove();
+
+    await Plotly.newPlot(targetElementId, traces, layout, { responsive: true, displayModeBar: !isMini, displaylogo: false });
+
+    const postLoader = document.getElementById('megaChartLoader');
+    if (postLoader) postLoader.remove();
+    if (targetEl) {
+      targetEl.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+    }
 
   } catch(err) {
+    const postLoader = document.getElementById('megaChartLoader');
+    if (postLoader) postLoader.remove();
     const el = document.getElementById(targetElementId);
     if (el) el.innerHTML = `<div style="color:var(--red); padding:20px; font-size:0.85rem;">❌ Çizim Hatası: ${err.message}</div>`;
   }
