@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataViz Pro – Yeni Nesil Veri Analizi ve İş Zekası Platformu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+  <style>
+    /* UI/UX Master CSS Overrides */
+    body { background-color: #020617; background-image: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 80%); color: #f8fafc; }
+    .hero-glow { filter: blur(100px); opacity: 0.6; }
+    .acad-interactive-card, .faq-card, .feature-card {
+      background: rgba(15, 23, 42, 0.6) !important;
+      backdrop-filter: blur(24px) saturate(150%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important;
+    }
+    .hero-title .gradient-text { background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
+    .feature-card { padding: 40px; border-radius: 20px; transition: transform 0.3s; }
+    .feature-card:hover { transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.4) !important; }
+    .f-icon { font-size: 3rem; margin-bottom: 20px; }
+    .f-title { font-size: 1.5rem; font-family: 'Playfair Display', serif; color: #f8fafc; margin-bottom: 15px; }
+    .f-desc { color: #94a3b8; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">⬡</span> DataViz <em>Pro</em>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Yeni Özellikler</a>
+        <a href="#engine">Polars Motoru</a>
+        <a href="#charts">50+ Grafik</a>
+      </div>
+      <div class="nav-actions">
+        <a href="/analysis" class="nav-cta">Analiz Stüdyosuna Git →</a>
+      </div>
+    </div>
+  </nav>
+
+  
+<!-- HERO SECTION -->
+  <section class="hero" id="hero" style="display: flex; align-items: center; justify-content: space-between; gap: 50px; padding: 150px 5%; max-width: 1400px; margin: 0 auto; position: relative;">
+    <div class="hero-glow glow-1"></div>
+    <div class="hero-glow glow-2"></div>
+
+    <div class="hero-content" style="flex: 1; text-align: left; max-width: 600px;">
+      <div class="badge reveal-up">
+        <span class="badge-dot"></span>
+        İnteraktif Stüdyo & Minimalist Yaklaşım
+      </div>
+
+      <h1 class="hero-title reveal-up" style="--delay:0.1s; font-size: 4rem; line-height: 1.1;">
+        Excel'i Yükle.<br>
+        <span class="gradient-text">İçgörüyü Al.</span>
+      </h1>
+
+      <p class="hero-sub reveal-up" style="--delay:0.2s; font-size: 1.1rem; color: #94a3b8;">
+        Karmaşık panellere veda edin. Yan taraftaki mini stüdyoyu deneyin: "Satış" sütununu tutup sağdaki alana sürükleyerek anında grafik çizin. Kullanım kolaylığında sınır tanımıyoruz.
+      </p>
+
+      <div class="hero-actions reveal-up" style="--delay:0.3s">
+        <a href="/analysis" class="btn-hero-primary" style="background: linear-gradient(135deg, #38bdf8, #2563eb); border:none;">
+          Tam Ekranda Keşfet
+        </a>
+      </div>
+    </div>
+    
+    <div class="hero-right-visual" style="flex: 1; background: rgba(15,23,42,0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.5); display:flex; gap:20px; height:450px;">
+       <div style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px;">
+         <h4 style="color:#94a3b8; font-size:0.8rem; text-transform:uppercase; margin-bottom:15px;">Veri Havuzu</h4>
+         <div id="dragPill" style="background: rgba(56,189,248,0.1); border: 1px solid #38bdf8; color: #38bdf8; padding: 10px 15px; border-radius: 50px; font-weight: bold; cursor: grab; width: max-content; margin-bottom: 15px;" draggable="true">
+           # Satış_Tutarı
+         </div>
+         <div style="background: rgba(167,139,250,0.1); border: 1px solid #a78bfa; color: #a78bfa; padding: 10px 15px; border-radius: 50px; font-weight: bold; cursor: grab; width: max-content;">
+           T Kategori
+         </div>
+       </div>
+       <div style="flex: 2; display: flex; flex-direction: column; gap: 20px;">
+         <div id="dropZone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; height: 100px; display: flex; align-items:center; justify-content:center; color: #94a3b8;">
+            Y Ekseni (Buraya Bırak)
+         </div>
+         <div id="chartRender" style="flex: 1; background: rgba(0,0,0,0.2); border-radius: 12px; position:relative; overflow:hidden;">
+            <div id="fakeBar1" style="position:absolute; bottom:0; left:10%; width:20%; height:0; background:#38bdf8; border-radius: 4px 4px 0 0; transition: height 1s;"></div>
+            <div id="fakeBar2" style="position:absolute; bottom:0; left:40%; width:20%; height:0; background:#38bdf8; border-radius: 4px 4px 0 0; transition: height 1s 0.2s;"></div>
+            <div id="fakeBar3" style="position:absolute; bottom:0; left:70%; width:20%; height:0; background:#38bdf8; border-radius: 4px 4px 0 0; transition: height 1s 0.4s;"></div>
+         </div>
+       </div>
+    </div>
+  </section>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const pill = document.getElementById('dragPill');
+      const zone = document.getElementById('dropZone');
+      pill.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', 'satis'); });
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#38bdf8'; });
+      zone.addEventListener('dragleave', (e) => { zone.style.borderColor = 'rgba(255,255,255,0.2)'; });
+      zone.addEventListener('drop', (e) => {
+         e.preventDefault();
+         zone.innerHTML = '';
+         zone.appendChild(pill);
+         zone.style.borderColor = 'rgba(255,255,255,0.2)';
+         setTimeout(() => {
+           document.getElementById('fakeBar1').style.height = '60%';
+           document.getElementById('fakeBar2').style.height = '90%';
+           document.getElementById('fakeBar3').style.height = '40%';
+         }, 100);
+      });
+    });
+  </script>
+<!-- YENİ ÖZELLİKLER (FEATURES) SECTION -->
+  <section id="features" style="padding: 100px 5%; max-width: 1400px; margin: 0 auto;">
+    <div class="section-header" style="text-align: center; margin-bottom: 60px;">
+      <h2 class="section-title" style="font-size: 3rem;">Projeyi Baştan Yazan Dev Güncellemeler.</h2>
+      <p style="color: #94a3b8; font-size: 1.1rem; max-width: 600px; margin: 20px auto;">Sistemin mimarisini ve arayüzünü tamamen yeniledik. İşte DataViz Pro'yu eşsiz kılan yeni nesil yetenekler.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="f-icon">⚡</div>
+        <h3 class="f-title">Polars ile Işık Hızında Motor</h3>
+        <p class="f-desc">Pandas'ın darboğazlarını geride bırakın! Rust temelli Polars motoru ile devasa (1 Milyon+ satırlık) veri setleri saniyeler içinde belleğe yüklenir, filtrelenir ve işlenir. %80'e varan daha az RAM tüketimi.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="f-icon">🩺</div>
+        <h3 class="f-title">Akıllı Veri Sağlığı Onarıcı</h3>
+        <p class="f-desc">Sayısal alanlara karışmış <code>₺</code>, <code>Yok</code> veya <code>N/A</code> gibi sözel hataları otomatik tespit eder. "Tümünü Akıllı Onar" tekniğiyle veri kaybı yaşamadan sütunlarınızı saf sayılara çevirir.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="f-icon">🪄</div>
+        <h3 class="f-title">Advanced Formül Sihirbazı</h3>
+        <p class="f-desc">Kod yazmadan yepyeni metrikler oluşturun. Mevcut sütunları matematiksel operatörlerle (Toplama, Çıkarma, Çarpma, Bölme) harmanlayıp anında <strong>"KDV Dahil Satış"</strong> gibi yeni sütunlar türetin.</p>
+      </div>
+
+      
+
+      <div class="feature-card">
+        <div class="f-icon">📊</div>
+        <h3 class="f-title">50+ Plotly.js Grafik Motoru</h3>
+        <p class="f-desc">Finansal, bilimsel, 3D ve istatistiksel tam 50 farklı dinamik grafik. Verinizi X (Metin) ve Y (Sayısal) kutularına sürükleyip bırakın, sistem size en uygun grafik türünü parlak neonla önersin.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="f-icon">🔗</div>
+        <h3 class="f-title">Dosya Birleştirme (Join)</h3>
+        <p class="f-desc">İkinci bir Excel veya CSV dosyasını anında platforma dahil edin, iki tabloyu "LEFT JOIN" veya "INNER JOIN" mantığıyla ID veya İsim üzerinden saniyeler içinde birleştirip tek devasa bir havuza dökün.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 ADIMLI İŞ AKIŞI -->
+  <section style="padding: 100px 5%; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+    <h2 class="section-title" style="margin-bottom: 40px;">Hızlı ve Kusursuz İş Akışı</h2>
+    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+      <div class="feature-card" style="flex: 1; min-width: 250px; background: rgba(56, 189, 248, 0.05) !important;">
+        <h2 style="font-size: 4rem; color: #38bdf8; margin: 0; font-family: 'Playfair Display', serif;">1</h2>
+        <h3 style="color: white; margin: 10px 0;">Yükle & Onar</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Verinizi yükleyin. "Data Healer" hatalı verilerinizi tek tıkla onarsın.</p>
+      </div>
+      <div class="feature-card" style="flex: 1; min-width: 250px; background: rgba(167, 139, 250, 0.05) !important;">
+        <h2 style="font-size: 4rem; color: #a78bfa; margin: 0; font-family: 'Playfair Display', serif;">2</h2>
+        <h3 style="color: white; margin: 10px 0;">Formül & Join</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">2. dosyayı ekleyin, formül sihirbazıyla yeni hesaplanmış metrikler (sütunlar) üretin.</p>
+      </div>
+      <div class="feature-card" style="flex: 1; min-width: 250px; background: rgba(52, 211, 153, 0.05) !important;">
+        <h2 style="font-size: 4rem; color: #34d399; margin: 0; font-family: 'Playfair Display', serif;">3</h2>
+        <h3 style="color: white; margin: 10px 0;">Sürükle & Keşfet</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Sütunları sol/sağ (X/Y) havuzlara sürükleyin, 50 farklı grafik türüyle verinizi parlatın.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">⬡ DataViz Pro</div>
+        <p class="footer-desc">Yeni Nesil İş Zekası ve Veri Görselleştirme Platformu.</p>
+      </div>
+      <div class="footer-meta">
+        <p>Geliştirici: <strong>Umutcan</strong></p>
+        <p>2026</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

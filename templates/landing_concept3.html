@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataViz Pro – Yeni Nesil Veri Analizi ve İş Zekası Platformu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+  <style>
+    /* UI/UX Master CSS Overrides */
+    body { background-color: #020617; background-image: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 80%); color: #f8fafc; }
+    .hero-glow { filter: blur(100px); opacity: 0.6; }
+    .acad-interactive-card, .faq-card, .feature-card {
+      background: rgba(15, 23, 42, 0.6) !important;
+      backdrop-filter: blur(24px) saturate(150%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important;
+    }
+    .hero-title .gradient-text { background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
+    .feature-card { padding: 40px; border-radius: 20px; transition: transform 0.3s; }
+    .feature-card:hover { transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.4) !important; }
+    .f-icon { font-size: 3rem; margin-bottom: 20px; }
+    .f-title { font-size: 1.5rem; font-family: 'Playfair Display', serif; color: #f8fafc; margin-bottom: 15px; }
+    .f-desc { color: #94a3b8; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">⬡</span> DataViz <em>Pro</em>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Yeni Özellikler</a>
+        <a href="#engine">Polars Motoru</a>
+        <a href="#charts">50+ Grafik</a>
+      </div>
+      <div class="nav-actions">
+        <a href="/analysis" class="nav-cta">Analiz Stüdyosuna Git →</a>
+      </div>
+    </div>
+  </nav>
+
+  
+<!-- HERO SECTION -->
+  <section class="hero" id="hero" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 150px 5% 50px 5%; position: relative; overflow: hidden; height: 100vh;">
+    <div class="hero-glow glow-1" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 800px; opacity: 0.3;"></div>
+
+    <div class="hero-content" style="z-index: 10;">
+      <div class="badge reveal-up" style="margin: 0 auto 20px auto;">
+        <span class="badge-dot"></span>
+        Sinematik Hikaye & Veri Bulutu
+      </div>
+
+      <h1 class="hero-title reveal-up" style="--delay:0.1s; font-size: 5rem; line-height: 1.1;">
+        Verilerinizde Saklı Kalan<br>
+        <span class="gradient-text">Hikayeyi Uyandırın.</span>
+      </h1>
+      
+      <p style="color: #94a3b8; max-width: 600px; margin: 20px auto; font-size:1.2rem;">Karanlıkta parlayan 1 milyon veri noktasını kontrol edin.</p>
+
+      <div class="hero-actions reveal-up" style="--delay:0.3s" style="justify-content: center; margin-top: 40px;">
+        <a href="/analysis" class="btn-hero-primary" style="background: transparent; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56,189,248,0.4); border-radius: 50px;">
+          Sisteme Giriş Yap
+        </a>
+      </div>
+    </div>
+    
+    <canvas id="scatterCanvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; opacity: 0.8; pointer-events:none;"></canvas>
+  </section>
+  <script>
+    const canvas = document.getElementById('scatterCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const particles = [];
+    for(let i=0; i<300; i++){
+      particles.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: Math.random()*3 + 1,
+        vx: (Math.random()-0.5)*0.5,
+        vy: (Math.random()-0.5)*0.5,
+        color: Math.random() > 0.5 ? '#38bdf8' : '#ec4899'
+      });
+    }
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+<!-- YENİ ÖZELLİKLER (FEATURES) SECTION -->
+  <section id="features" style="padding: 100px 5%; max-width: 1400px; margin: 0 auto;">
+    <div class="section-header" style="text-align: center; margin-bottom: 60px;">
+      <h2 class="section-title" style="font-size: 3rem;">Projeyi Baştan Yazan Dev Güncellemeler.</h2>
+      <p style="color: #94a3b8; font-size: 1.1rem; max-width: 600px; margin: 20px auto;">Sistemin mimarisini ve arayüzünü tamamen yeniledik. İşte DataViz Pro'yu eşsiz kılan yeni nesil yetenekler.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="f-icon">⚡</div>
+        <h3 class="f-title">Polars ile Işık Hızında Motor</h3>
+        <p class="f-desc">Pandas'ın darboğazlarını geride bırakın! Rust temelli Polars motoru ile devasa (1 Milyon+ satırlık) veri setleri saniyeler içinde belleğe yüklenir, filtrelenir ve işlenir. %80'e varan daha az RAM tüketimi.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="f-icon">🩺</div>
+        <h3 class="f-title">Akıllı Veri Sağlığı Onarıcı</h3>
+        <p class="f-desc">Sayısal alanlara karışmış <code>₺</code>, <code>Yok</code> veya <code>N/A</code> gibi sözel hataları otomatik tespit eder. "Tümünü Akıllı Onar" tekniğiyle veri kaybı yaşamadan sütunlarınızı saf sayılara çevirir.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="f-icon">🪄</div>
+        <h3 class="f-title">Advanced Formül Sihirbazı</h3>
+        <p class="f-desc">Kod yazmadan yepyeni metrikler oluşturun. Mevcut sütunları matematiksel operatörlerle (Toplama, Çıkarma, Çarpma, Bölme) harmanlayıp anında <strong>"KDV Dahil Satış"</strong> gibi yeni sütunlar türetin.</p>
+      </div>
+
+      
+
+      <div class="feature-card">
+        <div class="f-icon">📊</div>
+        <h3 class="f-title">50+ Plotly.js Grafik Motoru</h3>
+        <p class="f-desc">Finansal, bilimsel, 3D ve istatistiksel tam 50 farklı dinamik grafik. Verinizi X (Metin) ve Y (Sayısal) kutularına sürükleyip bırakın, sistem size en uygun grafik türünü parlak neonla önersin.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="f-icon">🔗</div>
+        <h3 class="f-title">Dosya Birleştirme (Join)</h3>
+        <p class="f-desc">İkinci bir Excel veya CSV dosyasını anında platforma dahil edin, iki tabloyu "LEFT JOIN" veya "INNER JOIN" mantığıyla ID veya İsim üzerinden saniyeler içinde birleştirip tek devasa bir havuza dökün.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 ADIMLI İŞ AKIŞI -->
+  <section style="padding: 100px 5%; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+    <h2 class="section-title" style="margin-bottom: 40px;">Hızlı ve Kusursuz İş Akışı</h2>
+    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+      <div class="feature-card" style="flex: 1; min-width: 250px; background: rgba(56, 189, 248, 0.05) !important;">
+        <h2 style="font-size: 4rem; color: #38bdf8; margin: 0; font-family: 'Playfair Display', serif;">1</h2>
+        <h3 style="color: white; margin: 10px 0;">Yükle & Onar</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Verinizi yükleyin. "Data Healer" hatalı verilerinizi tek tıkla onarsın.</p>
+      </div>
+      <div class="feature-card" style="flex: 1; min-width: 250px; background: rgba(167, 139, 250, 0.05) !important;">
+        <h2 style="font-size: 4rem; color: #a78bfa; margin: 0; font-family: 'Playfair Display', serif;">2</h2>
+        <h3 style="color: white; margin: 10px 0;">Formül & Join</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">2. dosyayı ekleyin, formül sihirbazıyla yeni hesaplanmış metrikler (sütunlar) üretin.</p>
+      </div>
+      <div class="feature-card" style="flex: 1; min-width: 250px; background: rgba(52, 211, 153, 0.05) !important;">
+        <h2 style="font-size: 4rem; color: #34d399; margin: 0; font-family: 'Playfair Display', serif;">3</h2>
+        <h3 style="color: white; margin: 10px 0;">Sürükle & Keşfet</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Sütunları sol/sağ (X/Y) havuzlara sürükleyin, 50 farklı grafik türüyle verinizi parlatın.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">⬡ DataViz Pro</div>
+        <p class="footer-desc">Yeni Nesil İş Zekası ve Veri Görselleştirme Platformu.</p>
+      </div>
+      <div class="footer-meta">
+        <p>Geliştirici: <strong>Umutcan</strong></p>
+        <p>2026</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

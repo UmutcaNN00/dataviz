@@ -11,7 +11,18 @@ var currentPoolSearch = '';
 function initDragDropPool() {
   const pool = document.getElementById('colPool');
   if (!pool) return;
-  pool.innerHTML = '';
+  
+  // Create a grid layout for split view (X and Y)
+  pool.innerHTML = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%;">
+      <div id="poolLeftCat"></div>
+      <div id="poolRightNum"></div>
+    </div>
+  `;
+  
+  const poolLeft = document.getElementById('poolLeftCat');
+  const poolRight = document.getElementById('poolRightNum');
+
   axisConfig = { x: null, y: [] };
   window.axisConfig = axisConfig;
 
@@ -22,25 +33,14 @@ function initDragDropPool() {
   
   updatePoolCounts();
 
-  // Sütunları 3 net gruba ayır
-  const file1Cols = globalColumns.filter(c => !joinedColumns.includes(c) && !calculatedColumns.includes(c));
-  const joinedCols = globalColumns.filter(c => joinedColumns.includes(c));
-  const calcCols = globalColumns.filter(c => calculatedColumns.includes(c));
+  const catCols = globalColumns.filter(c => !numericColumns.includes(c));
+  const numCols = globalColumns.filter(c => numericColumns.includes(c));
 
-  // Grup 1: Ana Dosya Sütunları
-  renderPoolSection(pool, '📁 1. Dosya Sütunları', file1Cols, 'section_file1');
-
-  // Grup 2: 2. Dosyadan Birleştirilen Sütunlar (Varsa)
-  if (joinedCols.length > 0) {
-    renderPoolSection(pool, '🔗 2. Dosya Sütunları (Birleştirilen)', joinedCols, 'section_joined');
-  }
-
-  // Grup 3: Özel Formül Sütunları (Varsa)
-  if (calcCols.length > 0) {
-    renderPoolSection(pool, '🧮 Hesaplanmış Formül Sütunları', calcCols, 'section_calc');
-  }
-
-  applyPoolFilterAndSearch();
+  // Render Categorical (X) side
+  renderPoolSection(poolLeft, '🔤 Metin / Kategori (Genellikle X)', catCols, 'section_cat');
+  
+  // Render Numeric (Y) side
+  renderPoolSection(poolRight, '🔢 Sayısal Değer (Genellikle Y)', numCols, 'section_num');
 }
 
 function renderPoolSection(parentContainer, titleText, cols, sectionId) {

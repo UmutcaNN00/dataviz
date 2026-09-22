@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DataViz Pro V6 — Kurumsal BI, İstatistik & Veri Birleştirme Platformu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <!-- PDF Çıktısı İçin html2pdf -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}?v=701">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}?v=20260922_master_ui5">
 </head>
 <body>
 
 <!-- ══════════ DATA PREP (VERİ SAĞLIĞI, TİP ONARIMI & NAN TEMİZLEME) MODALI ══════════ -->
 <div id="dataPrepModal" class="modal-overlay hidden">
-  <div class="modal-content filter-modal-content" style="max-width: 660px; max-height: 88vh; display: flex; flex-direction: column;">
+  <div class="modal-content filter-modal-content" style="max-width: 900px; max-height: 88vh; display: flex; flex-direction: column;">
     <div class="modal-header-row" style="margin-bottom: 12px;">
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:1.5rem;">🩺</span>
@@ -152,54 +152,60 @@
 
 <!-- ══════════ FORMÜL / HESAPLANMIŞ SÜTUN MODALI ══════════ -->
 <div id="calcColModal" class="modal-overlay hidden">
-  <div class="modal-content filter-modal-content">
-    <div class="modal-header-row">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.4rem;">🧮</span>
-        <h3>Formül & Yeni Sütun Üretici</h3>
+  <div class="modal-content premium-modal-content" style="max-width: 550px;">
+    <div class="modal-header-row premium-header">
+      <div class="modal-title-group">
+        <div class="modal-icon-glass">🧮</div>
+        <div>
+          <h3>Formül & Yeni Sütun Üretici</h3>
+          <p class="modal-subtitle">Mevcut sayısal sütunları kullanarak tek tıkla yeni bir veri sütunu türetin.</p>
+        </div>
       </div>
-      <button class="modal-close-btn" id="btnCloseCalcModal">×</button>
+      <button class="modal-close-btn" id="btnCloseCalcColModal">×</button>
     </div>
-    <p class="filter-hint">Mevcut sayısal sütunları kullanarak tek tıkla yeni bir veri sütunu türetin:</p>
     
-    <div class="form-group" style="margin-top:14px;">
-      <label>Üretilecek Yeni Sütun Adı</label>
-      <input type="text" id="calcNewColName" placeholder="Örn: Net Kar, KDV Dahil Tutar, Kar Marjı">
+    <div class="premium-form-body">
+      <div class="form-group glass-input-group">
+        <label>Üretilecek Yeni Sütun Adı</label>
+        <input type="text" id="calcNewColName" class="glass-input" placeholder="Örn: Net Kar, KDV Dahil Tutar, Kar Marjı">
+      </div>
+
+      <div class="calc-builder-box">
+        <div class="form-group">
+          <label>1. Sayısal Sütun</label>
+          <select id="calcCol1Select" class="glass-select"></select>
+        </div>
+
+        <div class="calc-operator-selector">
+          <label style="text-align: center; width: 100%;">İşlem</label>
+          <div class="calc-op-btns glass-ops">
+            <button type="button" class="calc-op-btn op-btn glass-op active" data-op="+">+</button>
+            <button type="button" class="calc-op-btn op-btn glass-op" data-op="-">-</button>
+            <button type="button" class="calc-op-btn op-btn glass-op" data-op="*">×</button>
+            <button type="button" class="calc-op-btn op-btn glass-op" data-op="/">÷</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>2. Değişken (Sütun veya Sayı)</label>
+          <div class="calc-variable-inputs">
+            <div id="calcCol2Box" style="flex:1; width:100%;"><select id="calcCol2Select" class="glass-select" style="width:100%;"></select></div>
+            <div id="calcScalarBox" class="hidden" style="flex:1; width:100%;"><input type="number" id="calcScalarInput" class="glass-input" placeholder="Sabit (Örn: 1.20)" step="any" style="width:100%;"></div>
+          </div>
+          <div class="calc-checkbox-wrap">
+            <label class="glass-checkbox-label">
+              <input type="checkbox" id="calcUseScalar"> 
+              <span class="custom-checkbox"></span>
+              Sabit bir katsayı kullan
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="calc-builder-row">
-      <div class="form-group" style="flex:1;">
-        <label>1. Sayısal Sütun</label>
-        <select id="calcCol1Select"></select>
-      </div>
-
-      <div class="calc-operator-selector">
-        <label>İşlem</label>
-        <div class="calc-op-btns">
-          <button type="button" class="op-btn active" data-op="+">+</button>
-          <button type="button" class="op-btn" data-op="-">-</button>
-          <button type="button" class="op-btn" data-op="*">×</button>
-          <button type="button" class="op-btn" data-op="/">÷</button>
-        </div>
-      </div>
-
-      <div class="form-group" style="flex:1;">
-        <label>2. Değişken (Sütun veya Sayı)</label>
-        <div style="display:flex; gap:6px;">
-          <select id="calcCol2Select" style="flex:1;"></select>
-          <input type="number" id="calcScalarInput" placeholder="Sabit sayı" style="flex:1;" class="hidden" step="any">
-        </div>
-        <div style="margin-top:6px;">
-          <label style="font-size:0.75rem; color:var(--muted); cursor:pointer;">
-            <input type="checkbox" id="calcUseScalar"> Sabit bir katsayı kullan (Örn: 1.20)
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:24px; flex-direction:row;">
-      <button class="btn-ghost" id="btnCancelCalc" style="flex:1;">İptal</button>
-      <button class="btn-primary" id="btnExecuteCalc" style="flex:1;">✨ Sütunu Üret</button>
+    <div class="modal-actions premium-modal-actions">
+      <button class="btn-ghost-glass" id="btnCancelCalcCol">İptal</button>
+      <button class="btn-primary-glass" id="btnApplyCalcCol">✨ Sütunu Üret</button>
     </div>
   </div>
 </div>
@@ -263,96 +269,52 @@
 <!-- ══════════ AŞAMA 1: DOSYA YÜKLEME ══════════ -->
 <!-- ══════════ AŞAMA 1: DOSYA YÜKLEME (PREMIUM) ══════════ -->
 <div id="step1-upload" class="wizard-screen active">
-  <div class="step1-bg-glow glow-1"></div>
-  <div class="step1-bg-glow glow-2"></div>
+  <div class="hero-glow glow-1"></div>
+  <div class="hero-glow glow-2"></div>
 
-  <div class="s1-content premium-upload-container">
-    <div class="s1-header">
-      <a href="/" class="s1-logo" style="text-decoration:none;">⬡ DataViz</a>
-      <h1 class="gradient-title">Zekaya Açılan Kapı.</h1>
-      <p>Excel, CSV veya Parquet dosyanızı yükleyin, Polars destekli yerel motor saniyeler içinde analiz edip interaktif panolara dönüştürsün.</p>
+  <div class="s1-container">
+    <div class="s1-header-text">
+      <a href="/" class="s1-logo"><span class="logo-icon">⬡</span> DataViz <em>Research</em></a>
+      <h1 class="s1-title">Verinizi Bilgiye Dönüştürün.</h1>
+      <p class="s1-subtitle">Excel, CSV veya Parquet dosyanızı yükleyin; SciPy motoru saniyeler içinde istatistiksel analizlerinizi ve interaktif panolarınızı hazırlasın.</p>
     </div>
 
-    <div class="dropzone-glass-card">
-      <div id="mainUploadStatus" class="status-msg hidden" style="margin-bottom: 14px; font-size: 1rem; z-index: 60; display: none;"></div>
+    <div class="upload-glass-panel">
+      <!-- Status Box (Hidden by default) -->
+      <div id="mainUploadStatus" class="status-msg hidden"></div>
       
       <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv,.parquet" style="display: none;">
 
-      <div class="giant-drop-zone" id="mainDropZone" tabindex="0" role="region" aria-label="Dosya Yükleme Alanı" style="display: block; cursor: default; position: relative;">
-        <div class="dz-icon-wrap" style="pointer-events: none;">
-           <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-             <polyline points="17 8 12 3 7 8"/>
-             <line x1="12" y1="3" x2="12" y2="15"/>
-           </svg>
-           <div class="dz-icon-ring"></div>
+      <div class="academic-dropzone" id="mainDropZone" tabindex="0">
+        <div class="dz-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
         
-        <h3 style="pointer-events: none; margin-bottom: 6px;">Dosyanızı Buraya Sürükleyin</h3>
-        <p style="pointer-events: none; margin-bottom: 16px;">veya <span class="gdz-link" style="color:var(--cyan); text-decoration:underline;">bilgisayarınızdan seçin</span></p>
+        <h3>Dosyanızı Sürükleyip Bırakın</h3>
+        <p class="dz-text">veya bilgisayarınızdan seçmek için <span class="dz-browse-text">tıklayın</span></p>
         
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 18px;">
-          <button type="button" class="btn-browse-file" id="btnBrowseFile" style="cursor: pointer; background: linear-gradient(135deg, var(--purple), var(--blue)); color: white; border: none; padding: 12px 28px; border-radius: 12px; font-weight: 700; font-size: 1rem; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(99,102,241,0.4);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Bilgisayardan Dosya Seç
-          </button>
-          
-          <button type="button" class="btn-sample-data" id="btnLoadSampleData" style="cursor: pointer; background: rgba(56,189,248,0.15); color: var(--cyan); border: 1px solid rgba(56,189,248,0.4); padding: 9px 20px; border-radius: 10px; font-weight: 600; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 8px;">
-            🧪 Veya Hazır Örnek Veri ile Hemen Başla
-          </button>
+        <div class="dz-format-tags">
+          <span class="fmt-tag">.XLSX</span>
+          <span class="fmt-tag">.CSV</span>
+          <span class="fmt-tag highlight">.PARQUET (Önerilen)</span>
         </div>
-
-        <div class="dz-formats" style="pointer-events: none;">
-          <span class="fmt-badge" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); color: #34d399; font-weight: 700;">⚡ .PARQUET</span>
-          <span class="fmt-badge">.CSV</span>
-          <span class="fmt-badge">.XLSX</span>
-          <span class="fmt-badge">.XLS</span>
-        </div>
+      </div>
+      
+      <div class="upload-actions">
+        <button type="button" class="btn-hero-primary" id="btnBrowseFile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Dosya Seçin
+        </button>
+        <button type="button" class="btn-hero-ghost" id="btnLoadSampleData">
+          🧪 Örnek Veri ile Başla
+        </button>
       </div>
     </div>
 
-    <div class="upload-security-badges">
-       <span style="color: #38bdf8; font-weight: 600;">
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 
-         Polars Big Data Core
-       </span>
-       <span>
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 
-         %100 Yerel İşlem
-       </span>
-       <span>
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 
-         Bulutsuz Gizlilik
-       </span>
-       <span>
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 
-         500 MB &amp; Çoklu Milyon Satır
-       </span>
-    </div>
-
-    <!-- ── ADIM 1: YETENEK ÖNİZLEME STRİPİ ── -->
-    <div class="s1-features-strip">
-      <div class="s1-feat-card">
-        <span class="s1-feat-icon">🩺</span>
-        <div class="s1-feat-text">
-          <strong>Otomatik Veri Sağlığı &amp; NaN Temizleme</strong>
-          <p>Eksik değerleri anında tespit edip ortalama/sıfır ile doldurun veya tek tıkla silin.</p>
-        </div>
-      </div>
-      <div class="s1-feat-card">
-        <span class="s1-feat-icon">🔗</span>
-        <div class="s1-feat-text">
-          <strong>Çoklu Veri Seti Birleştirme (Join)</strong>
-          <p>2. bir Excel/CSV dosyası yükleyip ortak sütun üzerinden tabloları bağlayın.</p>
-        </div>
-      </div>
-      <div class="s1-feat-card">
-        <span class="s1-feat-icon">🧮</span>
-        <div class="s1-feat-text">
-          <strong>Hesaplanmış Sütun &amp; Formül Motoru</strong>
-          <p>Sütunlar arasında toplama, çıkarma ve oran formülleriyle yeni değişkenler üretin.</p>
-        </div>
-      </div>
+    <div class="security-footer">
+      <div class="sec-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> %100 Yerel İşlem (Bulutsuz)</div>
+      <div class="sec-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Veriler Asla Dışarı Çıkmaz</div>
+      <div class="sec-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> SciPy 1.11+ Destekli</div>
     </div>
   </div>
 </div>
@@ -422,15 +384,7 @@
             <h3>1. Eksenleri Sürükle Bırak Yapın</h3>
             <p>Aşağıdaki havuzdan sütunları tutup sağdaki kutulara sürükleyin.</p>
           </div>
-          <!-- Sihirli Şablonlar -->
-          <div class="magic-templates-dropdown">
-            <button class="magic-btn-main">✨ Şablon Seç</button>
-            <div class="magic-menu">
-              <button class="magic-btn" data-tpl="sales">💰 Satış Raporu</button>
-              <button class="magic-btn" data-tpl="hr">👥 İK Analizi</button>
-              <button class="magic-btn" data-tpl="finance">📉 Finans Trendi</button>
-            </div>
-          </div>
+
         </div>
       </div>
       
@@ -804,7 +758,7 @@
   </div>
 </div>
 
-</body>
+<div id="toastContainer" class="toast-container"></div>`n</body>
 </html>
 
 

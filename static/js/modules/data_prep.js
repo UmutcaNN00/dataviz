@@ -98,36 +98,41 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
 
       if (cardsList) {
         cardsList.innerHTML = anomalies.map(anom => `
-          <div class="dp-anomaly-card" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <strong style="font-size:1.05rem; color:#fff;">${anom.column}</strong>
-                <span style="font-size:0.72rem; background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); padding:2px 8px; border-radius:50px; font-weight:700;">
-                  ${anom.invalid_count} hücre (%${anom.invalid_pct}) sözel
-                </span>
+          <div class="dp-anomaly-card premium-glass-card">
+            <div class="dp-anomaly-card-header">
+              <div class="dp-anomaly-title-group">
+                <div class="dp-anomaly-icon">⚠️</div>
+                <div class="dp-anomaly-info">
+                  <strong class="dp-col-name">${anom.column}</strong>
+                  <span class="dp-col-stats">${anom.numeric_count} geçerli sayı / ${anom.total_rows} satır</span>
+                </div>
               </div>
-              <span style="font-size:0.78rem; color:var(--muted);">${anom.numeric_count} geçerli sayı / ${anom.total_rows} satır</span>
+              <div class="dp-anomaly-badge">
+                ${anom.invalid_count} hücre (%${anom.invalid_pct}) sözel
+              </div>
             </div>
             
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <span style="font-size:0.75rem; color:var(--muted);">Tespit edilen sözel değerler:</span>
-              ${(anom.sample_invalid_values || []).map(val => `<span style="font-family:monospace; font-size:0.75rem; background:rgba(0,0,0,0.3); border:1px dashed rgba(255,255,255,0.2); padding:2px 7px; border-radius:4px; color:#fbbf24;">${val}</span>`).join(' ')}
+            <div class="dp-anomaly-samples">
+              <span class="dp-samples-label">Tespit Edilen Sözel Değerler:</span>
+              <div class="dp-samples-list">
+                ${(anom.sample_invalid_values || []).map(val => `<span class="dp-sample-tag">${val}</span>`).join('')}
+              </div>
             </div>
 
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
-              <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="smart_heal" style="background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#34d399; font-size:0.78rem; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer;" title="Sayıları ayıklar, para/yüzde temizler, kalan sözelleri ortalamaya eşitler">
+            <div class="dp-anomaly-actions-row">
+              <button type="button" class="btn-heal-col btn-glass-primary" data-col="${anom.column}" data-mode="smart_heal" title="Sayıları ayıklar, para/yüzde temizler, kalan sözelleri ortalamaya eşitler">
                 🪄 Akıllı Onar (Sayı Ayıkla)
               </button>
-              <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="fill_zero" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--text); font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sözel değerleri 0 ile ikame eder">
-                0️⃣ Sözelleri 0 Yap
+              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${anom.column}" data-mode="fill_zero" title="Sözel değerleri 0 ile ikame eder">
+                0️⃣ 0 Yap
               </button>
-              <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="fill_mean" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--text); font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sözel değerleri sütun ortalaması ile ikame eder">
+              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${anom.column}" data-mode="fill_mean" title="Sözel değerleri sütun ortalaması ile ikame eder">
                 📈 Ortalamayla Doldur
               </button>
-              <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="coerce_nan" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--text); font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sözelleri boş (NaN) yapar, sütunu sayısal tipe geçirir">
+              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${anom.column}" data-mode="coerce_nan" title="Sözelleri boş (NaN) yapar, sütunu sayısal tipe geçirir">
                 🗑️ Boş (NaN) Yap
               </button>
-              <button type="button" class="btn-heal-col" data-col="${anom.column}" data-mode="drop_rows" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:0.78rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Bu sütunda sözel değer olan satırları tablodan çıkarır">
+              <button type="button" class="btn-heal-col btn-glass-danger" data-col="${anom.column}" data-mode="drop_rows" title="Bu sütunda sözel değer olan satırları tablodan çıkarır">
                 ❌ Satırları Sil
               </button>
             </div>

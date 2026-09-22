@@ -106,3 +106,15 @@ def load_sample():
     except Exception as e:
         logger.exception(f"Örnek veri yükleme hatası: {e}")
         return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/concept1', methods=['GET'])
+def concept1():
+    return render_template('landing_concept1.html')
+
+@main_bp.route('/concept2', methods=['GET'])
+def concept2():
+    return render_template('landing_concept2.html')
+
+@main_bp.route('/concept3', methods=['GET'])
+def concept3():
+    return render_template('landing_concept3.html')

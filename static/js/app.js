@@ -1,4 +1,4 @@
-/* ════════════════════════════════════════════════════════════
+﻿/* ════════════════════════════════════════════════════════════
    DATAVIZ PRO V6 — APPLICATION COORDINATOR (app.js)
    Screen Transitions, Upload Handlers, Navigation & Shortcuts
 ════════════════════════════════════════════════════════════ */
@@ -265,4 +265,153 @@ Object.assign(window, {
   loadSampleDataset: handleLoadSampleData,
   renderSheetTabs,
   switchSheet
+});
+
+window.showToast = function(message, type = 'info', title = '') {
+  const container = document.getElementById('toastContainer') || createToastContainer();
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  let icon = 'ℹ️';
+  if (type === 'success') icon = '✅';
+  if (type === 'error') icon = '❌';
+  if (type === 'warning') icon = '⚠️';
+  if (!title) {
+    if (type === 'success') title = 'Başarılı';
+    if (type === 'error') title = 'Hata';
+    if (type === 'warning') title = 'Uyarı';
+    if (type === 'info') title = 'Bilgi';
+  }
+  toast.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div><button class="toast-close">&times;</button>`;
+  container.appendChild(toast);
+  const closeBtn = toast.querySelector('.toast-close');
+  const removeToast = () => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); };
+  closeBtn.addEventListener('click', removeToast);
+  setTimeout(removeToast, 5000);
+};
+
+function createToastContainer() {
+  const container = document.createElement('div');
+  container.id = 'toastContainer';
+  container.className = 'toast-container';
+  document.body.appendChild(container);
+  return container;
+}
+
+window.alert = function(msg) {
+  if (!msg) return;
+  const msgStr = msg.toString().toLowerCase();
+  if (msgStr.includes('hata')) {
+    showToast(msg, 'error');
+  } else if (msgStr.includes('✓')) {
+    showToast(msg.toString().replace('✓ ', ''), 'success');
+  } else {
+    showToast(msg, 'info');
+  }
+};
+
+// ==========================================
+// RESIZER LOGIC
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  const resizer = document.getElementById('s2-resizer');
+  const leftPane = document.getElementById('s2-left-pane');
+  
+  if (resizer && leftPane) {
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      document.body.style.cursor = 'col-resize';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      
+      const container = leftPane.parentElement;
+      const containerRect = container.getBoundingClientRect();
+      let newWidth = e.clientX - containerRect.left;
+      
+      // Enforce min and max widths
+      if (newWidth < 300) newWidth = 300;
+      if (newWidth > containerRect.width - 400) newWidth = containerRect.width - 400;
+      
+      leftPane.style.width = `${newWidth}px`;
+      leftPane.style.flex = 'none';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = 'default';
+      }
+    });
+  }
+});
+
+// ==========================================
+// FIXING UNIMPLEMENTED BUTTONS
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Filter Modal
+  document.getElementById('btnSelectAllCat')?.addEventListener('click', () => {
+    document.querySelectorAll('#filterCatList input[type="checkbox"]').forEach(cb => cb.checked = true);
+  });
+  document.getElementById('btnClearAllCat')?.addEventListener('click', () => {
+    document.querySelectorAll('#filterCatList input[type="checkbox"]').forEach(cb => cb.checked = false);
+  });
+  document.getElementById('btnCancelFilter')?.addEventListener('click', () => {
+    document.getElementById('filterModal')?.classList.add('hidden');
+  });
+
+  // 2. Export Parquet
+  document.getElementById('btnQuickExportParquet')?.addEventListener('click', async () => {
+    try {
+      if (typeof showToast === 'function') showToast('Parquet dosyası hazırlanıyor...', 'info');
+      const filters = window.activeFilters ? Object.values(window.activeFilters) : [];
+      const response = await fetch('/export_data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: 'parquet', filters })
+      });
+      if (!response.ok) throw new Error('Dışa aktarma başarısız');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'dataviz_export.parquet';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      if (typeof showToast === 'function') showToast('Hata: ' + e.message, 'error');
+      else alert('Hata: ' + e.message);
+    }
+  });
+
+  // 3. Step 3 Filter Button
+  document.getElementById('btnOpenFilterModalS3')?.addEventListener('click', () => {
+    document.getElementById('filterModal')?.classList.remove('hidden');
+  });
+
+  // 4. Download Chart Buttons (PNG & PDF)
+  document.getElementById('downloadPngBtn')?.addEventListener('click', () => {
+    const mainChart = document.getElementById('mainChartContainer');
+    if (mainChart && mainChart.data) {
+      Plotly.downloadImage(mainChart, {format: 'png', filename: 'dataviz_grafik'});
+    } else {
+      if (typeof showToast === 'function') showToast('Lütfen önce bir grafik çizin', 'error');
+    }
+  });
+  
+  document.getElementById('downloadPdfBtn')?.addEventListener('click', () => {
+    const mainChart = document.getElementById('mainChartContainer');
+    if (mainChart && mainChart.data) {
+      if (typeof showToast === 'function') showToast('Grafik indiriliyor...', 'info');
+      Plotly.downloadImage(mainChart, {format: 'png', filename: 'dataviz_grafik'});
+    } else {
+      if (typeof showToast === 'function') showToast('Lütfen önce bir grafik çizin', 'error');
+    }
+  });
 });
