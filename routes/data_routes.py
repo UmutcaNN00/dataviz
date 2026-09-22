@@ -290,6 +290,7 @@ def join_datasets():
 
 
 @data_bp.route('/create_calculated_column', methods=['POST'])
+@data_bp.route('/add_calculated_column', methods=['POST'])
 def create_calculated_column():
     """Generates a calculated column based on arithmetic operations between columns/scalars."""
     global_df = get_df(1)
@@ -297,9 +298,9 @@ def create_calculated_column():
         return jsonify({'error': 'Veri yok'}), 400
 
     data = request.get_json(silent=True) or {}
-    new_col = data.get('new_column_name', '').strip()
+    new_col = (data.get('new_col_name') or data.get('new_column_name') or '').strip()
     col1 = data.get('col1')
-    op = data.get('operator')
+    op = data.get('op') or data.get('operator')
     col2 = data.get('col2')
     scalar = data.get('scalar')
 

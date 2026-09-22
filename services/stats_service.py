@@ -384,7 +384,7 @@ def generate_kpi_summary(active_df, total_original_rows=None):
                 'color': 'orange'
             })
 
-    return {'kpis': kpis, 'total_active_rows': len(active_df)}
+    return {'kpis': kpis, 'total_active_rows': len(active_df), 'total_rows': total_rows}
 
 
 def compute_pivot_data(active_df, rows, cols, values, agg_func='sum'):

@@ -87,13 +87,21 @@ def get_kpi_summary():
 
 @stats_bp.route('/generate_interpretation', methods=['POST'])
 @stats_bp.route('/generate_insight', methods=['POST'])
+@stats_bp.route('/get_ai_insight', methods=['POST'])
 def generate_interpretation():
     """Generates academic, APA-style statistical commentary and business insights."""
     data = request.get_json(silent=True) or {}
     stats = data.get('stats', {})
     chart = data.get('chart_type', 'Grafik')
-    x_col = data.get('x_col', 'Bilinmiyor')
-    y_cols = data.get('y_cols', [])
+    x_col = data.get('x_col') or data.get('x') or 'Bilinmiyor'
+    
+    y_raw = data.get('y_cols') if data.get('y_cols') is not None else data.get('y')
+    if isinstance(y_raw, list):
+        y_cols = y_raw
+    elif y_raw:
+        y_cols = [str(y_raw)]
+    else:
+        y_cols = []
 
     try:
         result = generate_academic_insight(stats, chart_type=chart, x_col=x_col, y_cols=y_cols)

@@ -67,7 +67,7 @@ def get_chart_data():
         'rug', 'strip', 'parcoords', 'parcats', 'candlestick', 'ohlc', 'dumbbell', 'ternary'
     ]
     corr_charts = ['heatmap', 'surface', 'contour', 'carpet', 'contourcarpet']
-    response_data = {'chart_type': chart_type, 'total_active_rows': len(active_df)}
+    response_data = {'success': True, 'chart_type': chart_type, 'total_active_rows': len(active_df)}
 
     try:
         if chart_type in raw_charts:
@@ -155,16 +155,18 @@ def get_chart_data():
         return jsonify({'error': str(e)}), 500
 
 
-@chart_bp.route('/get_column_unique_values', methods=['POST'])
-@chart_bp.route('/get_column_details', methods=['POST'])
+@chart_bp.route('/get_column_unique_values', methods=['GET', 'POST'])
+@chart_bp.route('/get_column_details', methods=['GET', 'POST'])
 def get_column_unique_values():
     """Retrieves unique categories or numerical ranges for dynamic slicers and filters."""
     global_df = get_df(1)
     if global_df is None:
         return jsonify({'error': 'Veri yok'}), 400
 
-    data = request.get_json(silent=True) or {}
-    col = data.get('column')
+    col = request.args.get('column')
+    if not col:
+        data = request.get_json(silent=True) or {}
+        col = data.get('column')
     if not col or col not in global_df.columns:
         return jsonify({'error': 'Sütun bulunamadı'}), 400
 
