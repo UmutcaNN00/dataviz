@@ -1,5 +1,5 @@
 """
-DataViz Pro - Core Application Server
+DataViz - Core Application Server
 Lightweight application factory registering modular Flask Blueprints.
 """
 
@@ -40,7 +40,7 @@ def create_app(config_class=Config):
 
     # Register modular Blueprints
     register_blueprints(app)
-    logger.info("DataViz Pro Blueprints successfully registered.")
+    logger.info("DataViz Blueprints successfully registered.")
 
     return app
 
@@ -49,5 +49,5 @@ def create_app(config_class=Config):
 app = create_app()
 
 if __name__ == '__main__':
-    logger.info(f"Starting DataViz Pro server on port {PORT} (debug={DEBUG})...")
+    logger.info(f"Starting DataViz server on port {PORT} (debug={DEBUG})...")
     app.run(host='0.0.0.0', port=PORT, debug=DEBUG)

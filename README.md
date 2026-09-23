@@ -1,11 +1,11 @@
 <div align="center">
 
-# ⬡ DataViz Pro
+# ⬡ DataViz
 
 **Premium Glassmorphism Arayüzü ile Milyonlarca Satırlık Büyük Veriyi Saniyeler İçinde Keşfedin, Onarın ve Raporlayın**
 
 <p align="center">
-  Geleneksel tablo yazılımlarının sınırlarını aşın! <strong>DataViz Pro</strong>; Excel, CSV ve Apache Parquet dosyalarınızı sürükleyip bırakarak anında analiz etmenizi sağlayan yeni nesil bir iş zekası (BI) platformudur. <br><br>
+  Geleneksel tablo yazılımlarının sınırlarını aşın! <strong>DataViz</strong>; Excel, CSV ve Apache Parquet dosyalarınızı sürükleyip bırakarak anında analiz etmenizi sağlayan yeni nesil bir iş zekası (BI) platformudur. <br><br>
   <strong>Premium Glassmorphism</strong> arayüzü ile muhteşem bir kullanıcı deneyimi sunarken, arkasındaki <strong>Polars ile hızlandırılmış motor</strong> sayesinde devasa verileri milisaniyeler içinde işler.
 </p>
 
@@ -81,7 +81,7 @@ docker-compose up -d
 
 ## 🧩 Modüler Mimari ve Altyapı
 
-DataViz Pro, kurumsal sürdürülebilirlik ilkelerine uygun olarak **Flask Blueprints** ve **Modern ES6 İstemci Modülleri** ile inşa edilmiştir:
+DataViz, kurumsal sürdürülebilirlik ilkelerine uygun olarak **Flask Blueprints** ve **Modern ES6 İstemci Modülleri** ile inşa edilmiştir:
 
 * **Büyük Veri İşleme:** `Polars`, `PyArrow`
 * **Backend API Katmanı:** `Python 3.10+`, `Flask 3.0+`
@@ -96,5 +96,5 @@ DataViz Pro, kurumsal sürdürülebilirlik ilkelerine uygun olarak **Flask Bluep
 Bu proje, veri bilimi ve büyük veri analitiğine tutkuyla bağlı olan **Umutcan** ([@UmutcaNN00](https://github.com/UmutcaNN00)) tarafından geliştirilmiştir.
 
 <div align="center">
-  <sub>Büyük Veri İş Zekası ve Yönetim Sistemleri için Yeniden Tanımlandı • <b>DataViz Pro</b> 2026</sub>
+  <sub>Büyük Veri İş Zekası ve Yönetim Sistemleri için Yeniden Tanımlandı • <b>DataViz</b> 2026</sub>
 </div>

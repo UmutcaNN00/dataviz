@@ -1,5 +1,5 @@
 """
-DataViz Pro V6 - Master Inter-Module Wiring & Connectivity Verification
+DataViz V6 - Master Inter-Module Wiring & Connectivity Verification
 Runs full suite of unit and integration tests against all backend Blueprint routes
 and verifies contract compatibility with frontend ES6 modules.
 """

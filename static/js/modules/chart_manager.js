@@ -1196,7 +1196,7 @@ function initChartManagerListeners() {
           <body style="margin:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0f172a; color:white; font-family:sans-serif;">
             <h2 style="margin-top:20px;">${currentPlotType.toUpperCase()} Grafiği</h2>
             <img src="${imgData}" style="max-width:90%; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.5);"/>
-            <p style="color:#94a3b8; font-size:12px; margin-top:10px;">DataViz Pro ile üretilmiştir.</p>
+            <p style="color:#94a3b8; font-size:12px; margin-top:10px;">DataViz ile üretilmiştir.</p>
             <script>window.onload = function() { window.print(); }<\/script>
           </body>
         </html>
