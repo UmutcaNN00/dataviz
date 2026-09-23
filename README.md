@@ -1,100 +1,109 @@
-<div align="center">
+﻿<div align="center">
 
-# ⬡ DataViz
+# â¬¡ DataViz
 
-**Premium Glassmorphism Arayüzü ile Milyonlarca Satırlık Büyük Veriyi Saniyeler İçinde Keşfedin, Onarın ve Raporlayın**
+**Premium Glassmorphism ArayÃ¼zÃ¼ ile Milyonlarca SatÄ±rlÄ±k BÃ¼yÃ¼k Veriyi Saniyeler Ä°Ã§inde KeÅŸfedin, OnarÄ±n ve RaporlayÄ±n**
 
 <p align="center">
-  Geleneksel tablo yazılımlarının sınırlarını aşın! <strong>DataViz</strong>; Excel, CSV ve Apache Parquet dosyalarınızı sürükleyip bırakarak anında analiz etmenizi sağlayan yeni nesil bir iş zekası (BI) platformudur. <br><br>
-  <strong>Premium Glassmorphism</strong> arayüzü ile muhteşem bir kullanıcı deneyimi sunarken, arkasındaki <strong>Polars ile hızlandırılmış motor</strong> sayesinde devasa verileri milisaniyeler içinde işler.
+  Geleneksel tablo yazÄ±lÄ±mlarÄ±nÄ±n sÄ±nÄ±rlarÄ±nÄ± aÅŸÄ±n! <strong>DataViz</strong>; Excel, CSV ve Apache Parquet dosyalarÄ±nÄ±zÄ± sÃ¼rÃ¼kleyip bÄ±rakarak anÄ±nda analiz etmenizi saÄŸlayan yeni nesil bir iÅŸ zekasÄ± (BI) platformudur. <br><br>
+  <strong>Premium Glassmorphism</strong> arayÃ¼zÃ¼ ile muhteÅŸem bir kullanÄ±cÄ± deneyimi sunarken, arkasÄ±ndaki <strong>Polars ile hÄ±zlandÄ±rÄ±lmÄ±ÅŸ motor</strong> sayesinde devasa verileri milisaniyeler iÃ§inde iÅŸler.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Arayüz-Premium_Glassmorphism-ffffff?style=for-the-badge&logo=css3&logoColor=black" alt="Arayüz">
-  <img src="https://img.shields.io/badge/Veri_Motoru-Polars_Hızlandırılmış-38bdf8?style=for-the-badge&logo=polars&logoColor=white" alt="Polars">
+  <img src="https://img.shields.io/badge/ArayÃ¼z-Premium_Glassmorphism-ffffff?style=for-the-badge&logo=css3&logoColor=black" alt="ArayÃ¼z">
+  <img src="https://img.shields.io/badge/Veri_Motoru-Polars_HÄ±zlandÄ±rÄ±lmÄ±ÅŸ-38bdf8?style=for-the-badge&logo=polars&logoColor=white" alt="Polars">
   <img src="https://img.shields.io/badge/Grafikler-Plotly_50+_Motoru-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
-  <img src="https://img.shields.io/badge/İstatistik-SciPy_Tabanlı-10b981?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy">
+  <img src="https://img.shields.io/badge/Ä°statistik-SciPy_TabanlÄ±-10b981?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy">
 </p>
-
 </div>
 
----
+<br>
+<p align='center'>
+  <img src='docs/images/landing.png' alt='DataViz Landing Page' width='800'>
+</p>
+<p align='center'>
+  <img src='docs/images/analysis.png' alt='DataViz Analysis Studio' width='800'>
+</p>
 
-## 🚀 Öne Çıkan Son Güncellemeler ve Özellikler
-
-### 💎 Premium Glassmorphism Arayüz
-Kullanıcı deneyimini baştan tanımlayan şeffaf, modern ve akıcı "Glassmorphism" tasarımıyla verilerinize odaklanırken görsel bir şölen yaşayın. Yenilenmiş animasyonlar ve sezgisel navigasyon ile veri analizini bir sanat eserine dönüştürün.
-
-### ⚡ Polars ile Hızlandırılmış Motor
-Pandas'ın darboğazlarını geride bırakın! Rust temelli Polars motoru ile **1 Milyon+ satırlık** devasa veri setleri saniyeler içinde belleğe yüklenir, filtrelenir ve işlenir. %80'e varan daha az RAM tüketimi ile bilgisayarınızı yormadan büyük veri analizi yapın.
-
-### 🩺 Akıllı Veri Sağlığı Onarıcı (Data Healer)
-Bozuk veya kirli verilerle uğraşmaya son! `₺`, `$`, `Yok`, `N/A` gibi sayısal sütunlara karışmış sözel sapmaları otomatik algılar. "Akıllı Onarım" algoritmasıyla veri kaybı yaşamadan tüm anomalileri tek tıkla saf sayısal tiplere dönüştürür.
-
-### 🪄 Advanced Formül Sihirbazı
-Kod yazmadan, Excel formüllerinden bile daha kolay! Gelişmiş formül motoru sayesinde mevcut verilerinizden türetilmiş yeni metrikler (örn: `Kâr = Satış - Maliyet * 1.20`) oluşturun. Dört işlem ve sabit katsayılarla anında yeni sütunlar hesaplayın.
-
-### 📊 Plotly 50+ Grafik Motoru
-Sıradan çubuk grafiklerin ötesine geçin! Akıllı öneri sistemiyle verinize en uygun grafik türü otomatik sunulur. Finansal, bilimsel, 3D ve istatistiksel tam **50 farklı Plotly.js grafiği** ile verilerinizi konuşturun, yakınlaştırın ve detaylarda gezinin.
 
 ---
 
-## ⚡ 3 Adımlı Hızlı İş Akışı
+## ğŸš€ Ã–ne Ã‡Ä±kan Son GÃ¼ncellemeler ve Ã–zellikler
+
+### ğŸ’ Premium Glassmorphism ArayÃ¼z
+KullanÄ±cÄ± deneyimini baÅŸtan tanÄ±mlayan ÅŸeffaf, modern ve akÄ±cÄ± "Glassmorphism" tasarÄ±mÄ±yla verilerinize odaklanÄ±rken gÃ¶rsel bir ÅŸÃ¶len yaÅŸayÄ±n. YenilenmiÅŸ animasyonlar ve sezgisel navigasyon ile veri analizini bir sanat eserine dÃ¶nÃ¼ÅŸtÃ¼rÃ¼n.
+
+### âš¡ Polars ile HÄ±zlandÄ±rÄ±lmÄ±ÅŸ Motor
+Pandas'Ä±n darboÄŸazlarÄ±nÄ± geride bÄ±rakÄ±n! Rust temelli Polars motoru ile **1 Milyon+ satÄ±rlÄ±k** devasa veri setleri saniyeler iÃ§inde belleÄŸe yÃ¼klenir, filtrelenir ve iÅŸlenir. %80'e varan daha az RAM tÃ¼ketimi ile bilgisayarÄ±nÄ±zÄ± yormadan bÃ¼yÃ¼k veri analizi yapÄ±n.
+
+### ğŸ©º AkÄ±llÄ± Veri SaÄŸlÄ±ÄŸÄ± OnarÄ±cÄ± (Data Healer)
+Bozuk veya kirli verilerle uÄŸraÅŸmaya son! `â‚º`, `$`, `Yok`, `N/A` gibi sayÄ±sal sÃ¼tunlara karÄ±ÅŸmÄ±ÅŸ sÃ¶zel sapmalarÄ± otomatik algÄ±lar. "AkÄ±llÄ± OnarÄ±m" algoritmasÄ±yla veri kaybÄ± yaÅŸamadan tÃ¼m anomalileri tek tÄ±kla saf sayÄ±sal tiplere dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.
+
+### ğŸª„ Advanced FormÃ¼l SihirbazÄ±
+Kod yazmadan, Excel formÃ¼llerinden bile daha kolay! GeliÅŸmiÅŸ formÃ¼l motoru sayesinde mevcut verilerinizden tÃ¼retilmiÅŸ yeni metrikler (Ã¶rn: `KÃ¢r = SatÄ±ÅŸ - Maliyet * 1.20`) oluÅŸturun. DÃ¶rt iÅŸlem ve sabit katsayÄ±larla anÄ±nda yeni sÃ¼tunlar hesaplayÄ±n.
+
+### ğŸ“Š Plotly 50+ Grafik Motoru
+SÄ±radan Ã§ubuk grafiklerin Ã¶tesine geÃ§in! AkÄ±llÄ± Ã¶neri sistemiyle verinize en uygun grafik tÃ¼rÃ¼ otomatik sunulur. Finansal, bilimsel, 3D ve istatistiksel tam **50 farklÄ± Plotly.js grafiÄŸi** ile verilerinizi konuÅŸturun, yakÄ±nlaÅŸtÄ±rÄ±n ve detaylarda gezinin.
+
+---
+
+## âš¡ 3 AdÄ±mlÄ± HÄ±zlÄ± Ä°ÅŸ AkÄ±ÅŸÄ±
 
 ```mermaid
 flowchart LR
-    A["📂 1. Sürükle & Bırak\n(Parquet / CSV / Excel)"] --> B["⚡ 2. Keşfet & Onar\n(Data Healer & 50+ Grafik)"]
-    B --> C["📄 3. Yönet & Raporla\n(Advanced Formül & PDF)"]
+    A["ğŸ“‚ 1. SÃ¼rÃ¼kle & BÄ±rak\n(Parquet / CSV / Excel)"] --> B["âš¡ 2. KeÅŸfet & Onar\n(Data Healer & 50+ Grafik)"]
+    B --> C["ğŸ“„ 3. YÃ¶net & Raporla\n(Advanced FormÃ¼l & PDF)"]
 ```
 
 ---
 
-## 🛠 Kurulum Adımları (1 Dakikada Hazır)
+## ğŸ›  Kurulum AdÄ±mlarÄ± (1 Dakikada HazÄ±r)
 
-Sisteminizde **Python 3.10+** kurulu olması yeterlidir.
+Sisteminizde **Python 3.10+** kurulu olmasÄ± yeterlidir.
 
-### Seçenek 1: 🪟 Windows Tek Tıkla Başlatıcı (En Kolayı)
-Sadece proje dizinindeki **`DEMO_BASLAT.bat`** dosyasına çift tıklayın. Her şey otomatik kurulur ve tarayıcınızda açılır!
+### SeÃ§enek 1: ğŸªŸ Windows Tek TÄ±kla BaÅŸlatÄ±cÄ± (En KolayÄ±)
+Sadece proje dizinindeki **`DEMO_BASLAT.bat`** dosyasÄ±na Ã§ift tÄ±klayÄ±n. Her ÅŸey otomatik kurulur ve tarayÄ±cÄ±nÄ±zda aÃ§Ä±lÄ±r!
 
-### Seçenek 2: ⚡ `uv` veya `pip` ile Hızlı Kurulum (Geliştiriciler)
+### SeÃ§enek 2: âš¡ `uv` veya `pip` ile HÄ±zlÄ± Kurulum (GeliÅŸtiriciler)
 ```bash
-# Projeyi klonlayın
+# Projeyi klonlayÄ±n
 git clone https://github.com/UmutcaNN00/dataviz.git
 cd dataviz
 
-# Sanal ortam oluşturun ve aktif edin
+# Sanal ortam oluÅŸturun ve aktif edin
 python -m venv .venv
-source .venv/bin/activate  # Windows için: .venv\Scripts\activate
+source .venv/bin/activate  # Windows iÃ§in: .venv\Scripts\activate
 
-# Gerekli paketleri kurun ve çalıştırın
+# Gerekli paketleri kurun ve Ã§alÄ±ÅŸtÄ±rÄ±n
 pip install -r requirements.txt
 python app.py
 ```
-Ardından tarayıcınızdan **`http://127.0.0.1:5000`** adresine gidin.
+ArdÄ±ndan tarayÄ±cÄ±nÄ±zdan **`http://127.0.0.1:5000`** adresine gidin.
 
-### Seçenek 3: 🐳 Docker ile Kurulum
+### SeÃ§enek 3: ğŸ³ Docker ile Kurulum
 ```bash
 docker-compose up -d
 ```
 
 ---
 
-## 🧩 Modüler Mimari ve Altyapı
+## ğŸ§© ModÃ¼ler Mimari ve AltyapÄ±
 
-DataViz, kurumsal sürdürülebilirlik ilkelerine uygun olarak **Flask Blueprints** ve **Modern ES6 İstemci Modülleri** ile inşa edilmiştir:
+DataViz, kurumsal sÃ¼rdÃ¼rÃ¼lebilirlik ilkelerine uygun olarak **Flask Blueprints** ve **Modern ES6 Ä°stemci ModÃ¼lleri** ile inÅŸa edilmiÅŸtir:
 
-* **Büyük Veri İşleme:** `Polars`, `PyArrow`
-* **Backend API Katmanı:** `Python 3.10+`, `Flask 3.0+`
-* **Görselleştirme:** `Plotly.js 2.27.0` (50+ Dinamik Grafik)
-* **İstatistik & AI:** `SciPy 1.11+` (ANOVA, T-Test, Korelasyonlar)
-* **Tasarım:** Premium Glassmorphism UI (CSS3 + Modern JS)
+* **BÃ¼yÃ¼k Veri Ä°ÅŸleme:** `Polars`, `PyArrow`
+* **Backend API KatmanÄ±:** `Python 3.10+`, `Flask 3.0+`
+* **GÃ¶rselleÅŸtirme:** `Plotly.js 2.27.0` (50+ Dinamik Grafik)
+* **Ä°statistik & AI:** `SciPy 1.11+` (ANOVA, T-Test, Korelasyonlar)
+* **TasarÄ±m:** Premium Glassmorphism UI (CSS3 + Modern JS)
 
 ---
 
-## 👨‍💻 Geliştirici
+## ğŸ‘¨â€ğŸ’» GeliÅŸtirici
 
-Bu proje, veri bilimi ve büyük veri analitiğine tutkuyla bağlı olan **Umutcan** ([@UmutcaNN00](https://github.com/UmutcaNN00)) tarafından geliştirilmiştir.
+Bu proje, veri bilimi ve bÃ¼yÃ¼k veri analitiÄŸine tutkuyla baÄŸlÄ± olan **Umutcan** ([@UmutcaNN00](https://github.com/UmutcaNN00)) tarafÄ±ndan geliÅŸtirilmiÅŸtir.
 
 <div align="center">
-  <sub>Büyük Veri İş Zekası ve Yönetim Sistemleri için Yeniden Tanımlandı • <b>DataViz</b> 2026</sub>
+  <sub>BÃ¼yÃ¼k Veri Ä°ÅŸ ZekasÄ± ve YÃ¶netim Sistemleri iÃ§in Yeniden TanÄ±mlandÄ± â€¢ <b>DataViz</b> 2026</sub>
 </div>
+
