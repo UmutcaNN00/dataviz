@@ -12,3 +12,5 @@ uploads/*
 !uploads/.gitkeep
 sunucu.log
 *.log
+*.parquet
+scratch/

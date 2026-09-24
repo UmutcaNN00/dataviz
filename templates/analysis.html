@@ -340,7 +340,7 @@
                 id="dpFillBtn"
                 style="font-size: 0.82rem; padding: 10px"
               >
-                📈ˆ Ortalamayla Doldur
+                📈 Ortalamayla Doldur
               </button>
               <button
                 class="btn-secondary"
@@ -502,7 +502,7 @@
       <div class="modal-content premium-modal-content" style="max-width: 550px">
         <div class="modal-header-row premium-header">
           <div class="modal-title-group">
-            <div class="modal-icon-glass">🧠®</div>
+            <div class="modal-icon-glass">🧮</div>
             <div>
               <h3>Formül & Yeni Sütun Üretici</h3>
               <p class="modal-subtitle">
@@ -658,7 +658,7 @@
             </p>
             <div class="num-range-inputs">
               <div>
-                <label>> Büyüktür (Min)</label>
+                <label>&gt; Büyüktür (Min)</label>
                 <input
                   type="number"
                   id="numFilterMin"
@@ -774,7 +774,7 @@
               Dosya Seçin
             </button>
             <button type="button" class="btn-hero-ghost" id="btnLoadSampleData">
-              🧠ª Örnek Veri ile Başla
+              🧪 Örnek Veri ile Başla
             </button>
           </div>
         </div>
@@ -886,7 +886,15 @@
               id="btnOpenCalcModalS2"
               title="Sütunlar arası formül ve yeni sütun üret"
             >
-              🧠® Formül Sihirbazı
+              🧮 Formül Sihirbazı
+            </button>
+            <button
+              type="button"
+              class="btn-quick-data-tool"
+              id="btnOpenPivotStudioS2"
+              title="Bağımsız Pivot Matris Stüdyosunu Aç"
+            >
+              📑 Pivot Stüdyosu
             </button>
             <button
               type="button"
@@ -909,6 +917,9 @@
         <div class="studio-mode-switcher">
           <button type="button" class="sms-btn active" id="btnModeChartsS2">
             📊 50 Grafik Stüdyosu
+          </button>
+          <button type="button" class="sms-btn" id="btnPivotStudioTop">
+            📑 Pivot Matris Stüdyosu
           </button>
         </div>
 
@@ -935,7 +946,7 @@
 
       <!-- ÇOKLU EXCEL SAYFALARI (MULTI-SHEET) BARI -->
       <div id="sheetTabsBar" class="sheet-tabs-bar hidden">
-        <span class="stb-label">📈‘ Çalışma Sayfası:</span>
+        <span class="stb-label">📑 Çalışma Sayfası:</span>
         <div id="sheetTabsList" class="sheet-tabs-list"></div>
       </div>
 
@@ -956,7 +967,7 @@
 
       <div class="s2-body-split">
         <!-- SOL YARI (%50) -->
-        <div class="s2-pane s2-left-pane">
+        <div class="s2-pane s2-left-pane" id="s2-left-pane">
           <div class="pane-header">
             <div
               style="
@@ -1161,6 +1172,9 @@
         <div class="studio-mode-switcher">
           <button type="button" class="sms-btn active" id="btnModeChartsS3">
             📊 Grafik Stüdyosu
+          </button>
+          <button type="button" class="sms-btn" id="btnOpenPivotStudioS3">
+            📑 Pivot Matris Stüdyosu
           </button>
         </div>
 
@@ -1502,7 +1516,7 @@
                           );
                         "
                       >
-                        🧠 
+                        🧠
                       </div>
                       <h3
                         style="
@@ -2323,6 +2337,7 @@
           <div class="inspector-tabs">
             <button class="i-tab active" data-itab="colors">🎨 Stil</button>
             <button class="i-tab" data-itab="axes">⚙️ Eksen</button>
+            <button class="i-tab" data-itab="export">Dışa Aktar</button>
           </div>
 
           <div class="inspector-body">
@@ -2462,6 +2477,329 @@
       </div>
     </div>
 
+    <!-- ══════════ 4. BAĞIMSIZ TAM EKRAN PIVOT TABLO STÜDYOSU ══════════ -->
+    <div id="screen-pivot-studio" class="wizard-screen hidden">
+      <header class="s2-header">
+        <div class="s2-header-left">
+          <a
+            href="/"
+            class="s1-logo"
+            style="font-size: 1.1rem; margin-right: 12px; margin-bottom: 0"
+            >⬡ DataViz</a
+          >
+          <span class="s2-file-badge"
+            ><svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <span id="pivotFileName">veri.xlsx</span></span
+          >
+        </div>
+
+        <!-- Ortada Stüdyo Geçiş Butonları -->
+        <div class="studio-mode-switcher">
+          <button type="button" class="sms-btn" id="btnPivotBackToCharts">
+            📊 50 Grafik Stüdyosu
+          </button>
+          <button type="button" class="sms-btn active">
+            📑 Pivot Matris Stüdyosu
+          </button>
+        </div>
+
+        <div class="s2-header-right">
+          <button class="btn-ghost" id="btnPivotNewFile">Yeni Dosya</button>
+        </div>
+      </header>
+
+      <!-- PIVOT ÇALIŞMA SAYFALARI (MULTI-SHEET) BARI -->
+      <div id="pivotSheetTabsBar" class="sheet-tabs-bar hidden">
+        <span class="stb-label">📑 Çalışma Sayfası:</span>
+        <div id="pivotSheetTabsList" class="sheet-tabs-list"></div>
+      </div>
+
+      <!-- CANLI FİLTRELEME BARI (PIVOT EKRANI) -->
+      <div class="global-filter-bar" id="pivotFilterBar">
+        <div class="gfb-left">
+          <span class="gfb-title">🔍 Dilimleyiciler:</span>
+          <div id="pivotActiveFiltersList" class="active-filters-chips">
+            <span class="no-filter-hint"
+              >Filtre uygulanmadı (Tüm veri aktif)</span
+            >
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-add-filter"
+          id="btnOpenFilterModalPivot"
+        >
+          + Filtre Ekle
+        </button>
+      </div>
+
+      <!-- PIVOT STUDIO 50/50 SPLIT LAYOUT -->
+      <div class="s2-body-split">
+        <!-- SOL YARI: HAVUZ VE BIRAKMA ALANLARI -->
+        <div class="s2-pane s2-left-pane">
+          <div class="pane-header">
+            <div>
+              <h3>1. Pivot Boyutlarını &amp; Değerlerini Belirleyin</h3>
+              <p>
+                Aşağıdaki havuzdan sütunları tutup Satır, Sütun ve Değer
+                kutularına bırakın veya tıklayın.
+              </p>
+            </div>
+          </div>
+
+          <!-- Veri Havuzu -->
+          <div class="s2-pool-container">
+            <div class="pool-header-row">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <h4>Veri Havuzu</h4>
+                <span id="pivotPoolCountBadge" class="pool-total-badge"
+                  >0 Sütun</span
+                >
+              </div>
+              <div style="display: flex; gap: 6px">
+                <button
+                  type="button"
+                  class="btn-calc-col"
+                  id="btnOpenCalcModalPivot"
+                >
+                  🧮 + Formül
+                </button>
+                <button
+                  type="button"
+                  class="btn-calc-col"
+                  id="btnOpenMergeModalPivot"
+                  style="
+                    color: var(--green);
+                    border-color: rgba(52, 211, 153, 0.4);
+                    background: rgba(52, 211, 153, 0.1);
+                  "
+                >
+                  🔗 2. Dosyayı Birleştir
+                </button>
+              </div>
+            </div>
+
+            <!-- Havuz Arama ve Filtreleme Barı -->
+            <div class="pool-controls-row">
+              <div class="pool-search-box">
+                <input
+                  type="text"
+                  id="pivotPoolSearchInput"
+                  placeholder="🔍 Sütun ara (örn: Şehir, Ciro, Kategori)..."
+                />
+              </div>
+              <div class="pool-filter-chips" id="pivotPoolFilterChips">
+                <button
+                  type="button"
+                  class="pfc-btn active"
+                  data-pivotfilter="all"
+                >
+                  Tümü (<span id="pfcPivotAllCount">0</span>)
+                </button>
+                <button type="button" class="pfc-btn" data-pivotfilter="cat">
+                  T Metin (<span id="pfcPivotCatCount">0</span>)
+                </button>
+                <button type="button" class="pfc-btn" data-pivotfilter="num">
+                  # Sayısal (<span id="pfcPivotNumCount">0</span>)
+                </button>
+                <button
+                  type="button"
+                  class="pfc-btn hidden"
+                  data-pivotfilter="joined"
+                  id="pfcPivotJoinedBtn"
+                >
+                  🔗 2. Dosya (<span id="pfcPivotJoinedCount">0</span>)
+                </button>
+              </div>
+            </div>
+
+            <div id="pivotColPool" class="col-pool-structured">
+              <!-- JS Pills injected here by groups -->
+            </div>
+          </div>
+
+          <!-- Pivot Drop Zones -->
+          <div class="s2-zones-container">
+            <div class="dd-zone-wrapper">
+              <h4>
+                🟪 Satırlar (Rows)
+                <span class="zone-hint"
+                  >📌 Ana Kategori / Boyut: Bölge, Şehir, Ürün vb.</span
+                >
+              </h4>
+              <div id="pivotRowZone" class="dd-zone" data-pivot-zone="row">
+                Sütunları Buraya Bırakın veya Havuzdan Tıklayın
+              </div>
+            </div>
+            <div class="dd-zone-wrapper">
+              <h4>
+                🟦 Sütunlar (Columns - Opsiyonel)
+                <span class="zone-hint"
+                  >📌 Üst Kırılım: Ödeme Yöntemi, Yıl, Segment vb.</span
+                >
+              </h4>
+              <div id="pivotColZone" class="dd-zone" data-pivot-zone="col">
+                Sütunları Buraya Bırakın (Opsiyonel)
+              </div>
+            </div>
+            <div class="dd-zone-wrapper">
+              <h4>
+                🟧 Değerler / Metrikler (Values)
+                <span class="zone-hint"
+                  >📊 Sayısal Değerler: Ciro, Kâr, Adet vb.</span
+                >
+              </h4>
+              <div id="pivotValZone" class="dd-zone" data-pivot-zone="val">
+                Sayısal Sütunları Buraya Bırakın
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px">
+            <label>Hesaplama Türü (Matris Agregasyonu)</label>
+            <select
+              id="pivotAggSelect"
+              style="
+                padding: 10px 14px;
+                background: var(--bg-3);
+                border: 1px solid var(--border-hi);
+                border-radius: var(--r);
+                color: var(--text);
+                font-weight: 700;
+              "
+            >
+              <option value="sum">Toplam (Sum)</option>
+              <option value="mean">Ortalama (Mean)</option>
+              <option value="count">Adet (Count)</option>
+              <option value="median">Medyan (Median)</option>
+              <option value="min">Minimum</option>
+              <option value="max">Maksimum</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SAĞ YARI: CANLI MATRİS IZGARASI -->
+        <div
+          class="s2-pane s2-right-pane"
+          style="display: flex; flex-direction: column"
+        >
+          <div
+            class="pane-header"
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 12px;
+            "
+          >
+            <div>
+              <h3 style="display: flex; align-items: center; gap: 8px">
+                <span>📑 Canlı Çapraz Matris (Pivot Matrix)</span>
+                <span id="pmsStatsBadge" class="pms-stats-badge">0 Kayıt</span>
+              </h3>
+              <p>
+                Seçilen boyutların anlık hesaplanan çapraz Excel özet tablosu.
+              </p>
+            </div>
+            <div
+              class="pms-toolbar-right"
+              style="display: flex; align-items: center; gap: 10px"
+            >
+              <label class="pivot-toggle-label">
+                <input type="checkbox" id="pmsHeatmapToggle" checked />
+                <span>🔥 Isı Haritası (Heatmap)</span>
+              </label>
+              <button
+                class="btn-ghost"
+                id="btnPmsCopyTable"
+                title="Excel'e yapıştırmak üzere panoya kopyala"
+              >
+                📋 Tabloyu Kopyala
+              </button>
+              <button
+                class="btn-download"
+                id="btnPmsExportExcel"
+                style="padding: 8px 16px; width: auto"
+              >
+                📥 Excel İndir (.xlsx)
+              </button>
+              <button class="btn-pin" id="btnPmsPinDashboard">
+                <span>📌</span> Panoya Ekle
+              </button>
+            </div>
+          </div>
+
+          <!-- Tam Ekran Tablo Alanı -->
+          <div class="pms-table-stage-wrapper" style="flex: 1; margin-top: 10px">
+            <div id="pmsTableContainer" class="pms-table-container">
+              <div class="pivot-loading-msg">
+                ⏳ Pivot Tablosu Hesaplanıyor...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PIVOT FİLTRE MODALI ══════════ -->
+    <div id="pivotFilterModal" class="modal-overlay hidden">
+      <div class="modal-content filter-modal-content">
+        <div class="modal-header-row">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-size: 1.4rem">🔍</span>
+            <h3>Pivot Sütun Filtresi: <span id="pfmColName"></span></h3>
+          </div>
+          <button class="modal-close-btn" id="closePivotFilterModal">×</button>
+        </div>
+        <div class="filter-dynamic-area">
+          <div class="filter-search-row">
+            <input
+              type="text"
+              id="pfmSearchInput"
+              placeholder="Değer ara..."
+              class="filter-search-input"
+            />
+            <div class="filter-quick-actions">
+              <button type="button" id="pfmSelectAll" class="btn-link">
+                Tümü
+              </button>
+              <button type="button" id="pfmClearAll" class="btn-link">
+                Temizle
+              </button>
+            </div>
+          </div>
+          <div id="pfmCheckList" class="cat-checkboxes-list"></div>
+        </div>
+        <div
+          class="modal-actions"
+          style="margin-top: 20px; flex-direction: row"
+        >
+          <button class="btn-ghost" id="pfmCancelBtn" style="flex: 1">
+            İptal
+          </button>
+          <button class="btn-primary" id="pfmApplyBtn" style="flex: 1">
+            Filtreyi Uygula
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260924_fix_scatter1"></script>
@@ -2537,7 +2875,7 @@
           <button
             class="btn-ghost"
             id="addTextBtnPdf"
-            style="color: rgb(3, 3, 3); border-color: rgba(255, 255, 255, 0.2)"
+            style="color: #f8fafc; border-color: rgba(255, 255, 255, 0.2)"
           >
             + Metin Ekle
           </button>

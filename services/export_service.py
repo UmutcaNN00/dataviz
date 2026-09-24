@@ -30,8 +30,9 @@ def export_dataframe(df, export_format='csv', file_name=None):
     base_name = file_name or 'Aktarilan_Veri'
 
     if fmt in ['xlsx', 'excel']:
+        export_df = df.head(1048500) if len(df) > 1048500 else df
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Veri_Seti')
+            export_df.to_excel(writer, index=False, sheet_name='Veri_Seti')
         mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         download_name = f"{base_name}.xlsx"
 
@@ -45,9 +46,9 @@ def export_dataframe(df, export_format='csv', file_name=None):
         mimetype = 'application/octet-stream'
         download_name = f"{base_name}.parquet"
 
-    else:  # Default to CSV with UTF-8 BOM
-        csv_str = df.to_csv(index=False, encoding='utf-8-sig')
-        output.write(csv_str.encode('utf-8-sig'))
+    else:  # Default to CSV with UTF-8 BOM streamed directly to BytesIO
+        output.write(b'\xef\xbb\xbf')
+        df.to_csv(output, index=False, encoding='utf-8')
         mimetype = 'text/csv; charset=utf-8'
         download_name = f"{base_name}.csv"
 
@@ -65,21 +66,31 @@ def export_pivot_to_excel(active_df, rows, cols, values, agg_func='sum', file_na
     if active_df is None or active_df.empty:
         raise ValueError("Dışa aktarılacak veri bulunamadı.")
 
-    valid_rows = [r for r in rows if r in active_df.columns]
-    valid_cols = [c for c in cols if c in active_df.columns]
-    valid_values = [v for v in values if v in active_df.columns and pd.api.types.is_numeric_dtype(active_df[v])]
+    if isinstance(rows, str):
+        rows = [rows] if rows else []
+    if isinstance(cols, str):
+        cols = [cols] if cols else []
+    if isinstance(values, str):
+        values = [values] if values else []
+
+    valid_rows = [r for r in (rows or []) if r in active_df.columns]
+    valid_cols = [c for c in (cols or []) if c in active_df.columns]
+    valid_values = [v for v in (values or []) if v in active_df.columns and pd.api.types.is_numeric_dtype(active_df[v])]
 
     if not valid_rows and not valid_cols:
         raise ValueError("En az bir Satır veya Sütun boyutu seçilmelidir.")
     if not valid_values:
         raise ValueError("En az bir sayısal değer metriği seçilmelidir.")
 
+    allowed_aggs = {'sum': 'sum', 'mean': 'mean', 'median': 'median', 'count': 'count', 'min': 'min', 'max': 'max'}
+    safe_agg = allowed_aggs.get(str(agg_func).lower().strip(), 'sum')
+
     pt = pd.pivot_table(
         active_df,
         index=valid_rows if valid_rows else None,
         columns=valid_cols if valid_cols else None,
         values=valid_values,
-        aggfunc=agg_func,
+        aggfunc=safe_agg,
         fill_value=0,
         margins=True,
         margins_name='Genel Toplam'

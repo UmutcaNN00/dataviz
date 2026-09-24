@@ -26,22 +26,57 @@ def create_app(config_class=Config):
     app.config['UPLOAD_FOLDER'] = config_class.UPLOAD_FOLDER
     app.config['MAX_CONTENT_LENGTH'] = config_class.MAX_CONTENT_LENGTH
 
-    # Custom JSON provider for NumPy / SciPy types
+    # Custom JSON provider for NumPy / Pandas / SciPy types (prevents NaN/Inf JSON parse errors)
     try:
+        import math
+        import json
         import numpy as np
+        import pandas as pd
+        from datetime import date, datetime
         from flask.json.provider import DefaultJSONProvider
+
+        def _sanitize_json_value(val):
+            if val is None or val is pd.NA or val is pd.NaT:
+                return None
+            if isinstance(val, (float, np.floating)):
+                fval = float(val)
+                return None if (math.isnan(fval) or math.isinf(fval)) else fval
+            if isinstance(val, (int, np.integer)) and not isinstance(val, bool):
+                return int(val)
+            if isinstance(val, (bool, np.bool_)):
+                return bool(val)
+            if isinstance(val, dict):
+                return {str(k): _sanitize_json_value(v) for k, v in val.items()}
+            if isinstance(val, (list, tuple, set)):
+                return [_sanitize_json_value(v) for v in val]
+            if isinstance(val, np.ndarray):
+                return [_sanitize_json_value(v) for v in val.tolist()]
+            if isinstance(val, (pd.Timestamp, datetime, date, np.datetime64)):
+                return str(val)
+            return val
 
         class NumpyJSONProvider(DefaultJSONProvider):
             def default(self, obj):
-                if isinstance(obj, (np.integer, int)):
+                if obj is pd.NA or obj is pd.NaT:
+                    return None
+                if isinstance(obj, (np.integer, int)) and not isinstance(obj, bool):
                     return int(obj)
                 elif isinstance(obj, (np.floating, float)):
-                    return float(obj)
+                    fval = float(obj)
+                    return None if (math.isnan(fval) or math.isinf(fval)) else fval
                 elif isinstance(obj, np.ndarray):
-                    return obj.tolist()
+                    return [_sanitize_json_value(v) for v in obj.tolist()]
                 elif isinstance(obj, np.bool_):
                     return bool(obj)
+                elif isinstance(obj, (pd.Timestamp, datetime, date, np.datetime64)):
+                    return str(obj)
                 return super().default(obj)
+
+            def dumps(self, obj, **kwargs):
+                kwargs.setdefault('default', self.default)
+                kwargs.setdefault('ensure_ascii', self.ensure_ascii)
+                kwargs.setdefault('sort_keys', self.sort_keys)
+                return json.dumps(_sanitize_json_value(obj), **kwargs)
 
         app.json_provider_class = NumpyJSONProvider
         app.json = NumpyJSONProvider(app)
@@ -51,7 +86,7 @@ def create_app(config_class=Config):
     # CORS support: enable flask_cors if available or use standard response headers
     try:
         from flask_cors import CORS
-        CORS(app)
+        CORS(app, supports_credentials=True)
     except ImportError:
         @app.after_request
         def add_cors_headers(response):

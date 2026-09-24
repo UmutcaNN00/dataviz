@@ -1,9 +1,23 @@
 // Safe Global Fallbacks
-if (typeof window.axisConfig === 'undefined') window.axisConfig = { x: null, y: [] };
-if (typeof window.numericColumns === 'undefined') window.numericColumns = [];
-if (typeof window.categoricalColumns === 'undefined') window.categoricalColumns = [];
-if (typeof window.activeFilters === 'undefined') window.activeFilters = [];
-if (typeof window.PALETTE === 'undefined') window.PALETTE = ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#f43f5e', '#a78bfa', '#4ade80', '#c084fc', '#f97316', '#22d3ee'];
+if (typeof window.axisConfig === "undefined")
+  window.axisConfig = { x: null, y: [] };
+if (typeof window.numericColumns === "undefined") window.numericColumns = [];
+if (typeof window.categoricalColumns === "undefined")
+  window.categoricalColumns = [];
+if (typeof window.activeFilters === "undefined") window.activeFilters = [];
+if (typeof window.PALETTE === "undefined")
+  window.PALETTE = [
+    "#38bdf8",
+    "#818cf8",
+    "#34d399",
+    "#fbbf24",
+    "#f43f5e",
+    "#a78bfa",
+    "#4ade80",
+    "#c084fc",
+    "#f97316",
+    "#22d3ee",
+  ];
 var axisConfig = window.axisConfig;
 var numericColumns = window.numericColumns;
 var categoricalColumns = window.categoricalColumns;
@@ -12,271 +26,736 @@ var PALETTE = window.PALETTE;
 
 const CHARTS = [
   // 📈 TREND
-  { id: 'line', name: 'Çizgi', cat: 'trend', icon: '📈', desc: 'Zaman/Kategori trendi.' },
-  { id: 'spline', name: 'Yumuşak Çizgi', cat: 'trend', icon: '〰', desc: 'Kıvrımlı, pürüzsüz trend.' },
-  { id: 'step', name: 'Basamak', cat: 'trend', icon: '🪜', desc: 'Sıçramalı değişimler.' },
-  { id: 'area', name: 'Alan', cat: 'trend', icon: '🌊', desc: 'Altı dolu çizgi.' },
-  { id: 'stackedarea', name: 'Yığılmış Alan', cat: 'trend', icon: '📚', desc: 'Kümülatif alan toplamı.' },
-  { id: 'waterfall', name: 'Şelale', cat: 'trend', icon: '📉', desc: 'Artış/Azalış etkileri.' },
-  { id: 'candlestick', name: 'Mum (Finance)', cat: 'trend', icon: '🕯️', desc: 'Finansal O/H/L/C.' },
-  { id: 'ohlc', name: 'OHLC', cat: 'trend', icon: '📊', desc: 'Finansal çubuk.' },
-  
+  {
+    id: "line",
+    name: "Çizgi",
+    cat: "trend",
+    icon: "📈",
+    desc: "Zaman/Kategori trendi.",
+  },
+  {
+    id: "spline",
+    name: "Yumuşak Çizgi",
+    cat: "trend",
+    icon: "〰",
+    desc: "Kıvrımlı, pürüzsüz trend.",
+  },
+  {
+    id: "step",
+    name: "Basamak",
+    cat: "trend",
+    icon: "🪜",
+    desc: "Sıçramalı değişimler.",
+  },
+  {
+    id: "area",
+    name: "Alan",
+    cat: "trend",
+    icon: "🌊",
+    desc: "Altı dolu çizgi.",
+  },
+  {
+    id: "stackedarea",
+    name: "Yığılmış Alan",
+    cat: "trend",
+    icon: "📚",
+    desc: "Kümülatif alan toplamı.",
+  },
+  {
+    id: "waterfall",
+    name: "Şelale",
+    cat: "trend",
+    icon: "📉",
+    desc: "Artış/Azalış etkileri.",
+  },
+  {
+    id: "candlestick",
+    name: "Mum (Finance)",
+    cat: "trend",
+    icon: "🕯️",
+    desc: "Finansal O/H/L/C.",
+  },
+  {
+    id: "ohlc",
+    name: "OHLC",
+    cat: "trend",
+    icon: "📊",
+    desc: "Finansal çubuk.",
+  },
+
   // 📊 KIYASLAMA
-  { id: 'bar', name: 'Çubuk', cat: 'comp', icon: '📊', desc: 'Basit kıyaslama.' },
-  { id: 'horizontalbar', name: 'Yatay Çubuk', cat: 'comp', icon: '☰', desc: 'Uzun isimli kategoriler.' },
-  { id: 'groupedbar', name: 'Gruplu Çubuk', cat: 'comp', icon: '⏸', desc: 'Çoklu metrik kıyası.' },
-  { id: 'stackedbar', name: 'Yığılmış Çubuk', cat: 'comp', icon: '🧱', desc: 'Parça/Bütün kıyası.' },
-  { id: 'funnel', name: 'Huni', cat: 'comp', icon: '🔽', desc: 'Dönüşüm aşamaları.' },
-  { id: 'radar', name: 'Radar (Örümcek)', cat: 'comp', icon: '🕸️', desc: 'Çoklu eksen profili.' },
-  { id: 'dotplot', name: 'Nokta Kıyas', cat: 'comp', icon: '⏺', desc: 'Hafif kıyaslama.' },
-  { id: 'bullet', name: 'Bullet / KPI', cat: 'comp', icon: '🌡️', desc: 'Hedef takibi.' },
-  { id: 'dumbbell', name: 'Halter (Dumbbell)', cat: 'comp', icon: '🏋️', desc: 'İki nokta arası fark.' },
-  { id: 'lollipop', name: 'Lolipop', cat: 'comp', icon: '🍭', desc: 'Hafif çubuk kıyası.' },
-  { id: 'gauge', name: 'Kadran (Gauge)', cat: 'comp', icon: '⏲️', desc: 'İbreli hedef göstergesi.' },
-  { id: 'radialbar', name: 'Radyal Çubuk', cat: 'comp', icon: '🎯', desc: 'Dairesel oran kıyası.' },
+  {
+    id: "bar",
+    name: "Çubuk",
+    cat: "comp",
+    icon: "📊",
+    desc: "Basit kıyaslama.",
+  },
+  {
+    id: "horizontalbar",
+    name: "Yatay Çubuk",
+    cat: "comp",
+    icon: "☰",
+    desc: "Uzun isimli kategoriler.",
+  },
+  {
+    id: "groupedbar",
+    name: "Gruplu Çubuk",
+    cat: "comp",
+    icon: "⏸",
+    desc: "Çoklu metrik kıyası.",
+  },
+  {
+    id: "stackedbar",
+    name: "Yığılmış Çubuk",
+    cat: "comp",
+    icon: "🧱",
+    desc: "Parça/Bütün kıyası.",
+  },
+  {
+    id: "funnel",
+    name: "Huni",
+    cat: "comp",
+    icon: "🔽",
+    desc: "Dönüşüm aşamaları.",
+  },
+  {
+    id: "radar",
+    name: "Radar (Örümcek)",
+    cat: "comp",
+    icon: "🕸️",
+    desc: "Çoklu eksen profili.",
+  },
+  {
+    id: "dotplot",
+    name: "Nokta Kıyas",
+    cat: "comp",
+    icon: "⏺",
+    desc: "Hafif kıyaslama.",
+  },
+  {
+    id: "bullet",
+    name: "Bullet / KPI",
+    cat: "comp",
+    icon: "🌡️",
+    desc: "Hedef takibi.",
+  },
+  {
+    id: "dumbbell",
+    name: "Halter (Dumbbell)",
+    cat: "comp",
+    icon: "🏋️",
+    desc: "İki nokta arası fark.",
+  },
+  {
+    id: "lollipop",
+    name: "Lolipop",
+    cat: "comp",
+    icon: "🍭",
+    desc: "Hafif çubuk kıyası.",
+  },
+  {
+    id: "gauge",
+    name: "Kadran (Gauge)",
+    cat: "comp",
+    icon: "⏲️",
+    desc: "İbreli hedef göstergesi.",
+  },
+  {
+    id: "radialbar",
+    name: "Radyal Çubuk",
+    cat: "comp",
+    icon: "🎯",
+    desc: "Dairesel oran kıyası.",
+  },
 
   // 📉 DAĞILIM
-  { id: 'histogram', name: 'Histogram', cat: 'dist', icon: '📉', desc: 'Frekans dağılımı.' },
-  { id: 'histogram2d', name: '2D Histogram', cat: 'dist', icon: '🔲', desc: 'Matris yoğunluğu.' },
-  { id: 'box', name: 'Kutu (Box)', cat: 'dist', icon: '📦', desc: 'Medyan ve çeyreklikler.' },
-  { id: 'violin', name: 'Keman (Violin)', cat: 'dist', icon: '🎻', desc: 'Yoğunluk ve kutu.' },
-  { id: 'strip', name: 'Şerit (Strip)', cat: 'dist', icon: '📏', desc: 'Nokta yoğunluğu.' },
-  { id: 'rug', name: 'Halı (Rug)', cat: 'dist', icon: '||', desc: 'Eksen üstü dağılım.' },
-  { id: 'density2d', name: '2D Yoğunluk', cat: 'dist', icon: '☁️', desc: 'Kontur yoğunluğu.' },
-  { id: 'errorbar', name: 'Hata Çubuğu', cat: 'dist', icon: '↹', desc: 'Varyans/Hata payı.' },
+  {
+    id: "histogram",
+    name: "Histogram",
+    cat: "dist",
+    icon: "📉",
+    desc: "Frekans dağılımı.",
+  },
+  {
+    id: "histogram2d",
+    name: "2D Histogram",
+    cat: "dist",
+    icon: "🔲",
+    desc: "Matris yoğunluğu.",
+  },
+  {
+    id: "box",
+    name: "Kutu (Box)",
+    cat: "dist",
+    icon: "📦",
+    desc: "Medyan ve çeyreklikler.",
+  },
+  {
+    id: "violin",
+    name: "Keman (Violin)",
+    cat: "dist",
+    icon: "🎻",
+    desc: "Yoğunluk ve kutu.",
+  },
+  {
+    id: "strip",
+    name: "Şerit (Strip)",
+    cat: "dist",
+    icon: "📏",
+    desc: "Nokta yoğunluğu.",
+  },
+  {
+    id: "rug",
+    name: "Halı (Rug)",
+    cat: "dist",
+    icon: "||",
+    desc: "Eksen üstü dağılım.",
+  },
+  {
+    id: "density2d",
+    name: "2D Yoğunluk",
+    cat: "dist",
+    icon: "☁️",
+    desc: "Kontur yoğunluğu.",
+  },
+  {
+    id: "errorbar",
+    name: "Hata Çubuğu",
+    cat: "dist",
+    icon: "↹",
+    desc: "Varyans/Hata payı.",
+  },
 
   // 🔵 İLİŞKİ
-  { id: 'scatter', name: 'Dağılım (Scatter)', cat: 'rel', icon: '🔵', desc: 'Korelasyon.' },
-  { id: 'bubble', name: 'Balon (Bubble)', cat: 'rel', icon: '🫧', desc: '3. boyut olarak büyüklük.' },
-  { id: 'scattermatrix', name: 'Scatter Matris', cat: 'rel', icon: '⚄', desc: 'Tüm sütunların çarprazı.' },
-  { id: 'heatmap', name: 'Isı Haritası', cat: 'rel', icon: '🌡️', desc: 'Korelasyon matrisi.' },
-  { id: 'parcoords', name: 'Paralel Koor.', cat: 'rel', icon: '🎛', desc: 'Sürekli çoklu ilişki.' },
-  { id: 'parcats', name: 'Paralel Kateg.', cat: 'rel', icon: '🔀', desc: 'Kategorik çoklu ilişki.' },
+  {
+    id: "scatter",
+    name: "Dağılım (Scatter)",
+    cat: "rel",
+    icon: "🔵",
+    desc: "Korelasyon.",
+  },
+  {
+    id: "bubble",
+    name: "Balon (Bubble)",
+    cat: "rel",
+    icon: "🫧",
+    desc: "3. boyut olarak büyüklük.",
+  },
+  {
+    id: "scattermatrix",
+    name: "Scatter Matris",
+    cat: "rel",
+    icon: "⚄",
+    desc: "Tüm sütunların çarprazı.",
+  },
+  {
+    id: "heatmap",
+    name: "Isı Haritası",
+    cat: "rel",
+    icon: "🌡️",
+    desc: "Korelasyon matrisi.",
+  },
+  {
+    id: "parcoords",
+    name: "Paralel Koor.",
+    cat: "rel",
+    icon: "🎛",
+    desc: "Sürekli çoklu ilişki.",
+  },
+  {
+    id: "parcats",
+    name: "Paralel Kateg.",
+    cat: "rel",
+    icon: "🔀",
+    desc: "Kategorik çoklu ilişki.",
+  },
 
   // 🥧 PARÇA-BÜTÜN
-  { id: 'pie', name: 'Pasta', cat: 'part', icon: '🥧', desc: 'Bütünün parçaları.' },
-  { id: 'donut', name: 'Donut', cat: 'part', icon: '⭕', desc: 'Ortası boş pasta.' },
-  { id: 'sunburst', name: 'Sunburst', cat: 'part', icon: '☀️', desc: 'Hiyerarşik pasta.' },
-  { id: 'treemap', name: 'Ağaç (Treemap)', cat: 'part', icon: '🌳', desc: 'Hiyerarşik kareler.' },
-  { id: 'funnelarea', name: 'Huni Alanı', cat: 'part', icon: '📐', desc: 'Oransal dilimler.' },
-  { id: 'icicle', name: 'Sarkıt (Icicle)', cat: 'part', icon: '🧊', desc: 'Yukarıdan aşağı hiyerarşi.' },
+  {
+    id: "pie",
+    name: "Pasta",
+    cat: "part",
+    icon: "🥧",
+    desc: "Bütünün parçaları.",
+  },
+  {
+    id: "donut",
+    name: "Donut",
+    cat: "part",
+    icon: "⭕",
+    desc: "Ortası boş pasta.",
+  },
+  {
+    id: "sunburst",
+    name: "Sunburst",
+    cat: "part",
+    icon: "☀️",
+    desc: "Hiyerarşik pasta.",
+  },
+  {
+    id: "treemap",
+    name: "Ağaç (Treemap)",
+    cat: "part",
+    icon: "🌳",
+    desc: "Hiyerarşik kareler.",
+  },
+  {
+    id: "funnelarea",
+    name: "Huni Alanı",
+    cat: "part",
+    icon: "📐",
+    desc: "Oransal dilimler.",
+  },
+  {
+    id: "icicle",
+    name: "Sarkıt (Icicle)",
+    cat: "part",
+    icon: "🧊",
+    desc: "Yukarıdan aşağı hiyerarşi.",
+  },
 
   // 🌌 3D & BİLİMSEL
-  { id: 'scatter3d', name: '3D Scatter', cat: 'sci', icon: '🎲', desc: 'Uzaysal korelasyon.' },
-  { id: 'line3d', name: '3D Çizgi', cat: 'sci', icon: '🎢', desc: 'Uzayda yol.' },
-  { id: 'surface', name: '3D Yüzey', cat: 'sci', icon: '🏞', desc: 'Topolojik yüzey.' },
-  { id: 'contour', name: 'Kontur', cat: 'sci', icon: '🗺', desc: 'Eş-yükselti haritası.' },
-  { id: 'polarbar', name: 'Polar Çubuk', cat: 'sci', icon: '🧭', desc: 'Dairesel çubuk.' },
-  { id: 'polarscatter', name: 'Polar Scatter', cat: 'sci', icon: '🎯', desc: 'Kutupsal nokta.' },
-  { id: 'windrose', name: 'Rüzgar Gülü', cat: 'sci', icon: '🎏', desc: 'Yönsel frekans.' },
-  { id: 'ternary', name: 'Ternary', cat: 'sci', icon: '◬', desc: '3 eksenli üçgen.' },
-  { id: 'carpet', name: 'Halı (Carpet)', cat: 'sci', icon: '🧻', desc: 'Eğrisel koordinatlar.' },
-  
+  {
+    id: "scatter3d",
+    name: "3D Scatter",
+    cat: "sci",
+    icon: "🎲",
+    desc: "Uzaysal korelasyon.",
+  },
+  {
+    id: "line3d",
+    name: "3D Çizgi",
+    cat: "sci",
+    icon: "🎢",
+    desc: "Uzayda yol.",
+  },
+  {
+    id: "surface",
+    name: "3D Yüzey",
+    cat: "sci",
+    icon: "🏞",
+    desc: "Topolojik yüzey.",
+  },
+  {
+    id: "contour",
+    name: "Kontur",
+    cat: "sci",
+    icon: "🗺",
+    desc: "Eş-yükselti haritası.",
+  },
+  {
+    id: "polarbar",
+    name: "Polar Çubuk",
+    cat: "sci",
+    icon: "🧭",
+    desc: "Dairesel çubuk.",
+  },
+  {
+    id: "polarscatter",
+    name: "Polar Scatter",
+    cat: "sci",
+    icon: "🎯",
+    desc: "Kutupsal nokta.",
+  },
+  {
+    id: "windrose",
+    name: "Rüzgar Gülü",
+    cat: "sci",
+    icon: "🎏",
+    desc: "Yönsel frekans.",
+  },
+  {
+    id: "ternary",
+    name: "Ternary",
+    cat: "sci",
+    icon: "◬",
+    desc: "3 eksenli üçgen.",
+  },
+  {
+    id: "carpet",
+    name: "Halı (Carpet)",
+    cat: "sci",
+    icon: "🧻",
+    desc: "Eğrisel koordinatlar.",
+  },
+
   // Yedekler
-  { id: 'scattergeo', name: 'Harita (Geo)', cat: 'sci', icon: '🌍', desc: 'Coğrafi noktalar.' },
-  { id: 'sankey', name: 'Akış (Sankey)', cat: 'part', icon: '〰️', desc: 'A\'dan B\'ye akış.' }
+  {
+    id: "scattergeo",
+    name: "Harita (Geo)",
+    cat: "sci",
+    icon: "🌍",
+    desc: "Coğrafi noktalar.",
+  },
+  {
+    id: "sankey",
+    name: "Akış (Sankey)",
+    cat: "part",
+    icon: "〰️",
+    desc: "A'dan B'ye akış.",
+  },
 ];
 
 function buildLayout(bg, sGrid, sLeg, isMini = false) {
-  const gc = sGrid ? 'rgba(255,255,255,0.08)' : 'transparent';
-  const tc = '#94a3b8';
-  return {
-    autosize: true, paper_bgcolor: 'transparent', plot_bgcolor: bg, font: { family: 'Inter', color: tc }, showlegend: sLeg,
-    legend: { bgcolor: 'transparent' }, margin: isMini ? { t:15, r:15, b:25, l:35 } : { t:30, r:30, b:50, l:50 },
-    xaxis: { gridcolor: gc, zeroline: false, title: { text:'' } }, yaxis: { gridcolor: gc, zeroline: false, title: { text:'' } },
+  const isLight =
+    bg &&
+    ["#ffffff", "#fff", "#f8fafc", "white"].includes(String(bg).toLowerCase());
+  const gc = sGrid
+    ? isLight
+      ? "rgba(0,0,0,0.08)"
+      : "rgba(255,255,255,0.08)"
+    : "transparent";
+  const tc = isLight ? "#334155" : "#94a3b8";
+  const customTitle = !isMini
+    ? document.getElementById("customChartTitle")?.value?.trim() || ""
+    : "";
+  const titleSize = isMini ? 12 : 16;
+  const layout = {
+    autosize: true,
+    paper_bgcolor: "transparent",
+    plot_bgcolor: bg,
+    font: { family: "Inter", color: tc },
+    showlegend: sLeg,
+    legend: { bgcolor: "transparent" },
+    margin: isMini
+      ? { t: 15, r: 15, b: 25, l: 35 }
+      : { t: customTitle ? 50 : 30, r: 30, b: 50, l: 50 },
+    xaxis: { gridcolor: gc, zeroline: false, title: { text: "" } },
+    yaxis: { gridcolor: gc, zeroline: false, title: { text: "" } },
     polar: { angularaxis: { gridcolor: gc }, radialaxis: { gridcolor: gc } },
-    ternary: { aaxis: { gridcolor: gc, linecolor: gc }, baxis: { gridcolor: gc, linecolor: gc }, caxis: { gridcolor: gc, linecolor: gc }, bgcolor: 'transparent' }
+    ternary: {
+      aaxis: { gridcolor: gc, linecolor: gc },
+      baxis: { gridcolor: gc, linecolor: gc },
+      caxis: { gridcolor: gc, linecolor: gc },
+      bgcolor: "transparent",
+    },
   };
+  if (customTitle) {
+    layout.title = {
+      text: customTitle,
+      font: { size: titleSize, color: isLight ? "#0f172a" : "#f8fafc" },
+    };
+  }
+  return layout;
 }
 
 async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
   const targetEl = document.getElementById(targetElementId);
   if (targetEl) {
-    targetEl.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+    targetEl
+      .querySelectorAll(".spinner, .chart-loading-spinner")
+      .forEach((s) => s.remove());
   }
-  const preLoader = document.getElementById('megaChartLoader');
+  const preLoader = document.getElementById("megaChartLoader");
   if (preLoader) preLoader.remove();
 
-  const mainColor = window.currentPalette || (typeof state !== 'undefined' && state.currentPalette) || document.getElementById('chartColor')?.value || '#38bdf8';
-  const bg = document.getElementById('chartBgColor')?.value || '#070711';
-  const sGrid = document.getElementById('showGrid')?.checked ?? true;
-  const sLeg = isMini ? false : (document.getElementById('showLegend')?.checked ?? true);
-  const sz = parseInt(document.getElementById('traceSize')?.value || '5');
+  const mainColor =
+    window.currentPalette ||
+    (typeof state !== "undefined" && state.currentPalette) ||
+    document.getElementById("chartColor")?.value ||
+    "#38bdf8";
+  const bg = document.getElementById("chartBgColor")?.value || "#070711";
+  const sGrid = document.getElementById("showGrid")?.checked ?? true;
+  const sLeg = isMini
+    ? false
+    : (document.getElementById("showLegend")?.checked ?? true);
+  const sz = parseInt(document.getElementById("traceSize")?.value || "5");
 
   let traces = [];
   const layout = buildLayout(bg, sGrid, sLeg, isMini);
   if (!isMini) {
-    const curX = (window.axisConfig && window.axisConfig.x) || (typeof state !== 'undefined' && state.axis && state.axis.x && state.axis.x.name) || '';
-    const curY = (window.axisConfig && window.axisConfig.y && window.axisConfig.y.length) ? window.axisConfig.y : ((typeof state !== 'undefined' && state.axis && state.axis.y) ? state.axis.y.map(i => i.name) : []);
+    const curX =
+      (window.axisConfig && window.axisConfig.x) ||
+      (typeof state !== "undefined" &&
+        state.axis &&
+        state.axis.x &&
+        state.axis.x.name) ||
+      "";
+    const curY =
+      window.axisConfig && window.axisConfig.y && window.axisConfig.y.length
+        ? window.axisConfig.y
+        : typeof state !== "undefined" && state.axis && state.axis.y
+          ? state.axis.y.map((i) => i.name)
+          : [];
     if (layout.xaxis && layout.xaxis.title) {
-      layout.xaxis.title.text = document.getElementById('customXTitle')?.value || curX;
+      layout.xaxis.title.text =
+        document.getElementById("customXTitle")?.value || curX;
     }
     if (layout.yaxis && layout.yaxis.title) {
-      layout.yaxis.title.text = document.getElementById('customYTitle')?.value || curY.join(', ');
+      layout.yaxis.title.text =
+        document.getElementById("customYTitle")?.value || curY.join(", ");
     }
   }
 
-  const raw = data.raw || {}, agg = data.agg || {}, corr = data.corr || {};
+  const raw = data.raw || {},
+    agg = data.agg || {},
+    corr = data.corr || {};
 
   try {
     // ════════ 1. RAW DATA CHARTS ════════
     if (data.raw) {
-      const keys = Object.keys(raw).filter(k => k !== '__x__');
-      const xVals = raw['__x__'] || [];
+      const keys = Object.keys(raw).filter((k) => k !== "__x__");
+      const xVals = raw["__x__"] || [];
 
       // 3D Çizgiler & Noktalar
-      if (type === 'scatter3d' || type === 'line3d') {
+      if (type === "scatter3d" || type === "line3d") {
         const zKey = keys[1] || keys[0];
         traces.push({
-          type: 'scatter3d', mode: type === 'line3d' ? 'lines' : 'markers',
+          type: "scatter3d",
+          mode: type === "line3d" ? "lines" : "markers",
           x: xVals.length ? xVals : raw[keys[0]],
           y: raw[keys[0]] || xVals,
           z: raw[zKey] || raw[keys[0]],
           marker: { size: sz * 1.5, color: PALETTE },
-          line: { width: sz, color: mainColor }
+          line: { width: sz, color: mainColor },
         });
       }
       // SPLOM / Scatter Matrix
-      else if (type === 'scattermatrix') {
+      else if (type === "scattermatrix") {
         traces.push({
-          type: 'splom',
-          dimensions: keys.map(k => ({ label: k, values: raw[k] })),
-          marker: { color: mainColor, size: isMini ? 3 : 5 }
+          type: "splom",
+          dimensions: keys.map((k) => ({ label: k, values: raw[k] })),
+          marker: { color: mainColor, size: isMini ? 3 : 5 },
         });
       }
       // Parallel Coordinates & Categories
-      else if (type === 'parcoords') {
-        const numKeys = keys.filter(k => numericColumns.includes(k));
+      else if (type === "parcoords") {
+        const numKeys = keys.filter((k) => numericColumns.includes(k));
         const targetKeys = numKeys.length >= 2 ? numKeys : keys;
         traces.push({
-          type: 'parcoords',
-          dimensions: targetKeys.map(k => ({
+          type: "parcoords",
+          dimensions: targetKeys.map((k) => ({
             label: k,
-            values: (raw[k] || []).map(v => Number(v) || 0)
-          }))
+            values: (raw[k] || []).map((v) => Number(v) || 0),
+          })),
         });
-      }
-      else if (type === 'parcats') {
-        const allDimKeys = xVals.length ? ['__x__', ...keys] : keys;
+      } else if (type === "parcats") {
+        const allDimKeys = xVals.length ? ["__x__", ...keys] : keys;
         traces.push({
-          type: 'parcats',
-          dimensions: allDimKeys.map(k => ({
-            label: k === '__x__' ? (axisConfig.x || 'Kategori') : k,
-            values: k === '__x__' ? xVals : raw[k]
-          }))
+          type: "parcats",
+          dimensions: allDimKeys.map((k) => ({
+            label: k === "__x__" ? axisConfig.x || "Kategori" : k,
+            values: k === "__x__" ? xVals : raw[k],
+          })),
         });
       }
       // Finansal: Candlestick & OHLC
-      else if (type === 'candlestick' || type === 'ohlc') {
+      else if (type === "candlestick" || type === "ohlc") {
         const y0 = keys[0] ? raw[keys[0]] : [];
         if (!y0 || y0.length === 0) {
           const el = document.getElementById(targetElementId);
-          if (el) el.innerHTML = '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Mum grafiği için en az bir sayısal fiyat sütunu seçiniz.</div>';
+          if (el)
+            el.innerHTML =
+              '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Mum grafiği için en az bir sayısal fiyat sütunu seçiniz.</div>';
           return;
         }
-        const openVals = keys[1] ? raw[keys[1]] : y0.map(v => v * 0.98);
-        const highVals = keys[2] ? raw[keys[2]] : y0.map(v => v * 1.03);
-        const lowVals = keys[3] ? raw[keys[3]] : y0.map(v => v * 0.95);
+        const openVals = keys[1] ? raw[keys[1]] : y0.map((v) => v * 0.98);
+        const highVals = keys[2] ? raw[keys[2]] : y0.map((v) => v * 1.03);
+        const lowVals = keys[3] ? raw[keys[3]] : y0.map((v) => v * 0.95);
         const closeVals = y0;
 
         traces.push({
           type: type,
-          x: xVals.length ? xVals : Array.from({length: y0.length}, (_, i) => i + 1),
-          open: openVals, high: highVals, low: lowVals, close: closeVals
+          x: xVals.length
+            ? xVals
+            : Array.from({ length: y0.length }, (_, i) => i + 1),
+          open: openVals,
+          high: highVals,
+          low: lowVals,
+          close: closeVals,
         });
         if (layout.xaxis) layout.xaxis.rangeslider = { visible: false };
       }
       // Ternary
-      else if (type === 'ternary') {
+      else if (type === "ternary") {
         traces.push({
-          type: 'scatterternary', mode: 'markers',
+          type: "scatterternary",
+          mode: "markers",
           a: raw[keys[0]] || [],
           b: raw[keys[1]] || raw[keys[0]] || [],
           c: raw[keys[2]] || raw[keys[0]] || [],
-          marker: { color: mainColor, size: sz * 2 }
+          marker: { color: mainColor, size: sz * 2 },
         });
       }
       // Scattergeo Coğrafi Harita
-      else if (type === 'scattergeo') {
+      else if (type === "scattergeo") {
         keys.forEach((k, i) => {
           traces.push({
-            type: 'scattergeo', mode: 'markers', name: k,
+            type: "scattergeo",
+            mode: "markers",
+            name: k,
             lat: xVals.length ? xVals : raw[keys[0]],
             lon: raw[keys[1] || keys[0]],
-            marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10], size: isMini ? sz * 2 : sz * 3, opacity: 0.8 }
+            marker: {
+              color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              size: isMini ? sz * 2 : sz * 3,
+              opacity: 0.8,
+            },
           });
         });
-        layout.geo = { bgcolor: 'transparent', showcoastlines: true, coastlinecolor: 'rgba(255,255,255,0.2)', showland: true, landcolor: 'rgba(255,255,255,0.05)' };
+        layout.geo = {
+          bgcolor: "transparent",
+          showcoastlines: true,
+          coastlinecolor: "rgba(255,255,255,0.2)",
+          showland: true,
+          landcolor: "rgba(255,255,255,0.05)",
+        };
       }
       // Scatter & Bubble
-      else if (['scatter', 'bubble'].includes(type)) {
+      else if (["scatter", "bubble"].includes(type)) {
         keys.forEach((k, i) => {
           traces.push({
-            type: 'scatter', mode: 'markers', name: k,
-            x: xVals.length ? xVals : undefined, y: raw[k],
-            marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10], size: type === 'bubble' ? sz * 4 : (isMini ? sz * 2 : sz * 3), opacity: 0.75 }
+            type: "scatter",
+            mode: "markers",
+            name: k,
+            x: xVals.length ? xVals : undefined,
+            y: raw[k],
+            marker: {
+              color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              size: type === "bubble" ? sz * 4 : isMini ? sz * 2 : sz * 3,
+              opacity: 0.75,
+            },
           });
+        });
+      }
+      // Dumbbell (Halter)
+      else if (type === "dumbbell") {
+        const s0 = keys[0] ? raw[keys[0]] || [] : [];
+        const s1 = keys[1] ? raw[keys[1]] || [] : s0.map(() => 0);
+        const yLabels = xVals.length
+          ? xVals
+          : s0.map((_, idx) => `Kayıt ${idx + 1}`);
+        const segX = [],
+          segY = [];
+        for (let idx = 0; idx < yLabels.length; idx++) {
+          segX.push(s1[idx], s0[idx], null);
+          segY.push(yLabels[idx], yLabels[idx], null);
+        }
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          name: "Fark",
+          x: segX,
+          y: segY,
+          line: { color: "rgba(148, 163, 184, 0.45)", width: Math.max(2, sz) },
+          showlegend: false,
+          hoverinfo: "skip",
+        });
+        traces.push({
+          type: "scatter",
+          mode: "markers",
+          name: keys[1] ? keys[0] : "Başlangıç",
+          x: keys[1] ? s0 : s1,
+          y: yLabels,
+          marker: { color: PALETTE[0] || mainColor, size: sz * 2.5 + 4 },
+        });
+        traces.push({
+          type: "scatter",
+          mode: "markers",
+          name: keys[1] ? keys[1] : keys[0] || "Değer",
+          x: keys[1] ? s1 : s0,
+          y: yLabels,
+          marker: { color: PALETTE[1] || "#34d399", size: sz * 2.5 + 4 },
         });
       }
       // Histogram, Box, Violin, Strip, Rug
-      else if (['histogram', 'box', 'violin', 'strip', 'rug'].includes(type)) {
+      else if (["histogram", "box", "violin", "strip", "rug"].includes(type)) {
         keys.forEach((k, i) => {
           let tr = {
-            type: type === 'strip' || type === 'rug' ? 'scatter' : type,
+            type: type === "strip" || type === "rug" ? "scatter" : type,
             name: k,
-            x: xVals.length && type !== 'histogram' ? xVals : undefined,
+            x: xVals.length && type !== "histogram" ? xVals : undefined,
             y: raw[k],
-            marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] }
+            marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] },
           };
-          if (type === 'strip') { tr.mode = 'markers'; tr.marker.size = sz * 2; tr.marker.opacity = 0.6; }
-          if (type === 'rug') { tr.mode = 'markers'; tr.marker.symbol = 'line-ns'; tr.marker.size = 14; }
-          if (type === 'box') { tr.boxpoints = 'outliers'; }
-          if (type === 'violin') { tr.points = 'none'; tr.box = { visible: true }; }
+          if (type === "strip") {
+            tr.mode = "markers";
+            tr.marker.size = sz * 2;
+            tr.marker.opacity = 0.6;
+          }
+          if (type === "rug") {
+            tr.mode = "markers";
+            tr.marker.symbol = "line-ns";
+            tr.marker.size = 14;
+          }
+          if (type === "box") {
+            tr.boxpoints = "outliers";
+          }
+          if (type === "violin") {
+            tr.points = "none";
+            tr.box = { visible: true };
+          }
           traces.push(tr);
         });
-        if (type === 'histogram') layout.barmode = 'overlay';
+        if (type === "histogram") layout.barmode = "overlay";
       }
       // 2D Density & 2D Histogram
-      else if (type === 'histogram2d' || type === 'density2d') {
+      else if (type === "histogram2d" || type === "density2d") {
         if (keys.length > 0) {
           traces.push({
-            type: type === 'density2d' ? 'histogram2dcontour' : 'histogram2d',
+            type: type === "density2d" ? "histogram2dcontour" : "histogram2d",
             x: xVals.length ? xVals : raw[keys[0]],
             y: raw[keys[0]],
-            colorscale: 'Viridis'
+            colorscale: "Viridis",
           });
         }
-      }
-      else {
-        keys.forEach(k => traces.push({ type: 'box', name: k, y: raw[k], marker: { color: mainColor } }));
+      } else {
+        keys.forEach((k) =>
+          traces.push({
+            type: "box",
+            name: k,
+            y: raw[k],
+            marker: { color: mainColor },
+          }),
+        );
       }
     }
 
     // ════════ 2. CORRELATION / MATRIX CHARTS ════════
     else if (data.corr) {
       traces.push({
-        type: type === 'surface' ? 'surface' : (type === 'contour' || type === 'carpet' ? 'contour' : 'heatmap'),
-        x: corr.labels, y: corr.labels, z: corr.matrix,
-        colorscale: 'Blues', showscale: !isMini
+        type:
+          type === "surface"
+            ? "surface"
+            : type === "contour" || type === "carpet"
+              ? "contour"
+              : "heatmap",
+        x: corr.labels,
+        y: corr.labels,
+        z: corr.matrix,
+        colorscale: "Blues",
+        showscale: !isMini,
       });
-      if (['heatmap', 'contour', 'carpet'].includes(type)) {
-        layout.xaxis.showgrid = false; layout.yaxis.showgrid = false;
+      if (["heatmap", "contour", "carpet"].includes(type)) {
+        layout.xaxis.showgrid = false;
+        layout.yaxis.showgrid = false;
       }
     }
 
     // ════════ 3. AGGREGATED CHARTS ════════
     else if (data.agg) {
-      const keys = Object.keys(agg).filter(k => k !== '__x__');
-      const xVals = agg['__x__'] || [];
+      const keys = Object.keys(agg).filter((k) => k !== "__x__");
+      const xVals = agg["__x__"] || [];
 
       // Pie, Donut, Sunburst, Treemap, FunnelArea, Icicle, Sankey
-      if (['pie', 'donut', 'funnelarea', 'sunburst', 'treemap', 'icicle', 'sankey'].includes(type)) {
-        if (type === 'sankey') {
+      if (
+        [
+          "pie",
+          "donut",
+          "funnelarea",
+          "sunburst",
+          "treemap",
+          "icicle",
+          "sankey",
+        ].includes(type)
+      ) {
+        if (type === "sankey") {
           let nodeLabels = [...xVals, ...keys];
           let source = [];
           let target = [];
           let value = [];
-          
+
           keys.forEach((k, kIdx) => {
             let targetIdx = xVals.length + kIdx;
             xVals.forEach((x, xIdx) => {
@@ -288,265 +767,508 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
               }
             });
           });
-          
+
           if (value.length === 0) {
             const el = document.getElementById(targetElementId);
-            if (el) el.innerHTML = '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Sankey akışı için en az bir pozitif sayısal değer ve kategori seçiniz.</div>';
+            if (el)
+              el.innerHTML =
+                '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Sankey akışı için en az bir pozitif sayısal değer ve kategori seçiniz.</div>';
             return;
           }
-          
+
           traces.push({
-            type: 'sankey', orientation: 'h',
-            node: { pad: 15, thickness: 20, line: { color: 'black', width: 0.5 }, label: nodeLabels, color: PALETTE },
-            link: { source: source, target: target, value: value }
+            type: "sankey",
+            orientation: "h",
+            node: {
+              pad: 15,
+              thickness: 20,
+              line: { color: "black", width: 0.5 },
+              label: nodeLabels,
+              color: PALETTE,
+            },
+            link: { source: source, target: target, value: value },
           });
         } else {
           const k = keys[0];
           if (k) {
             let _labels = xVals;
-            let _parents = ['sunburst', 'treemap', 'icicle'].includes(type) ? xVals.map(() => "") : undefined;
+            let _parents = ["sunburst", "treemap", "icicle"].includes(type)
+              ? xVals.map(() => "")
+              : undefined;
             let _values = agg[k];
-            
-            if (['sunburst', 'treemap', 'icicle'].includes(type)) {
-               const cleanVals = (agg[k] || []).map(v => Math.max(0, Number(v) || 0));
-               const totalVal = cleanVals.reduce((a, b) => a + b, 0);
-               const rootLabel = 'Toplam';
-               const safeLabels = xVals.map((x, idx) => {
-                   let s = String(x || `Kategori ${idx + 1}`).trim();
-                   return s === rootLabel ? s + ' ' : s;
-               });
-               _labels = [...safeLabels, rootLabel];
-               _parents = [...safeLabels.map(() => rootLabel), ""];
-               _values = [...cleanVals, totalVal];
+
+            if (["sunburst", "treemap", "icicle"].includes(type)) {
+              const cleanVals = (agg[k] || []).map((v) =>
+                Math.max(0, Number(v) || 0),
+              );
+              const totalVal = cleanVals.reduce((a, b) => a + b, 0);
+              const rootLabel = "Toplam";
+              const safeLabels = xVals.map((x, idx) => {
+                let s = String(x || `Kategori ${idx + 1}`).trim();
+                return s === rootLabel ? s + " " : s;
+              });
+              _labels = [...safeLabels, rootLabel];
+              _parents = [...safeLabels.map(() => rootLabel), ""];
+              _values = [...cleanVals, totalVal];
             }
-            
+
             traces.push({
-              type: ['sunburst', 'treemap', 'icicle'].includes(type) ? type : (type === 'funnelarea' ? 'funnelarea' : 'pie'),
+              type: ["sunburst", "treemap", "icicle"].includes(type)
+                ? type
+                : type === "funnelarea"
+                  ? "funnelarea"
+                  : "pie",
               labels: _labels,
               parents: _parents,
-              [type === 'funnelarea' ? 'text' : 'labels']: _labels,
+              [type === "funnelarea" ? "text" : "labels"]: _labels,
               values: _values,
-              hole: type === 'donut' ? 0.5 : 0,
-              marker: { colors: PALETTE }
+              hole: type === "donut" ? 0.5 : 0,
+              marker: { colors: PALETTE },
             });
             if (layout.xaxis) layout.xaxis.visible = false;
             if (layout.yaxis) layout.yaxis.visible = false;
           }
         }
       }
-      // Bullet / Indicator
-      else if (type === 'bullet') {
-        const k = keys[0] || 'Değer';
-        const val = agg[k] ? agg[k][0] : 0;
+      // Bullet / Indicator / Gauge
+      else if (type === "bullet" || type === "gauge") {
+        const k = keys[0] || "Değer";
+        const vals = (agg[k] || []).map((v) => Number(v) || 0);
+        const val = vals.length ? vals[0] : 0;
+        const maxRange = Math.max(...vals, val * 1.3, 1);
         traces.push({
-          type: 'indicator', mode: 'number+gauge+delta',
+          type: "indicator",
+          mode: type === "gauge" ? "gauge+number" : "number+gauge+delta",
           value: val,
           title: { text: k, font: { size: 16 } },
           gauge: {
-            shape: 'bullet',
-            axis: { range: [0, val * 1.3] },
+            shape: type === "gauge" ? "angular" : "bullet",
+            axis: { range: [0, maxRange] },
             bar: { color: mainColor },
-            threshold: { line: { color: "#f87171", width: 3 }, thickness: 0.75, value: val * 0.9 }
-          }
+            threshold: {
+              line: { color: "#f87171", width: 3 },
+              thickness: 0.75,
+              value: maxRange * 0.9,
+            },
+          },
         });
       }
-      // Polar Bar, Polar Scatter, Windrose
-      else if (['polarbar', 'polarscatter', 'windrose'].includes(type)) {
+      // Polar Bar, Polar Scatter, Windrose, Radial Bar
+      else if (
+        ["polarbar", "polarscatter", "windrose", "radialbar"].includes(type)
+      ) {
         const k = keys[0];
         if (k) {
           traces.push({
-            type: type === 'polarscatter' ? 'scatterpolar' : 'barpolar',
-            mode: type === 'polarscatter' ? 'markers' : undefined,
-            r: agg[k], theta: xVals,
-            marker: { color: PALETTE, size: sz * 2.5 }
+            type: type === "polarscatter" ? "scatterpolar" : "barpolar",
+            mode: type === "polarscatter" ? "markers" : undefined,
+            name: k,
+            r: agg[k],
+            theta: xVals,
+            marker: { color: PALETTE, size: sz * 2.5 },
           });
+          if (type === "radialbar" && layout.polar) {
+            layout.polar.hole = 0.25;
+          }
         }
       }
+      // Dumbbell (Halter)
+      else if (type === "dumbbell") {
+        const s0 = keys[0] ? agg[keys[0]] || [] : [];
+        const s1 = keys[1] ? agg[keys[1]] || [] : s0.map(() => 0);
+        const yLabels = xVals.length
+          ? xVals
+          : s0.map((_, idx) => `Kategori ${idx + 1}`);
+        const segX = [],
+          segY = [];
+        for (let idx = 0; idx < yLabels.length; idx++) {
+          segX.push(s1[idx], s0[idx], null);
+          segY.push(yLabels[idx], yLabels[idx], null);
+        }
+        traces.push({
+          type: "scatter",
+          mode: "lines",
+          name: "Fark",
+          x: segX,
+          y: segY,
+          line: { color: "rgba(148, 163, 184, 0.45)", width: Math.max(2, sz) },
+          showlegend: false,
+          hoverinfo: "skip",
+        });
+        traces.push({
+          type: "scatter",
+          mode: "markers",
+          name: keys[1] ? keys[0] : "Başlangıç",
+          x: keys[1] ? s0 : s1,
+          y: yLabels,
+          marker: { color: PALETTE[0] || mainColor, size: sz * 2.5 + 4 },
+        });
+        traces.push({
+          type: "scatter",
+          mode: "markers",
+          name: keys[1] ? keys[1] : keys[0] || "Değer",
+          x: keys[1] ? s1 : s0,
+          y: yLabels,
+          marker: { color: PALETTE[1] || "#34d399", size: sz * 2.5 + 4 },
+        });
+      }
+      // Lollipop (Lolipop)
+      else if (type === "lollipop") {
+        keys.forEach((k, i) => {
+          const colColor = keys.length === 1 ? mainColor : PALETTE[i % 10];
+          const ySeries = agg[k] || [];
+          traces.push({
+            type: "bar",
+            name: `${k} (Gövde)`,
+            x: xVals,
+            y: ySeries,
+            width: 0.12,
+            marker: { color: colColor, opacity: 0.65 },
+            showlegend: false,
+            hoverinfo: "skip",
+          });
+          traces.push({
+            type: "scatter",
+            mode: "markers",
+            name: k,
+            x: xVals,
+            y: ySeries,
+            marker: {
+              color: colColor,
+              size: sz * 3 + 4,
+              line: { color: "#ffffff", width: 1.5 },
+            },
+          });
+        });
+      }
       // Bars, Funnel, Waterfall, Radar, Dotplot, Errorbar
-      else if (['bar', 'horizontalbar', 'groupedbar', 'stackedbar', 'funnel', 'waterfall', 'radar', 'dotplot', 'errorbar'].includes(type)) {
+      else if (
+        [
+          "bar",
+          "horizontalbar",
+          "groupedbar",
+          "stackedbar",
+          "funnel",
+          "waterfall",
+          "radar",
+          "dotplot",
+          "errorbar",
+        ].includes(type)
+      ) {
         keys.forEach((k, i) => {
           let tr = {};
-          if (type === 'radar') {
-            tr = { type: 'scatterpolar', name: k, r: agg[k], theta: xVals, fill: 'toself', marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] } };
-          } else if (type === 'funnel') {
-            tr = { type: 'funnel', name: k, y: xVals, x: agg[k], marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] } };
-          } else if (type === 'waterfall') {
-            tr = { type: 'waterfall', name: k, x: xVals, y: agg[k], marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] } };
-          } else if (type === 'dotplot') {
-            tr = { type: 'scatter', mode: 'markers', name: k, x: xVals, y: agg[k], marker: { size: sz * 3.5, color: keys.length === 1 ? mainColor : PALETTE[i % 10] } };
-          } else if (type === 'errorbar') {
-            tr = { type: 'bar', name: k, x: xVals, y: agg[k], error_y: { type: 'data', array: agg[k].map(v => v * 0.08), visible: true }, marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] } };
+          if (type === "radar") {
+            tr = {
+              type: "scatterpolar",
+              name: k,
+              r: agg[k],
+              theta: xVals,
+              fill: "toself",
+              marker: {
+                color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              },
+            };
+          } else if (type === "funnel") {
+            tr = {
+              type: "funnel",
+              name: k,
+              y: xVals,
+              x: agg[k],
+              marker: {
+                color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              },
+            };
+          } else if (type === "waterfall") {
+            tr = {
+              type: "waterfall",
+              name: k,
+              x: xVals,
+              y: agg[k],
+              marker: {
+                color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              },
+            };
+          } else if (type === "dotplot") {
+            tr = {
+              type: "scatter",
+              mode: "markers",
+              name: k,
+              x: xVals,
+              y: agg[k],
+              marker: {
+                size: sz * 3.5,
+                color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              },
+            };
+          } else if (type === "errorbar") {
+            tr = {
+              type: "bar",
+              name: k,
+              x: xVals,
+              y: agg[k],
+              error_y: {
+                type: "data",
+                array: agg[k].map((v) => v * 0.08),
+                visible: true,
+              },
+              marker: {
+                color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              },
+            };
           } else {
-            tr = { type: 'bar', name: k, [type === 'horizontalbar' ? 'y' : 'x']: xVals, [type === 'horizontalbar' ? 'x' : 'y']: agg[k], marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] } };
-            if (type === 'horizontalbar') tr.orientation = 'h';
+            tr = {
+              type: "bar",
+              name: k,
+              [type === "horizontalbar" ? "y" : "x"]: xVals,
+              [type === "horizontalbar" ? "x" : "y"]: agg[k],
+              marker: {
+                color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              },
+            };
+            if (type === "horizontalbar") tr.orientation = "h";
           }
           traces.push(tr);
         });
-        if (type === 'groupedbar') layout.barmode = 'group';
-        if (type === 'stackedbar') layout.barmode = 'stack';
+        if (type === "groupedbar") layout.barmode = "group";
+        if (type === "stackedbar") layout.barmode = "stack";
       }
       // Lines & Areas (Line, Spline, Step, Area, StackedArea)
       else {
         keys.forEach((k, i) => {
           let tr = {
-            type: 'scatter', mode: 'lines+markers', name: k, x: xVals, y: agg[k],
-            line: { color: keys.length === 1 ? mainColor : PALETTE[i % 10], width: sz },
-            marker: { size: sz + 3, color: keys.length === 1 ? mainColor : PALETTE[i % 10] }
+            type: "scatter",
+            mode: "lines+markers",
+            name: k,
+            x: xVals,
+            y: agg[k],
+            line: {
+              color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+              width: sz,
+            },
+            marker: {
+              size: sz + 3,
+              color: keys.length === 1 ? mainColor : PALETTE[i % 10],
+            },
           };
-          if (type === 'spline') tr.line.shape = 'spline';
-          if (type === 'step') tr.line.shape = 'vhv';
-          if (type === 'area' || type === 'stackedarea') tr.fill = i === 0 ? 'tozeroy' : (type === 'stackedarea' ? 'tonexty' : 'tozeroy');
+          if (type === "spline") tr.line.shape = "spline";
+          if (type === "step") tr.line.shape = "vhv";
+          if (type === "area" || type === "stackedarea")
+            tr.fill =
+              i === 0
+                ? "tozeroy"
+                : type === "stackedarea"
+                  ? "tonexty"
+                  : "tozeroy";
           traces.push(tr);
         });
       }
     }
 
     // ════════ 4. CANLI TRENDLINE & KORELASYON OVERLAY ════════
-    if (!isMini && (targetElementId === 'chartArea' || targetElementId === 'livePlotlyArea')) {
-      const curAxisX = (window.axisConfig && window.axisConfig.x) || (typeof state !== 'undefined' && state.axis && state.axis.x && state.axis.x.name) || null;
-      const curAxisY = (window.axisConfig && window.axisConfig.y && window.axisConfig.y.length) ? window.axisConfig.y : ((typeof state !== 'undefined' && state.axis && state.axis.y) ? state.axis.y.map(i => i.name) : []);
-      const numCols = window.numericColumns || (typeof state !== 'undefined' && state.activeDataset && state.activeDataset.numericColumns) || [];
-      const curFilters = window.activeFilters || (typeof state !== 'undefined' && state.activeFilters) || [];
+    if (
+      !isMini &&
+      (targetElementId === "chartArea" || targetElementId === "livePlotlyArea")
+    ) {
+      const curAxisX =
+        (window.axisConfig && window.axisConfig.x) ||
+        (typeof state !== "undefined" &&
+          state.axis &&
+          state.axis.x &&
+          state.axis.x.name) ||
+        null;
+      const curAxisY =
+        window.axisConfig && window.axisConfig.y && window.axisConfig.y.length
+          ? window.axisConfig.y
+          : typeof state !== "undefined" && state.axis && state.axis.y
+            ? state.axis.y.map((i) => i.name)
+            : [];
+      const numCols =
+        window.numericColumns ||
+        (typeof state !== "undefined" &&
+          state.activeDataset &&
+          state.activeDataset.numericColumns) ||
+        [];
+      const curFilters =
+        window.activeFilters ||
+        (typeof state !== "undefined" && state.activeFilters) ||
+        [];
 
       const isXNum = curAxisX && numCols.includes(curAxisX);
       const firstY = curAxisY.length > 0 ? curAxisY[0] : null;
       const isYNum = firstY && numCols.includes(firstY);
-      const badgeEl = document.getElementById('chartStatsBadge') || document.getElementById('canvasEquationBadge');
-      const showTrend = document.getElementById('showTrendline')?.checked ?? (type === 'scatter');
-      const regModel = document.getElementById('regModelSelect')?.value || 'linear';
-      const corrMethod = document.getElementById('corrMethodSelect')?.value || 'pearson';
+      const badgeEls = [
+        document.getElementById("chartStatsBadge"),
+        document.getElementById("chartStatsBanner"),
+        document.getElementById("canvasEquationBadge"),
+      ].filter(Boolean);
+      const showTrend =
+        document.getElementById("showTrendline")?.checked ?? type === "scatter";
+      const regModel =
+        document.getElementById("regModelSelect")?.value || "linear";
+      const corrMethod =
+        document.getElementById("corrMethodSelect")?.value || "pearson";
 
       if (isXNum && isYNum) {
         try {
-          const regRes = await fetch('/get_regression_curve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const regRes = await fetch("/get_regression_curve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               x_col: curAxisX,
               y_col: firstY,
               model_type: regModel,
               corr_method: corrMethod,
-              filters: curFilters
-            })
+              filters: curFilters,
+            }),
           });
           const regData = await regRes.json();
           if (regData.success && regData.regression && regData.correlation) {
             const reg = regData.regression;
             const corr = regData.correlation;
 
-            // 1. Canlı İstatistik Sonuç Kartını Güncelle (Inspector)
-            const corrSymbol = corrMethod === 'spearman' ? 'ρ' : (corrMethod === 'kendall' ? 'τ' : 'r');
-            
-            const corrMetricNameEl = document.getElementById('corrMetricName');
+            // 1. Canlı İstatistik Sonuç Kartını ve Overlay Rozetini Güncelle
+            const corrSymbol =
+              corrMethod === "spearman"
+                ? "ρ"
+                : corrMethod === "kendall"
+                  ? "τ"
+                  : "r";
+            const corrText = corr.coef != null ? corr.coef.toFixed(4) : "-";
+            const r2Text =
+              reg.r_squared != null ? reg.r_squared.toFixed(4) : "-";
+            const eqText = reg.equation || "-";
+
+            const corrMetricNameEl = document.getElementById("corrMetricName");
             if (corrMetricNameEl) corrMetricNameEl.textContent = corrSymbol;
-            
-            const statCorrValEl = document.getElementById('statCorrVal');
-            if (statCorrValEl) statCorrValEl.textContent = corr.coef != null ? corr.coef.toFixed(4) : '-';
-            
-            const statInterpretationEl = document.getElementById('statInterpretation');
-            if (statInterpretationEl) statInterpretationEl.textContent = corr.interpretation || '';
 
-            const statR2ValEl = document.getElementById('statR2Val');
-            if (statR2ValEl) statR2ValEl.textContent = reg.r_squared != null ? reg.r_squared.toFixed(4) : '-';
+            const statCorrValEl = document.getElementById("statCorrVal");
+            if (statCorrValEl) statCorrValEl.textContent = corrText;
 
-            const statEquationValEl = document.getElementById('statEquationVal');
-            if (statEquationValEl) statEquationValEl.textContent = reg.equation || '-';
+            const statInterpretationEl =
+              document.getElementById("statInterpretation");
+            if (statInterpretationEl)
+              statInterpretationEl.textContent = corr.interpretation || "";
 
-            const statPValEl = document.getElementById('statPVal');
+            const statR2ValEl = document.getElementById("statR2Val");
+            if (statR2ValEl) statR2ValEl.textContent = r2Text;
+
+            const statEquationValEl =
+              document.getElementById("statEquationVal");
+            if (statEquationValEl) statEquationValEl.textContent = eqText;
+
+            const csbEquation = document.getElementById("csbEquation");
+            const csbR2 = document.getElementById("csbR2");
+            const csbCorrName = document.getElementById("csbCorrName");
+            const csbCorr = document.getElementById("csbCorr");
+            if (csbEquation) csbEquation.textContent = eqText;
+            if (csbR2) csbR2.textContent = r2Text;
+            if (csbCorrName) csbCorrName.textContent = corrSymbol;
+            if (csbCorr) csbCorr.textContent = corrText;
+
+            const statPValEl = document.getElementById("statPVal");
             if (statPValEl) {
               if (corr.p_value != null) {
-                statPValEl.textContent = corr.p_value < 0.0001 ? '< 0.0001' : corr.p_value.toFixed(4);
+                statPValEl.textContent =
+                  corr.p_value < 0.0001 ? "< 0.0001" : corr.p_value.toFixed(4);
               } else {
-                statPValEl.textContent = '-';
+                statPValEl.textContent = "-";
               }
             }
 
-            const statSigBadgeEl = document.getElementById('statSignificanceBadge');
+            const statSigBadgeEl = document.getElementById(
+              "statSignificanceBadge",
+            );
             if (statSigBadgeEl) {
               if (corr.p_value != null && corr.p_value < 0.05) {
-                statSigBadgeEl.textContent = 'Anlamlı (p < 0.05)';
-                statSigBadgeEl.style.background = 'rgba(52, 211, 153, 0.15)';
-                statSigBadgeEl.style.color = '#34d399';
+                statSigBadgeEl.textContent = "Anlamlı (p < 0.05)";
+                statSigBadgeEl.style.background = "rgba(52, 211, 153, 0.15)";
+                statSigBadgeEl.style.color = "#34d399";
               } else if (corr.p_value != null) {
-                statSigBadgeEl.textContent = 'Anlamsız (p ≥ 0.05)';
-                statSigBadgeEl.style.background = 'rgba(251, 191, 36, 0.15)';
-                statSigBadgeEl.style.color = '#fbbf24';
+                statSigBadgeEl.textContent = "Anlamsız (p ≥ 0.05)";
+                statSigBadgeEl.style.background = "rgba(251, 191, 36, 0.15)";
+                statSigBadgeEl.style.color = "#fbbf24";
               } else {
-                statSigBadgeEl.textContent = '-';
+                statSigBadgeEl.textContent = "-";
               }
             }
 
             // 2. Trendline Çizgisi Ekle (Eğer Kullanıcı İstemişse)
             if (showTrend && reg.trend_x && reg.trend_x.length > 0) {
               traces.push({
-                type: 'scatter',
-                mode: 'lines',
+                type: "scatter",
+                mode: "lines",
                 name: `Trend: ${reg.equation}`,
                 x: reg.trend_x,
                 y: reg.trend_y,
                 line: {
-                  color: '#f59e0b',
+                  color: "#f59e0b",
                   width: 3,
-                  dash: 'dash'
+                  dash: "dash",
                 },
-                hoverinfo: 'x+y+name'
+                hoverinfo: "x+y+name",
               });
 
-              // Rozeti Göster ve Doldur
-              if (badgeEl) {
-                badgeEl.classList.remove('hidden');
-                const csbEquation = document.getElementById('csbEquation');
-                const csbR2 = document.getElementById('csbR2');
-                const csbCorrName = document.getElementById('csbCorrName');
-                const csbCorr = document.getElementById('csbCorr');
-
-                if (csbEquation) csbEquation.textContent = reg.equation;
-                if (csbR2) csbR2.textContent = reg.r_squared != null ? reg.r_squared.toFixed(4) : '-';
-                if (csbCorrName) csbCorrName.textContent = corrSymbol;
-                if (csbCorr) csbCorr.textContent = corr.coef != null ? corr.coef.toFixed(4) : '-';
-              }
+              badgeEls.forEach((b) => b.classList.remove("hidden"));
             } else {
-              if (badgeEl) badgeEl.classList.add('hidden');
+              badgeEls.forEach((b) => b.classList.add("hidden"));
             }
           }
         } catch (regErr) {
-          console.warn('Regresyon eğrisi yüklenirken hata:', regErr);
-          if (badgeEl) badgeEl.classList.add('hidden');
+          console.warn("Regresyon eğrisi yüklenirken hata:", regErr);
+          badgeEls.forEach((b) => b.classList.add("hidden"));
         }
       } else {
-        if (badgeEl) badgeEl.classList.add('hidden');
-        const statInterpretationEl = document.getElementById('statInterpretation');
-        if (statInterpretationEl) statInterpretationEl.textContent = 'Korelasyon ve regresyon için X ve Y eksenlerinin her ikisinin de sayısal olması gerekir.';
-        const statEquationValEl = document.getElementById('statEquationVal');
-        if (statEquationValEl) statEquationValEl.textContent = 'Sayısal değişken seçilmedi';
-        const statCorrValEl = document.getElementById('statCorrVal');
-        if (statCorrValEl) statCorrValEl.textContent = '-';
-        const statR2ValEl = document.getElementById('statR2Val');
-        if (statR2ValEl) statR2ValEl.textContent = '-';
-        const statPValEl = document.getElementById('statPVal');
-        if (statPValEl) statPValEl.textContent = '-';
+        badgeEls.forEach((b) => b.classList.add("hidden"));
+        const statInterpretationEl =
+          document.getElementById("statInterpretation");
+        if (statInterpretationEl)
+          statInterpretationEl.textContent =
+            "Korelasyon ve regresyon için X ve Y eksenlerinin her ikisinin de sayısal olması gerekir.";
+        const statEquationValEl = document.getElementById("statEquationVal");
+        if (statEquationValEl)
+          statEquationValEl.textContent = "Sayısal değişken seçilmedi";
+        const statCorrValEl = document.getElementById("statCorrVal");
+        if (statCorrValEl) statCorrValEl.textContent = "-";
+        const statR2ValEl = document.getElementById("statR2Val");
+        if (statR2ValEl) statR2ValEl.textContent = "-";
+        const statPValEl = document.getElementById("statPVal");
+        if (statPValEl) statPValEl.textContent = "-";
+        const csbEquation = document.getElementById("csbEquation");
+        if (csbEquation) csbEquation.textContent = "-";
+        const csbR2 = document.getElementById("csbR2");
+        if (csbR2) csbR2.textContent = "-";
+        const csbCorr = document.getElementById("csbCorr");
+        if (csbCorr) csbCorr.textContent = "-";
       }
     }
 
     if (targetEl) {
-      targetEl.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+      targetEl
+        .querySelectorAll(".spinner, .chart-loading-spinner")
+        .forEach((s) => s.remove());
     }
-    const midLoader = document.getElementById('megaChartLoader');
+    const midLoader = document.getElementById("megaChartLoader");
     if (midLoader) midLoader.remove();
 
-    await Plotly.newPlot(targetElementId, traces, layout, { responsive: true, displayModeBar: !isMini, displaylogo: false });
+    await Plotly.newPlot(targetElementId, traces, layout, {
+      responsive: true,
+      displayModeBar: !isMini,
+      displaylogo: false,
+    });
 
-    const postLoader = document.getElementById('megaChartLoader');
+    const postLoader = document.getElementById("megaChartLoader");
     if (postLoader) postLoader.remove();
     if (targetEl) {
-      targetEl.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+      targetEl
+        .querySelectorAll(".spinner, .chart-loading-spinner")
+        .forEach((s) => s.remove());
     }
-
-  } catch(err) {
-    const postLoader = document.getElementById('megaChartLoader');
+  } catch (err) {
+    const postLoader = document.getElementById("megaChartLoader");
     if (postLoader) postLoader.remove();
     const el = document.getElementById(targetElementId);
-    if (el) el.innerHTML = `<div style="color:var(--red); padding:20px; font-size:0.85rem;">❌ Çizim Hatası: ${err.message}</div>`;
+    if (el)
+      el.innerHTML = `<div style="color:var(--red); padding:20px; font-size:0.85rem;">❌ Çizim Hatası: ${err.message}</div>`;
   }
 }
 

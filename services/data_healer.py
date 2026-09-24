@@ -6,6 +6,7 @@ import re
 import logging
 import pandas as pd
 import numpy as np
+from core.config import ANOMALY_SAMPLE_THRESHOLD, ANOMALY_SAMPLE_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ def robust_parse_numeric_string(v):
     """
     if v is None or pd.isna(v):
         return None
-    if isinstance(v, (int, float, np.number)):
+    if isinstance(v, (int, float, np.number)) and not isinstance(v, bool):
         return float(v) if np.isfinite(v) else None
 
     s = str(v).strip().lower()
@@ -35,9 +36,9 @@ def robust_parse_numeric_string(v):
     if re.search(r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}$', s) or re.search(r'^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$', s):
         return None
 
-    # Strip currency symbols, percentages, and common unit suffixes
+    # Strip currency symbols, percentages, and common unit suffixes (even when attached to digits like '100tl' or '50kg')
     s = re.sub(r'[₺$€£%]', '', s)
-    s = re.sub(r'\b(tl|try|usd|eur|adet|kg|gr|km|m|cm|ay|yil|yıl|gün|gun|saat|dakika|dk)\b', '', s)
+    s = re.sub(r'(?:^|(?<=[\d\s.,]))(tl|try|usd|eur|adet|kg|gr|km|m|cm|ay|yil|yıl|gün|gun|saat|dakika|dk)\b', '', s)
     s = s.strip()
 
     if not re.search(r'\d', s):
@@ -54,7 +55,8 @@ def robust_parse_numeric_string(v):
             s = s.replace('.', '')
         else:
             parts = s.split('.')
-            if len(parts) == 2 and len(parts[1]) == 3 and parts[1] == '000':
+            # In Turkish format, a dot followed by exactly 3 digits (e.g. 1.250 or 15.000) is a thousand separator
+            if len(parts) == 2 and len(parts[1]) == 3 and parts[0].lstrip('-+').isdigit() and parts[0].lstrip('-+') != '0':
                 s = s.replace('.', '')
     elif ',' in s:
         if s.count(',') > 1:
@@ -92,10 +94,10 @@ def detect_column_anomalies(df):
     anomalies = []
     total_rows = len(df)
 
-    # For datasets >15,000 rows, sample 10,000 rows for instant detection
-    is_sampled = total_rows > 15000
+    # For datasets >ANOMALY_SAMPLE_THRESHOLD rows, sample ANOMALY_SAMPLE_SIZE rows for instant detection
+    is_sampled = total_rows > ANOMALY_SAMPLE_THRESHOLD
     if is_sampled:
-        sample_size = 10000
+        sample_size = min(ANOMALY_SAMPLE_SIZE, total_rows)
         sample_df = df.sample(n=sample_size, random_state=42)
     else:
         sample_df = df
@@ -176,6 +178,7 @@ def repair_column_data(df, target_column='__all__', repair_mode='smart_heal'):
             valid_rows = parsed.notna()
             df_copy = df_copy[valid_rows].copy()
             df_copy[col] = parsed[valid_rows].astype(float)
+            df_copy = df_copy.reset_index(drop=True)
         elif repair_mode == 'fill_zero':
             df_copy[col] = parsed.fillna(0.0).astype(float)
         elif repair_mode == 'fill_mean' or repair_mode == 'smart_heal':
@@ -193,35 +196,41 @@ def repair_column_data(df, target_column='__all__', repair_mode='smart_heal'):
     return df_copy, cols_to_repair
 
 
+def _fill_categorical_columns(df_clean, fill_label='Bilinmiyor'):
+    for c in df_clean.select_dtypes(include=['object', 'category', 'string']).columns:
+        if isinstance(df_clean[c].dtype, pd.CategoricalDtype):
+            if fill_label not in df_clean[c].cat.categories:
+                df_clean[c] = df_clean[c].cat.add_categories([fill_label])
+        df_clean[c] = df_clean[c].fillna(fill_label)
+
+
 def clean_missing_data(df, action='drop'):
     """
     Cleans missing data across DataFrame based on action:
     - 'drop': drops rows with any missing values
-    - 'fill_mean': fills numerical missing values with mean, categorical with 'Bilinmiyor'
-    - 'fill_zero': fills numerical missing values with 0, categorical with 'Bilinmiyor'
+    - 'fill_mean' / 'mean': fills numerical missing values with mean, categorical with 'Bilinmiyor'
+    - 'fill_median' / 'median': fills numerical missing values with median, categorical with 'Bilinmiyor'
+    - 'fill_zero' / 'zero': fills numerical missing values with 0, categorical with 'Bilinmiyor'
     """
     if df is None or df.empty:
         return df
 
     df_clean = df.copy()
     if action == 'drop':
-        df_clean = df_clean.dropna()
-    elif action == 'fill_mean':
+        df_clean = df_clean.dropna().reset_index(drop=True)
+    elif action in ('fill_mean', 'mean'):
         num_cols = df_clean.select_dtypes(include=['number']).columns
         means = df_clean[num_cols].mean()
         df_clean[num_cols] = df_clean[num_cols].fillna(means).fillna(0)
-        for c in df_clean.select_dtypes(include=['object', 'category']).columns:
-            if pd.api.types.is_categorical_dtype(df_clean[c]):
-                if 'Bilinmiyor' not in df_clean[c].cat.categories:
-                    df_clean[c] = df_clean[c].cat.add_categories(['Bilinmiyor'])
-            df_clean[c] = df_clean[c].fillna('Bilinmiyor')
-    elif action == 'fill_zero':
+        _fill_categorical_columns(df_clean)
+    elif action in ('fill_median', 'median'):
+        num_cols = df_clean.select_dtypes(include=['number']).columns
+        medians = df_clean[num_cols].median()
+        df_clean[num_cols] = df_clean[num_cols].fillna(medians).fillna(0)
+        _fill_categorical_columns(df_clean)
+    elif action in ('fill_zero', 'zero'):
         num_cols = df_clean.select_dtypes(include=['number']).columns
         df_clean[num_cols] = df_clean[num_cols].fillna(0)
-        for c in df_clean.select_dtypes(include=['object', 'category']).columns:
-            if pd.api.types.is_categorical_dtype(df_clean[c]):
-                if 'Bilinmiyor' not in df_clean[c].cat.categories:
-                    df_clean[c] = df_clean[c].cat.add_categories(['Bilinmiyor'])
-            df_clean[c] = df_clean[c].fillna('Bilinmiyor')
+        _fill_categorical_columns(df_clean)
 
     return df_clean

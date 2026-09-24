@@ -7,51 +7,59 @@ var lastHealthData = null;
 
 function updateAnomalyBadges(healthData) {
   const anomCount = healthData?.anomalies?.length || 0;
-  const s2Badge = document.getElementById('s2AnomalyBadge');
-  const poolBadge = document.getElementById('poolAnomalyBadge');
-  const s3Badge = document.getElementById('s3AnomalyBadge');
+  const s2Badge = document.getElementById("s2AnomalyBadge");
+  const poolBadge = document.getElementById("poolAnomalyBadge");
+  const s3Badge = document.getElementById("s3AnomalyBadge");
 
-  [s2Badge, poolBadge, s3Badge].forEach(badge => {
+  [s2Badge, poolBadge, s3Badge].forEach((badge) => {
     if (badge) {
       if (anomCount > 0) {
         badge.textContent = anomCount;
-        badge.classList.remove('hidden');
+        badge.classList.remove("hidden");
       } else {
-        badge.classList.add('hidden');
+        badge.classList.add("hidden");
       }
     }
   });
 }
 
 async function openDataPrepModal(targetTab = null, preloadedData = null) {
-  const modal = document.getElementById('dataPrepModal');
+  const modal = document.getElementById("dataPrepModal");
   if (!modal) return;
-  modal.classList.remove('hidden');
+  modal.classList.remove("hidden");
 
-  const cardsList = document.getElementById('dpAnomalyCardsList');
-  const headerBanner = document.getElementById('dpAnomalyHeaderBanner');
-  const batchBar = document.getElementById('dpBatchActionBar');
-  const anomTabCount = document.getElementById('dpAnomalyTabCount');
-  const nanTabCount = document.getElementById('dpNanTabCount');
-  const msgEl = document.getElementById('dpMessage');
-  const missEl = document.getElementById('dpMissingRows');
-  const totEl = document.getElementById('dpTotalRows');
-  const missCellsEl = document.getElementById('dpMissingCells');
-  const dropBtn = document.getElementById('dpDropBtn');
-  const fillBtn = document.getElementById('dpFillBtn');
-  const fillZeroBtn = document.getElementById('dpFillZeroBtn');
+  const cardsList = document.getElementById("dpAnomalyCardsList");
+  const headerBanner = document.getElementById("dpAnomalyHeaderBanner");
+  const batchBar = document.getElementById("dpBatchActionBar");
+  const anomTabCount = document.getElementById("dpAnomalyTabCount");
+  const nanTabCount = document.getElementById("dpNanTabCount");
+  const msgEl = document.getElementById("dpMessage");
+  const missEl = document.getElementById("dpMissingRows");
+  const totEl = document.getElementById("dpTotalRows");
+  const missCellsEl = document.getElementById("dpMissingCells");
+  const dropBtn = document.getElementById("dpDropBtn");
+  const fillBtn = document.getElementById("dpFillBtn");
+  const fillZeroBtn = document.getElementById("dpFillZeroBtn");
 
-  if (cardsList) cardsList.innerHTML = '<div style="color:var(--muted); text-align:center; padding:20px; font-size:0.85rem;"><div class="spinner" style="margin-bottom:8px;"></div>Veri sağlığı ve sütun tipleri taranıyor...</div>';
-  if (totEl && (!totEl.textContent || totEl.textContent === '0')) totEl.textContent = '...';
-  if (missCellsEl && (!missCellsEl.textContent || missCellsEl.textContent === '0')) missCellsEl.textContent = '...';
-  if (missEl && (!missEl.textContent || missEl.textContent === '0')) missEl.textContent = '...';
+  if (cardsList)
+    cardsList.innerHTML =
+      '<div style="color:var(--muted); text-align:center; padding:20px; font-size:0.85rem;"><div class="spinner" style="margin-bottom:8px;"></div>Veri sağlığı ve sütun tipleri taranıyor...</div>';
+  if (totEl && (!totEl.textContent || totEl.textContent === "0"))
+    totEl.textContent = "...";
+  if (
+    missCellsEl &&
+    (!missCellsEl.textContent || missCellsEl.textContent === "0")
+  )
+    missCellsEl.textContent = "...";
+  if (missEl && (!missEl.textContent || missEl.textContent === "0"))
+    missEl.textContent = "...";
 
   try {
     let data = preloadedData;
     if (!data) {
-      const res = await fetch('/check_health', { cache: 'no-store' });
+      const res = await fetch("/check_health", { cache: "no-store" });
       data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Veri kontrol edilemedi');
+      if (!res.ok) throw new Error(data.error || "Veri kontrol edilemedi");
     }
     lastHealthData = data;
     updateAnomalyBadges(data);
@@ -63,26 +71,26 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
     if (anomTabCount) {
       if (hasAnomalies) {
         anomTabCount.textContent = anomalies.length;
-        anomTabCount.classList.remove('hidden');
+        anomTabCount.classList.remove("hidden");
       } else {
-        anomTabCount.classList.add('hidden');
+        anomTabCount.classList.add("hidden");
       }
     }
 
     if (nanTabCount) {
       if (data.missing_rows > 0) {
         nanTabCount.textContent = data.missing_rows;
-        nanTabCount.classList.remove('hidden');
+        nanTabCount.classList.remove("hidden");
       } else {
-        nanTabCount.classList.add('hidden');
+        nanTabCount.classList.add("hidden");
       }
     }
 
     // Hangi sekme aktif açılsın?
-    if (targetTab === 'nans' || (!hasAnomalies && data.missing_rows > 0)) {
-      document.getElementById('dpTabBtnNans')?.click();
+    if (targetTab === "nans" || (!hasAnomalies && data.missing_rows > 0)) {
+      document.getElementById("dpTabBtnNans")?.click();
     } else {
-      document.getElementById('dpTabBtnAnomalies')?.click();
+      document.getElementById("dpTabBtnAnomalies")?.click();
     }
 
     // ── SEKME 1: ANOMALİ KARTLARI ──
@@ -94,10 +102,12 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
           </div>
         `;
       }
-      if (batchBar) batchBar.classList.remove('hidden');
+      if (batchBar) batchBar.classList.remove("hidden");
 
       if (cardsList) {
-        cardsList.innerHTML = anomalies.map(anom => `
+        cardsList.innerHTML = anomalies
+          .map(
+            (anom) => `
           <div class="dp-anomaly-card premium-glass-card">
             <div class="dp-anomaly-card-header">
               <div class="dp-anomaly-title-group">
@@ -111,11 +121,11 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
                 ${anom.invalid_count} hücre (%${anom.invalid_pct}) sözel
               </div>
             </div>
-            
+
             <div class="dp-anomaly-samples">
               <span class="dp-samples-label">Tespit Edilen Sözel Değerler:</span>
               <div class="dp-samples-list">
-                ${(anom.sample_invalid_values || []).map(val => `<span class="dp-sample-tag">${val}</span>`).join('')}
+                ${(anom.sample_invalid_values || []).map((val) => `<span class="dp-sample-tag">${val}</span>`).join("")}
               </div>
             </div>
 
@@ -137,11 +147,13 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
               </button>
             </div>
           </div>
-        `).join('');
+        `,
+          )
+          .join("");
 
         // Kart butonlarını bağla
-        cardsList.querySelectorAll('.btn-heal-col').forEach(b => {
-          b.addEventListener('click', (e) => {
+        cardsList.querySelectorAll(".btn-heal-col").forEach((b) => {
+          b.addEventListener("click", (e) => {
             const col = e.currentTarget.dataset.col;
             const mode = e.currentTarget.dataset.mode;
             callRepairColumn(col, mode);
@@ -156,8 +168,8 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
           </div>
         `;
       }
-      if (batchBar) batchBar.classList.add('hidden');
-      if (cardsList) cardsList.innerHTML = '';
+      if (batchBar) batchBar.classList.add("hidden");
+      if (cardsList) cardsList.innerHTML = "";
     }
 
     // ── SEKME 2: NAN İSTATİSTİKLERİ ──
@@ -166,42 +178,46 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
     if (missEl) missEl.textContent = data.missing_rows || 0;
 
     if (data.missing_rows > 0) {
-      if (msgEl) msgEl.innerHTML = `<span style="color:var(--orange); font-weight:700;">⚠️ ${data.missing_rows} satırda toplam ${data.missing_cells} adet boş (NaN) hücre tespit edildi.</span><br>Grafiklerin ve istatistik testlerinin kusursuz çalışması için aşağıdaki yöntemlerden birini seçebilirsiniz:`;
-      if (dropBtn) dropBtn.style.display = 'inline-block';
-      if (fillBtn) fillBtn.style.display = 'inline-block';
-      if (fillZeroBtn) fillZeroBtn.style.display = 'inline-block';
+      if (msgEl)
+        msgEl.innerHTML = `<span style="color:var(--orange); font-weight:700;">⚠️ ${data.missing_rows} satırda toplam ${data.missing_cells} adet boş (NaN) hücre tespit edildi.</span><br>Grafiklerin ve istatistik testlerinin kusursuz çalışması için aşağıdaki yöntemlerden birini seçebilirsiniz:`;
+      if (dropBtn) dropBtn.style.display = "inline-block";
+      if (fillBtn) fillBtn.style.display = "inline-block";
+      if (fillZeroBtn) fillZeroBtn.style.display = "inline-block";
     } else {
-      if (msgEl) msgEl.innerHTML = `<span style="color:var(--green); font-weight:700;">✓ Tebrikler! Veri setinizde hiç eksik değer (NaN) bulunmuyor.</span><br>Tüm satır ve sütunlar eksiksiz ve analize %100 hazır.`;
-      if (dropBtn) dropBtn.style.display = 'none';
-      if (fillBtn) fillBtn.style.display = 'none';
-      if (fillZeroBtn) fillZeroBtn.style.display = 'none';
+      if (msgEl)
+        msgEl.innerHTML = `<span style="color:var(--green); font-weight:700;">✓ Tebrikler! Veri setinizde hiç eksik değer (NaN) bulunmuyor.</span><br>Tüm satır ve sütunlar eksiksiz ve analize %100 hazır.`;
+      if (dropBtn) dropBtn.style.display = "none";
+      if (fillBtn) fillBtn.style.display = "none";
+      if (fillZeroBtn) fillZeroBtn.style.display = "none";
     }
-
   } catch (err) {
-    if (cardsList) cardsList.innerHTML = `<div style="color:var(--red); padding:10px;">Hata: ${err.message}</div>`;
-    if (msgEl) msgEl.innerHTML = `<span style="color:var(--red); font-weight:700;">Hata: ${err.message}</span>`;
-    if (totEl && totEl.textContent === '...') totEl.textContent = '-';
-    if (missCellsEl && missCellsEl.textContent === '...') missCellsEl.textContent = '-';
-    if (missEl && missEl.textContent === '...') missEl.textContent = '-';
+    if (cardsList)
+      cardsList.innerHTML = `<div style="color:var(--red); padding:10px;">Hata: ${err.message}</div>`;
+    if (msgEl)
+      msgEl.innerHTML = `<span style="color:var(--red); font-weight:700;">Hata: ${err.message}</span>`;
+    if (totEl && totEl.textContent === "...") totEl.textContent = "-";
+    if (missCellsEl && missCellsEl.textContent === "...")
+      missCellsEl.textContent = "-";
+    if (missEl && missEl.textContent === "...") missEl.textContent = "-";
   }
 }
 
 async function callRepairColumn(columnName, mode) {
-  const btnHealAll = document.getElementById('btnHealAllColumns');
-  const origText = btnHealAll ? btnHealAll.textContent : '';
+  const btnHealAll = document.getElementById("btnHealAllColumns");
+  const origText = btnHealAll ? btnHealAll.textContent : "";
   if (btnHealAll) {
     btnHealAll.disabled = true;
-    btnHealAll.textContent = '⏳ Onarılıyor...';
+    btnHealAll.textContent = "⏳ Onarılıyor...";
   }
 
   try {
-    const res = await fetch('/repair_column_anomalies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ column: columnName, repair_mode: mode })
+    const res = await fetch("/repair_column_anomalies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ column: columnName, repair_mode: mode }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Onarma işlemi başarısız oldu.');
+    if (!res.ok) throw new Error(data.error || "Onarma işlemi başarısız oldu.");
 
     numericColumns = data.numeric_columns || [];
     categoricalColumns = data.categorical_columns || [];
@@ -211,19 +227,27 @@ async function callRepairColumn(columnName, mode) {
     window.categoricalColumns = categoricalColumns;
     window.globalColumns = globalColumns;
 
-    if (typeof initDragDropPool === 'function') initDragDropPool();
-    if (typeof renderChartGrid === 'function') renderChartGrid('all');
-    if (typeof evaluateCharts === 'function') evaluateCharts();
+    if (typeof initDragDropPool === "function") initDragDropPool(true);
+    if (typeof renderChartGrid === "function") renderChartGrid("all");
+    if (typeof evaluateCharts === "function") evaluateCharts();
 
-    if (currentChartData && currentPlotType && typeof refreshActiveChart === 'function') {
+    if (
+      currentChartData &&
+      currentPlotType &&
+      typeof refreshActiveChart === "function"
+    ) {
       refreshActiveChart();
     }
 
-    await openDataPrepModal('anomalies');
+    await openDataPrepModal("anomalies");
 
-    const colNameText = columnName === '__all__' ? 'Tüm uyumsuz sütunlar' : `"${columnName}" sütunu`;
-    alert(`✓ ${colNameText} başarıyla sayısal tipe onarıldı!\nArtık grafiklerde ve istatistik testlerinde sayısal bir metrik olarak kullanılabilir.`);
-
+    const colNameText =
+      columnName === "__all__"
+        ? "Tüm uyumsuz sütunlar"
+        : `"${columnName}" sütunu`;
+    alert(
+      `✓ ${colNameText} başarıyla sayısal tipe onarıldı!\nArtık grafiklerde ve istatistik testlerinde sayısal bir metrik olarak kullanılabilir.`,
+    );
   } catch (err) {
     alert("Onarma Hatası: " + err.message);
   } finally {
@@ -235,29 +259,40 @@ async function callRepairColumn(columnName, mode) {
 }
 
 async function callCleanData(action) {
-  const msgEl = document.getElementById('dpMessage');
-  const origMsg = msgEl ? msgEl.textContent : '';
+  const msgEl = document.getElementById("dpMessage");
+  const origMsg = msgEl ? msgEl.textContent : "";
   if (msgEl) msgEl.textContent = "⏳ Temizleniyor...";
   try {
-    const res = await fetch('/clean_data', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:action}) });
+    const res = await fetch("/clean_data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: action }),
+    });
     const data = await res.json();
-    if(!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(data.error);
     numericColumns = data.numeric_columns || [];
     categoricalColumns = data.categorical_columns || [];
     globalColumns = [...categoricalColumns, ...numericColumns];
-    
+
     window.numericColumns = numericColumns;
     window.categoricalColumns = categoricalColumns;
     window.globalColumns = globalColumns;
 
-    if (typeof initDragDropPool === 'function') initDragDropPool();
-    if (typeof renderChartGrid === 'function') renderChartGrid('all');
-    if (typeof evaluateCharts === 'function') evaluateCharts();
-    if (currentChartData && currentPlotType && typeof refreshActiveChart === 'function') refreshActiveChart();
+    if (typeof initDragDropPool === "function") initDragDropPool(true);
+    if (typeof renderChartGrid === "function") renderChartGrid("all");
+    if (typeof evaluateCharts === "function") evaluateCharts();
+    if (
+      currentChartData &&
+      currentPlotType &&
+      typeof refreshActiveChart === "function"
+    )
+      refreshActiveChart();
 
-    await openDataPrepModal('nans');
-    alert(`✓ Boş değer temizleme başarıyla tamamlandı!\nGüncel Satır Sayısı: ${data.total_rows}`);
-  } catch(err) {
+    await openDataPrepModal("nans");
+    alert(
+      `✓ Boş değer temizleme başarıyla tamamlandı!\nGüncel Satır Sayısı: ${data.total_rows}`,
+    );
+  } catch (err) {
     alert("Hata: " + err.message);
     if (msgEl) msgEl.textContent = origMsg;
   }
@@ -265,65 +300,83 @@ async function callCleanData(action) {
 
 function initDataPrepListeners() {
   // Modal Sekme Değiştirici
-  document.querySelectorAll('.dp-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.dp-tab-btn').forEach(b => {
-        b.classList.remove('active');
-        b.style.background = 'transparent';
-        b.style.color = 'var(--muted)';
-        b.style.borderColor = 'transparent';
+  document.querySelectorAll(".dp-tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".dp-tab-btn").forEach((b) => {
+        b.classList.remove("active");
+        b.style.background = "transparent";
+        b.style.color = "var(--muted)";
+        b.style.borderColor = "transparent";
       });
-      document.querySelectorAll('.dp-pane').forEach(p => p.classList.add('hidden'));
+      document
+        .querySelectorAll(".dp-pane")
+        .forEach((p) => p.classList.add("hidden"));
 
-      btn.classList.add('active');
-      btn.style.background = 'rgba(167,139,250,0.15)';
-      btn.style.color = 'var(--purple)';
-      btn.style.borderColor = 'rgba(167,139,250,0.3)';
+      btn.classList.add("active");
+      btn.style.background = "rgba(167,139,250,0.15)";
+      btn.style.color = "var(--purple)";
+      btn.style.borderColor = "rgba(167,139,250,0.3)";
 
       const tab = btn.dataset.dptab;
-      if (tab === 'anomalies') {
-        document.getElementById('dpPaneAnomalies')?.classList.remove('hidden');
+      if (tab === "anomalies") {
+        document.getElementById("dpPaneAnomalies")?.classList.remove("hidden");
       } else {
-        document.getElementById('dpPaneNans')?.classList.remove('hidden');
+        document.getElementById("dpPaneNans")?.classList.remove("hidden");
       }
     });
   });
 
   // Toplu Onarım Butonu
-  document.getElementById('btnHealAllColumns')?.addEventListener('click', () => {
-    callRepairColumn('__all__', 'smart_heal');
-  });
+  document
+    .getElementById("btnHealAllColumns")
+    ?.addEventListener("click", () => {
+      callRepairColumn("__all__", "smart_heal");
+    });
 
   // Modal Açma Butonları
-  ['btnOpenDataPrepModalS2', 'btnOpenDataPrepModalPool', 'btnOpenDataPrepModalS3'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', () => openDataPrepModal());
+  [
+    "btnOpenDataPrepModalS2",
+    "btnOpenDataPrepModalPool",
+    "btnOpenDataPrepModalS3",
+  ].forEach((id) => {
+    document
+      .getElementById(id)
+      ?.addEventListener("click", () => openDataPrepModal());
   });
 
   // Modal Kapatma Butonu
-  document.getElementById('btnCloseDataPrepModal')?.addEventListener('click', () => {
-    document.getElementById('dataPrepModal')?.classList.add('hidden');
-  });
+  document
+    .getElementById("btnCloseDataPrepModal")
+    ?.addEventListener("click", () => {
+      document.getElementById("dataPrepModal")?.classList.add("hidden");
+    });
 
   // Atla / İlerle Butonu
-  document.getElementById('dpSkipBtn')?.addEventListener('click', () => {
-    document.getElementById('dataPrepModal')?.classList.add('hidden');
-    if (document.getElementById('step1-upload')?.classList.contains('active')) {
-      if (typeof proceedToStep2 === 'function') {
+  document.getElementById("dpSkipBtn")?.addEventListener("click", () => {
+    document.getElementById("dataPrepModal")?.classList.add("hidden");
+    if (document.getElementById("step1-upload")?.classList.contains("active")) {
+      if (typeof proceedToStep2 === "function") {
         proceedToStep2();
-      } else if (typeof window.proceedToStep2 === 'function') {
+      } else if (typeof window.proceedToStep2 === "function") {
         window.proceedToStep2();
       }
     }
   });
 
   // Temizleme Butonları
-  document.getElementById('dpDropBtn')?.addEventListener('click', () => callCleanData('drop'));
-  document.getElementById('dpFillBtn')?.addEventListener('click', () => callCleanData('fill_mean'));
-  document.getElementById('dpFillZeroBtn')?.addEventListener('click', () => callCleanData('fill_zero'));
+  document
+    .getElementById("dpDropBtn")
+    ?.addEventListener("click", () => callCleanData("drop"));
+  document
+    .getElementById("dpFillBtn")
+    ?.addEventListener("click", () => callCleanData("fill_mean"));
+  document
+    .getElementById("dpFillZeroBtn")
+    ?.addEventListener("click", () => callCleanData("fill_zero"));
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initDataPrepListeners);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDataPrepListeners);
 } else {
   initDataPrepListeners();
 }

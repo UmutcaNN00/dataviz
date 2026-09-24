@@ -4,14 +4,20 @@
    Filters (Slicers), Dashboard Canvas, Stats & Inspector
 ════════════════════════════════════════════════════════════ */
 
-var currentPoolFilter = 'all';
-var currentPoolSearch = '';
+var currentPoolFilter = "all";
+var currentPoolSearch = "";
 
 /* ── 1. DRAG & DROP POOL (STEP 2) ── */
-function initDragDropPool() {
-  const pool = document.getElementById('colPool');
+function initDragDropPool(preserveAxes = false) {
+  const pool = document.getElementById("colPool");
   if (!pool) return;
-  
+
+  const prevX = preserveAxes && axisConfig ? axisConfig.x : null;
+  const prevY =
+    preserveAxes && axisConfig && Array.isArray(axisConfig.y)
+      ? [...axisConfig.y]
+      : [];
+
   // Create a grid layout for split view (X and Y)
   pool.innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%;">
@@ -19,35 +25,56 @@ function initDragDropPool() {
       <div id="poolRightNum"></div>
     </div>
   `;
-  
-  const poolLeft = document.getElementById('poolLeftCat');
-  const poolRight = document.getElementById('poolRightNum');
+
+  const poolLeft = document.getElementById("poolLeftCat");
+  const poolRight = document.getElementById("poolRightNum");
 
   axisConfig = { x: null, y: [] };
   window.axisConfig = axisConfig;
 
-  const xZone = document.getElementById('xZone');
-  const yZone = document.getElementById('yZone');
-  if (xZone) xZone.innerHTML = 'Sütunu Buraya Bırakın';
-  if (yZone) yZone.innerHTML = 'Sütunları Buraya Bırakın';
-  
+  const xZone = document.getElementById("xZone");
+  const yZone = document.getElementById("yZone");
+  if (xZone) xZone.innerHTML = "Sütunu Buraya Bırakın";
+  if (yZone) yZone.innerHTML = "Sütunları Buraya Bırakın";
+
   updatePoolCounts();
 
-  const catCols = globalColumns.filter(c => !numericColumns.includes(c));
-  const numCols = globalColumns.filter(c => numericColumns.includes(c));
+  const catCols = globalColumns.filter((c) => !numericColumns.includes(c));
+  const numCols = globalColumns.filter((c) => numericColumns.includes(c));
 
   // Render Categorical (X) side
-  renderPoolSection(poolLeft, '🔤 Metin / Kategori (Genellikle X)', catCols, 'section_cat');
-  
+  renderPoolSection(
+    poolLeft,
+    "🔤 Metin / Kategori (Genellikle X)",
+    catCols,
+    "section_cat",
+  );
+
   // Render Numeric (Y) side
-  renderPoolSection(poolRight, '🔢 Sayısal Değer (Genellikle Y)', numCols, 'section_num');
+  renderPoolSection(
+    poolRight,
+    "🔢 Sayısal Değer (Genellikle Y)",
+    numCols,
+    "section_num",
+  );
+
+  if (preserveAxes) {
+    if (prevX && globalColumns.includes(prevX)) {
+      assignPillToZone(prevX, "xZone");
+    }
+    prevY.forEach((yc) => {
+      if (globalColumns.includes(yc)) {
+        assignPillToZone(yc, "yZone");
+      }
+    });
+  }
 }
 
 function renderPoolSection(parentContainer, titleText, cols, sectionId) {
   if (!cols.length) return;
 
-  const group = document.createElement('div');
-  group.className = 'pool-section-group';
+  const group = document.createElement("div");
+  group.className = "pool-section-group";
   group.id = sectionId;
 
   group.innerHTML = `
@@ -58,7 +85,7 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
     <div class="pool-section-pills" id="pills_${sectionId}"></div>
   `;
 
-  const pillsBox = group.querySelector('.pool-section-pills');
+  const pillsBox = group.querySelector(".pool-section-pills");
 
   // Kategorik önce, Sayısal sonra sırala
   const sorted = [...cols].sort((a, b) => {
@@ -67,21 +94,21 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
     return aNum - bNum;
   });
 
-  sorted.forEach(col => {
+  sorted.forEach((col) => {
     const isNum = numericColumns.includes(col);
     const isCalc = calculatedColumns.includes(col);
     const isJoin = joinedColumns.includes(col);
 
-    const pill = document.createElement('div');
-    pill.className = `col-pill ${isCalc ? 'calc-pill' : ''} ${isJoin ? 'join-pill' : ''}`;
+    const pill = document.createElement("div");
+    pill.className = `col-pill ${isCalc ? "calc-pill" : ""} ${isJoin ? "join-pill" : ""}`;
     pill.draggable = true;
     pill.dataset.col = col;
-    pill.dataset.type = isNum ? 'num' : 'cat';
-    pill.dataset.origin = isJoin ? 'joined' : (isCalc ? 'calc' : 'file1');
+    pill.dataset.type = isNum ? "num" : "cat";
+    pill.dataset.origin = isJoin ? "joined" : isCalc ? "calc" : "file1";
     pill.dataset.section = `pills_${sectionId}`;
 
-    let typeTag = isNum ? '#' : 'T';
-    let tagBadge = '';
+    let typeTag = isNum ? "#" : "T";
+    let tagBadge = "";
     if (isJoin) {
       tagBadge = `<span class="join-tag-badge">🔗 Dosya 2</span>`;
     } else if (isCalc) {
@@ -91,30 +118,28 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
     pill.innerHTML = `${tagBadge}<span style="opacity:0.65; font-size:0.75rem; font-weight:800;">${typeTag}</span> <span>${col}</span>
                       <div class="pill-remove">×</div>`;
 
-    pill.addEventListener('dragstart', (e) => {
-      pill.classList.add('dragging');
-      e.dataTransfer.setData('text/plain', col);
+    pill.addEventListener("dragstart", (e) => {
+      pill.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", col);
     });
-    pill.addEventListener('dragend', () => pill.classList.remove('dragging'));
-    
+    pill.addEventListener("dragend", () => pill.classList.remove("dragging"));
+
     // Tıklama ile hızlı atama
-    pill.addEventListener('click', () => {
-      if (pill.classList.contains('in-zone')) return;
-      
-      const xZone = document.getElementById('xZone');
-      if (xZone && !xZone.querySelector('.col-pill')) {
-        assignPillToZone(col, 'xZone');
+    pill.addEventListener("click", () => {
+      if (pill.classList.contains("in-zone")) return;
+
+      const xZone = document.getElementById("xZone");
+      if (xZone && !xZone.querySelector(".col-pill")) {
+        assignPillToZone(col, "xZone");
       } else {
-        assignPillToZone(col, 'yZone');
+        assignPillToZone(col, "yZone");
       }
     });
 
-    pill.querySelector('.pill-remove')?.addEventListener('click', (e) => {
+    pill.querySelector(".pill-remove")?.addEventListener("click", (e) => {
       e.stopPropagation();
       const parentZone = pill.parentElement;
-      const originSection = document.getElementById(pill.dataset.section) || document.getElementById('colPool');
-      originSection?.appendChild(pill);
-      pill.classList.remove('in-zone');
+      returnPillToPool(pill);
       updateAxisConfig();
       if (parentZone) restoreZonePlaceholder(parentZone);
     });
@@ -131,72 +156,88 @@ function updatePoolCounts() {
   const numCount = numericColumns.length;
   const joinedCount = joinedColumns.length;
 
-  const b = document.getElementById('poolCountBadge');
+  const b = document.getElementById("poolCountBadge");
   if (b) b.textContent = `${total} Sütun`;
-  const pAll = document.getElementById('pfcAllCount');
+  const pAll = document.getElementById("pfcAllCount");
   if (pAll) pAll.textContent = total;
-  const pCat = document.getElementById('pfcCatCount');
+  const pCat = document.getElementById("pfcCatCount");
   if (pCat) pCat.textContent = catCount;
-  const pNum = document.getElementById('pfcNumCount');
+  const pNum = document.getElementById("pfcNumCount");
   if (pNum) pNum.textContent = numCount;
 
-  const jBtn = document.getElementById('pfcJoinedBtn');
+  const jBtn = document.getElementById("pfcJoinedBtn");
   if (jBtn) {
     if (joinedCount > 0) {
-      jBtn.classList.remove('hidden');
-      const jCnt = document.getElementById('pfcJoinedCount');
+      jBtn.classList.remove("hidden");
+      const jCnt = document.getElementById("pfcJoinedCount");
       if (jCnt) jCnt.textContent = joinedCount;
     } else {
-      jBtn.classList.add('hidden');
+      jBtn.classList.add("hidden");
     }
   }
 }
 
 function applyPoolFilterAndSearch() {
-  document.querySelectorAll('#colPool .col-pill').forEach(pill => {
-    if (pill.classList.contains('in-zone')) return;
+  document.querySelectorAll("#colPool .col-pill").forEach((pill) => {
+    if (pill.classList.contains("in-zone")) return;
 
     const colName = pill.dataset.col.toLowerCase();
     const colType = pill.dataset.type;
     const origin = pill.dataset.origin;
 
-    const matchesSearch = !currentPoolSearch || colName.includes(currentPoolSearch);
+    const matchesSearch =
+      !currentPoolSearch || colName.includes(currentPoolSearch);
 
     let matchesFilter = true;
-    if (currentPoolFilter === 'cat') matchesFilter = colType === 'cat';
-    else if (currentPoolFilter === 'num') matchesFilter = colType === 'num';
-    else if (currentPoolFilter === 'joined') matchesFilter = origin === 'joined';
+    if (currentPoolFilter === "cat") matchesFilter = colType === "cat";
+    else if (currentPoolFilter === "num") matchesFilter = colType === "num";
+    else if (currentPoolFilter === "joined")
+      matchesFilter = origin === "joined";
 
-    pill.style.display = (matchesSearch && matchesFilter) ? 'inline-flex' : 'none';
+    pill.style.display =
+      matchesSearch && matchesFilter ? "inline-flex" : "none";
   });
 
-  document.querySelectorAll('#colPool .pool-section-group').forEach(group => {
-    const allPills = group.querySelectorAll('.col-pill:not(.in-zone)');
+  document.querySelectorAll("#colPool .pool-section-group").forEach((group) => {
+    const allPills = group.querySelectorAll(".col-pill:not(.in-zone)");
     let hasVisible = false;
-    allPills.forEach(p => { if (p.style.display !== 'none') hasVisible = true; });
-    group.style.display = hasVisible ? 'block' : 'none';
+    allPills.forEach((p) => {
+      if (p.style.display !== "none") hasVisible = true;
+    });
+    group.style.display = hasVisible ? "block" : "none";
   });
 }
 
 function returnPillToPool(pill) {
   if (!pill) return;
-  pill.classList.remove('in-zone');
-  const isCalc = pill.classList.contains('calc-pill');
-  const isJoin = pill.classList.contains('join-pill');
-  let section;
-  if (isCalc) section = document.getElementById('pills_section_calc');
-  else if (isJoin) section = document.getElementById('pills_section_joined');
-  else section = document.getElementById('pills_section_file1');
-  
+  pill.classList.remove("in-zone");
+  let section = null;
+  if (pill.dataset.type === "cat")
+    section = document.getElementById("pills_section_cat");
+  else if (pill.dataset.type === "num")
+    section = document.getElementById("pills_section_num");
+
+  if (!section && pill.dataset.section)
+    section = document.getElementById(pill.dataset.section);
+  if (!section) {
+    const isCalc = pill.classList.contains("calc-pill");
+    const isJoin = pill.classList.contains("join-pill");
+    if (isCalc) section = document.getElementById("pills_section_calc");
+    else if (isJoin) section = document.getElementById("pills_section_joined");
+    else section = document.getElementById("pills_section_file1");
+  }
+
   if (section) section.appendChild(pill);
-  else document.getElementById('colPool')?.appendChild(pill);
+  else document.getElementById("colPool")?.appendChild(pill);
 }
 
 function restoreZonePlaceholder(zone) {
-  if (zone.id === 'xZone' && !zone.querySelector('.col-pill')) {
-    zone.innerHTML = '<span class="zone-placeholder">Kategori sütununu buraya bırakın</span>';
-  } else if (zone.id === 'yZone' && !zone.querySelector('.col-pill')) {
-    zone.innerHTML = '<span class="zone-placeholder">Değer sütunlarını buraya bırakın</span>';
+  if (zone.id === "xZone" && !zone.querySelector(".col-pill")) {
+    zone.innerHTML =
+      '<span class="zone-placeholder">Kategori sütununu buraya bırakın</span>';
+  } else if (zone.id === "yZone" && !zone.querySelector(".col-pill")) {
+    zone.innerHTML =
+      '<span class="zone-placeholder">Değer sütunlarını buraya bırakın</span>';
   }
 }
 
@@ -206,51 +247,55 @@ function assignPillToZone(colName, zoneId) {
   const zone = document.getElementById(zoneId);
   if (!zone) return;
 
-  if (zoneId === 'xZone') {
-    const existing = zone.querySelector('.col-pill');
+  if (zoneId === "xZone") {
+    const existing = zone.querySelector(".col-pill");
     if (existing) returnPillToPool(existing);
-    zone.innerHTML = ''; 
+    zone.innerHTML = "";
   }
-  
-  if (zone.innerText.includes('Bırakın') || zone.innerText.includes('bırakın')) zone.innerHTML = '';
+
+  if (zone.innerText.includes("Bırakın") || zone.innerText.includes("bırakın"))
+    zone.innerHTML = "";
   zone.appendChild(pill);
-  pill.classList.add('in-zone');
+  pill.classList.add("in-zone");
   updateAxisConfig();
 }
 
 function handleDropX(colName) {
-  assignPillToZone(colName, 'xZone');
+  assignPillToZone(colName, "xZone");
 }
 
 function handleDropY(colName) {
-  assignPillToZone(colName, 'yZone');
+  assignPillToZone(colName, "yZone");
 }
 
 function updateAxisConfig() {
-  const xPill = document.getElementById('xZone')?.querySelector('.col-pill');
+  const xPill = document.getElementById("xZone")?.querySelector(".col-pill");
   axisConfig.x = xPill ? xPill.dataset.col : null;
 
-  const yPills = document.getElementById('yZone')?.querySelectorAll('.col-pill');
-  axisConfig.y = yPills ? Array.from(yPills).map(p => p.dataset.col) : [];
+  const yPills = document
+    .getElementById("yZone")
+    ?.querySelectorAll(".col-pill");
+  axisConfig.y = yPills ? Array.from(yPills).map((p) => p.dataset.col) : [];
 
   window.axisConfig = axisConfig;
   evaluateCharts();
 }
 
 /* ── 2. CHART GRID & RECOMMENDATION ENGINE ── */
-function renderChartGrid(filterCat = 'all') {
-  const grid = document.getElementById('s2ChartGrid');
+function renderChartGrid(filterCat = "all") {
+  const grid = document.getElementById("s2ChartGrid");
   if (!grid) return;
-  grid.innerHTML = '';
-  
-  const chartList = window.CHARTS || (typeof CHARTS !== 'undefined' ? CHARTS : []);
-  
-  chartList.forEach(ch => {
-    if (filterCat !== 'all' && ch.cat !== filterCat) return;
-    const card = document.createElement('div');
-    card.className = 'chart-card disabled';
+  grid.innerHTML = "";
+
+  const chartList =
+    window.CHARTS || (typeof CHARTS !== "undefined" ? CHARTS : []);
+
+  chartList.forEach((ch) => {
+    if (filterCat !== "all" && ch.cat !== filterCat) return;
+    const card = document.createElement("div");
+    card.className = "chart-card disabled";
     card.tabIndex = 0;
-    card.role = 'button'; 
+    card.role = "button";
     card.dataset.id = ch.id;
     card.innerHTML = `
       <div class="cc-badge">✨ ÖNERİLEN</div>
@@ -264,20 +309,23 @@ function renderChartGrid(filterCat = 'all') {
         <div class="cc-usecase">Tıklayarak Çiz</div>
       </div>
     `;
-    card.addEventListener('click', () => {
-      if (card.classList.contains('disabled')) return;
-      if (typeof goToStep3 === 'function') {
+    card.addEventListener("click", () => {
+      if (card.classList.contains("disabled")) return;
+      if (typeof goToStep3 === "function") {
         goToStep3(ch.id, ch.name);
-      } else if (typeof window.goToStep3 === 'function') {
+      } else if (typeof window.goToStep3 === "function") {
         window.goToStep3(ch.id, ch.name);
       }
     });
-    card.addEventListener('keydown', e => {
-      if (!card.classList.contains('disabled') && (e.key === 'Enter' || e.key === ' ')) {
+    card.addEventListener("keydown", (e) => {
+      if (
+        !card.classList.contains("disabled") &&
+        (e.key === "Enter" || e.key === " ")
+      ) {
         e.preventDefault();
-        if (typeof goToStep3 === 'function') {
+        if (typeof goToStep3 === "function") {
           goToStep3(ch.id, ch.name);
-        } else if (typeof window.goToStep3 === 'function') {
+        } else if (typeof window.goToStep3 === "function") {
           window.goToStep3(ch.id, ch.name);
         }
       }
@@ -287,52 +335,51 @@ function renderChartGrid(filterCat = 'all') {
   evaluateCharts();
 }
 
-
 /* ── STEP 2 MODE SWITCHER & ADVANCED STATS ── */
 function switchStep2View(view) {
-  const chartsBtn = document.getElementById('s2TabChartsBtn');
-  const statsBtn = document.getElementById('s2TabStatsBtn');
-  const chartsView = document.getElementById('s2ViewCharts');
-  const statsView = document.getElementById('s2ViewStats');
+  const chartsBtn = document.getElementById("s2TabChartsBtn");
+  const statsBtn = document.getElementById("s2TabStatsBtn");
+  const chartsView = document.getElementById("s2ViewCharts");
+  const statsView = document.getElementById("s2ViewStats");
   if (!chartsBtn || !statsBtn || !chartsView || !statsView) return;
 
-  if (view === 'stats') {
-    chartsBtn.classList.remove('active');
-    chartsBtn.style.background = 'rgba(255,255,255,0.03)';
-    chartsBtn.style.borderColor = 'rgba(255,255,255,0.1)';
-    chartsBtn.style.color = 'var(--muted)';
+  if (view === "stats") {
+    chartsBtn.classList.remove("active");
+    chartsBtn.style.background = "rgba(255,255,255,0.03)";
+    chartsBtn.style.borderColor = "rgba(255,255,255,0.1)";
+    chartsBtn.style.color = "var(--muted)";
 
-    statsBtn.classList.add('active');
-    statsBtn.style.background = 'rgba(99,102,241,0.2)';
-    statsBtn.style.borderColor = 'rgba(99,102,241,0.5)';
-    statsBtn.style.color = '#fff';
+    statsBtn.classList.add("active");
+    statsBtn.style.background = "rgba(99,102,241,0.2)";
+    statsBtn.style.borderColor = "rgba(99,102,241,0.5)";
+    statsBtn.style.color = "#fff";
 
-    chartsView.classList.add('hidden');
-    chartsView.style.display = 'none';
-    statsView.classList.remove('hidden');
-    statsView.style.display = 'flex';
+    chartsView.classList.add("hidden");
+    chartsView.style.display = "none";
+    statsView.classList.remove("hidden");
+    statsView.style.display = "flex";
 
-    updateStep2Stats(window.currentRegModel || 'linear');
+    updateStep2Stats(window.currentRegModel || "linear");
   } else {
-    statsBtn.classList.remove('active');
-    statsBtn.style.background = 'rgba(255,255,255,0.03)';
-    statsBtn.style.borderColor = 'rgba(255,255,255,0.1)';
-    statsBtn.style.color = 'var(--muted)';
+    statsBtn.classList.remove("active");
+    statsBtn.style.background = "rgba(255,255,255,0.03)";
+    statsBtn.style.borderColor = "rgba(255,255,255,0.1)";
+    statsBtn.style.color = "var(--muted)";
 
-    chartsBtn.classList.add('active');
-    chartsBtn.style.background = 'rgba(99,102,241,0.2)';
-    chartsBtn.style.borderColor = 'rgba(99,102,241,0.5)';
-    chartsBtn.style.color = '#fff';
+    chartsBtn.classList.add("active");
+    chartsBtn.style.background = "rgba(99,102,241,0.2)";
+    chartsBtn.style.borderColor = "rgba(99,102,241,0.5)";
+    chartsBtn.style.color = "#fff";
 
-    statsView.classList.add('hidden');
-    statsView.style.display = 'none';
-    chartsView.classList.remove('hidden');
-    chartsView.style.display = 'block';
+    statsView.classList.add("hidden");
+    statsView.style.display = "none";
+    chartsView.classList.remove("hidden");
+    chartsView.style.display = "block";
   }
 }
 
-async function updateStep2Stats(modelType = 'linear') {
-  const content = document.getElementById('s2StatsContent');
+async function updateStep2Stats(modelType = "linear") {
+  const content = document.getElementById("s2StatsContent");
   if (!content) return;
 
   const hasX = !!axisConfig.x;
@@ -348,7 +395,7 @@ async function updateStep2Stats(modelType = 'linear') {
   }
 
   const isXNum = numericColumns.includes(axisConfig.x);
-  const numYCols = yCols.filter(c => numericColumns.includes(c));
+  const numYCols = yCols.filter((c) => numericColumns.includes(c));
   const isNumericPair = isXNum && numYCols.length > 0;
 
   content.innerHTML = `
@@ -358,42 +405,48 @@ async function updateStep2Stats(modelType = 'linear') {
     </div>`;
 
   try {
-    const res = await fetch('/get_stats', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+    const res = await fetch("/get_stats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         columns: numYCols.length ? numYCols : yCols,
         y_cols: numYCols.length ? numYCols : yCols,
         x_col: axisConfig.x,
         filters: activeFilters,
-        reg_model: modelType
-      })
+        reg_model: modelType,
+      }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'İstatistikler alınamadı');
+    if (!res.ok) throw new Error(data.error || "İstatistikler alınamadı");
 
     window.currentAdvancedStats = data.advanced;
     window.currentStats = data.stats;
 
     renderStep2StatsContent(data, isNumericPair, modelType);
-  } catch(err) {
+  } catch (err) {
     content.innerHTML = `<div style="color: var(--red); background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 20px;">Hata: ${err.message}</div>`;
   }
 }
 
-function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
-  const content = document.getElementById('s2StatsContent');
+function renderStep2StatsContent(data, isNumericPair, modelType = "linear") {
+  const content = document.getElementById("s2StatsContent");
   if (!content) return;
 
-  const yCol = axisConfig.y.find(c => numericColumns.includes(c)) || axisConfig.y[0];
+  const yCol =
+    axisConfig.y.find((c) => numericColumns.includes(c)) || axisConfig.y[0];
   const adv = data.advanced && data.advanced[yCol] ? data.advanced[yCol] : null;
 
   if (isNumericPair) {
-    const corr = adv?.correlation != null ? adv.correlation.toFixed(4) : '-';
-    const r2 = adv?.r_squared != null ? adv.r_squared.toFixed(4) : '-';
-    const pVal = adv?.p_value != null ? (adv.p_value < 0.0001 ? '< 0.0001' : adv.p_value.toFixed(4)) : '-';
-    const eq = adv?.regression || 'y = mx + c';
-    const strength = adv?.interpretation || 'İlişki Gücü Hesaplanıyor';
+    const corr = adv?.correlation != null ? adv.correlation.toFixed(4) : "-";
+    const r2 = adv?.r_squared != null ? adv.r_squared.toFixed(4) : "-";
+    const pVal =
+      adv?.p_value != null
+        ? adv.p_value < 0.0001
+          ? "< 0.0001"
+          : adv.p_value.toFixed(4)
+        : "-";
+    const eq = adv?.regression || "y = mx + c";
+    const strength = adv?.interpretation || "İlişki Gücü Hesaplanıyor";
 
     content.innerHTML = `
       <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
@@ -411,9 +464,9 @@ function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span style="font-size: 0.82rem; color: var(--muted); font-weight: 600;">Regresyon Tipi:</span>
           <div style="display: flex; gap: 6px;">
-            <button type="button" class="btn-reg-select ${modelType === 'linear' ? 'active' : ''}" data-model="linear" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === 'linear' ? '#818cf8' : 'rgba(255,255,255,0.1)'}; background: ${modelType === 'linear' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}; color: ${modelType === 'linear' ? '#fff' : 'var(--muted)'};">Doğrusal (Linear)</button>
-            <button type="button" class="btn-reg-select ${modelType === 'poly2' ? 'active' : ''}" data-model="poly2" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === 'poly2' ? '#818cf8' : 'rgba(255,255,255,0.1)'}; background: ${modelType === 'poly2' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}; color: ${modelType === 'poly2' ? '#fff' : 'var(--muted)'};">2. Derece Polinom</button>
-            <button type="button" class="btn-reg-select ${modelType === 'exp' ? 'active' : ''}" data-model="exp" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === 'exp' ? '#818cf8' : 'rgba(255,255,255,0.1)'}; background: ${modelType === 'exp' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}; color: ${modelType === 'exp' ? '#fff' : 'var(--muted)'};">Üstel (Exp)</button>
+            <button type="button" class="btn-reg-select ${modelType === "linear" ? "active" : ""}" data-model="linear" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === "linear" ? "#818cf8" : "rgba(255,255,255,0.1)"}; background: ${modelType === "linear" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)"}; color: ${modelType === "linear" ? "#fff" : "var(--muted)"};">Doğrusal (Linear)</button>
+            <button type="button" class="btn-reg-select ${modelType === "poly2" ? "active" : ""}" data-model="poly2" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === "poly2" ? "#818cf8" : "rgba(255,255,255,0.1)"}; background: ${modelType === "poly2" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)"}; color: ${modelType === "poly2" ? "#fff" : "var(--muted)"};">2. Derece Polinom</button>
+            <button type="button" class="btn-reg-select ${modelType === "exp" ? "active" : ""}" data-model="exp" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === "exp" ? "#818cf8" : "rgba(255,255,255,0.1)"}; background: ${modelType === "exp" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)"}; color: ${modelType === "exp" ? "#fff" : "var(--muted)"};">Üstel (Exp)</button>
           </div>
         </div>
 
@@ -450,32 +503,49 @@ function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
         </div>
       </div>`;
 
-    content.querySelectorAll('.btn-reg-select').forEach(btn => {
-      btn.addEventListener('click', () => {
+    content.querySelectorAll(".btn-reg-select").forEach((btn) => {
+      btn.addEventListener("click", () => {
         const m = btn.dataset.model;
         window.currentRegModel = m;
         updateStep2Stats(m);
       });
     });
 
-    document.getElementById('btnLaunchRegressionChart')?.addEventListener('click', () => {
-      if (typeof window.openRegressionStudioWithVars === 'function') {
-        window.openRegressionStudioWithVars(axisConfig.x, yCol, window.currentRegModel || 'linear');
-      } else {
-        currentPlotType = 'scatter';
-        goToStep3();
-      }
-    });
-
+    document
+      .getElementById("btnLaunchRegressionChart")
+      ?.addEventListener("click", () => {
+        if (typeof window.openRegressionStudioWithVars === "function") {
+          window.openRegressionStudioWithVars(
+            axisConfig.x,
+            yCol,
+            window.currentRegModel || "linear",
+          );
+        } else {
+          currentPlotType = "scatter";
+          goToStep3();
+        }
+      });
   } else {
-    const testName = adv?.test_name || 'Varyans Analizi (ANOVA)';
-    const fVal = adv?.f_statistic != null ? adv.f_statistic.toFixed(4) : (adv?.t_statistic != null ? adv.t_statistic.toFixed(4) : '-');
-    const pVal = adv?.p_value != null ? (adv.p_value < 0.0001 ? '< 0.0001' : adv.p_value.toFixed(4)) : '-';
+    const testName = adv?.test_name || "Varyans Analizi (ANOVA)";
+    const fVal =
+      adv?.f_statistic != null
+        ? adv.f_statistic.toFixed(4)
+        : adv?.t_statistic != null
+          ? adv.t_statistic.toFixed(4)
+          : "-";
+    const pVal =
+      adv?.p_value != null
+        ? adv.p_value < 0.0001
+          ? "< 0.0001"
+          : adv.p_value.toFixed(4)
+        : "-";
     const isSignif = adv?.p_value != null && adv.p_value < 0.05;
-    const bestGrp = adv?.best_group || '-';
-    const bestVal = adv?.best_val != null ? adv.best_val.toLocaleString('tr-TR') : '-';
-    const worstGrp = adv?.worst_group || '-';
-    const worstVal = adv?.worst_val != null ? adv.worst_val.toLocaleString('tr-TR') : '-';
+    const bestGrp = adv?.best_group || "-";
+    const bestVal =
+      adv?.best_val != null ? adv.best_val.toLocaleString("tr-TR") : "-";
+    const worstGrp = adv?.worst_group || "-";
+    const worstVal =
+      adv?.worst_val != null ? adv.worst_val.toLocaleString("tr-TR") : "-";
 
     content.innerHTML = `
       <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
@@ -498,8 +568,8 @@ function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
           </div>
           <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
             <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Anlamlılık (P Değeri)</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: ${isSignif ? '#34d399' : '#f59e0b'};">${pVal}</div>
-            <div style="font-size: 0.7rem; color: ${isSignif ? '#6ee7b7' : '#fcd34d'}; margin-top: 2px;">${isSignif ? 'Gruplar Farklı (p < 0.05)' : 'Fark Önemsiz (p > 0.05)'}</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: ${isSignif ? "#34d399" : "#f59e0b"};">${pVal}</div>
+            <div style="font-size: 0.7rem; color: ${isSignif ? "#6ee7b7" : "#fcd34d"}; margin-top: 2px;">${isSignif ? "Gruplar Farklı (p < 0.05)" : "Fark Önemsiz (p > 0.05)"}</div>
           </div>
           <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
             <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">🏆 En Yüksek Grup</div>
@@ -514,7 +584,7 @@ function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
         </div>
 
         <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 14px; font-size: 0.86rem; line-height: 1.6; color: #e2e8f0;">
-          <strong>💼 Yönetici Özeti:</strong> ${yCol} metriği baz alındığında; en yüksek performansı <strong>${bestGrp}</strong> (${bestVal}) sergilerken, en düşük performansı ise <strong>${worstGrp}</strong> (${worstVal}) göstermektedir. ${isSignif ? 'Gruplar arasındaki bu fark istatistiksel olarak anlamlıdır.' : 'Gruplar arasındaki fark rastlantısaldır.'}
+          <strong>💼 Yönetici Özeti:</strong> ${yCol} metriği baz alındığında; en yüksek performansı <strong>${bestGrp}</strong> (${bestVal}) sergilerken, en düşük performansı ise <strong>${worstGrp}</strong> (${worstVal}) göstermektedir. ${isSignif ? "Gruplar arasındaki bu fark istatistiksel olarak anlamlıdır." : "Gruplar arasındaki fark rastlantısaldır."}
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 4px;">
@@ -524,130 +594,237 @@ function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
         </div>
       </div>`;
 
-    document.getElementById('btnLaunchComparisonChart')?.addEventListener('click', () => {
-      currentPlotType = 'bar';
-      goToStep3();
-    });
+    document
+      .getElementById("btnLaunchComparisonChart")
+      ?.addEventListener("click", () => {
+        currentPlotType = "bar";
+        goToStep3();
+      });
   }
 }
 
 function evaluateCharts() {
   const hasX = !!axisConfig.x;
   const yCount = axisConfig.y.length;
-  const yAllNum = axisConfig.y.every(col => numericColumns.includes(col));
-  const warning = document.getElementById('axisWarning');
-  if (warning) warning.classList.add('hidden');
+  const yAllNum = axisConfig.y.every((col) => numericColumns.includes(col));
+  const warning = document.getElementById("axisWarning");
+  if (warning) warning.classList.add("hidden");
 
   if (!hasX && yCount === 0) {
-    document.querySelectorAll('.chart-card').forEach(c => c.className = 'chart-card disabled');
+    document
+      .querySelectorAll(".chart-card")
+      .forEach((c) => (c.className = "chart-card disabled"));
     return;
   }
 
-  let rec = [], dis = [];
+  let rec = [],
+    dis = [];
 
   const isXDate = hasX && /tarih|date|zaman|ay|yıl|gün/i.test(axisConfig.x);
   const isXNum = hasX && numericColumns.includes(axisConfig.x);
-  const hasFinance = globalColumns.some(c => /open|açılış|high|yüksek|low|düşük|close|kapanış|fiyat/i.test(c));
+  const hasFinance = globalColumns.some((c) =>
+    /open|açılış|high|yüksek|low|düşük|close|kapanış|fiyat/i.test(c),
+  );
 
   if (hasX) {
     if (yCount === 0) {
       if (isXNum) {
-        rec = ['histogram', 'box', 'violin', 'strip'];
-        dis = ['scatter3d', 'surface', 'candlestick', 'ohlc', 'bubble', 'line3d'];
+        rec = ["histogram", "box", "violin", "strip"];
+        dis = [
+          "scatter3d",
+          "surface",
+          "candlestick",
+          "ohlc",
+          "bubble",
+          "line3d",
+        ];
       } else {
-        rec = ['bar', 'horizontalbar', 'pie', 'donut', 'treemap'];
-        dis = ['scatter3d', 'surface', 'candlestick', 'ohlc', 'bubble', 'line3d'];
+        rec = ["bar", "horizontalbar", "pie", "donut", "treemap"];
+        dis = [
+          "scatter3d",
+          "surface",
+          "candlestick",
+          "ohlc",
+          "bubble",
+          "line3d",
+        ];
       }
     } else if (yCount === 1) {
       if (isXDate) {
-        rec = ['line', 'spline', 'step', 'area', 'bar', 'waterfall'];
-        if (hasFinance) rec.push('candlestick', 'ohlc');
-        dis = ['pie', 'donut', 'sunburst', 'radar', 'scatter3d', 'ternary'];
+        rec = ["line", "spline", "step", "area", "bar", "waterfall"];
+        if (hasFinance) rec.push("candlestick", "ohlc");
+        dis = ["pie", "donut", "sunburst", "radar", "scatter3d", "ternary"];
       } else if (isXNum) {
-        rec = ['scatter', 'bubble', 'line', 'bar', 'histogram', 'density2d', 'histogram2d'];
-        dis = ['pie', 'donut', 'sunburst', 'treemap', 'funnel', 'candlestick', 'ohlc'];
+        rec = [
+          "scatter",
+          "bubble",
+          "line",
+          "bar",
+          "histogram",
+          "density2d",
+          "histogram2d",
+        ];
+        dis = [
+          "pie",
+          "donut",
+          "sunburst",
+          "treemap",
+          "funnel",
+          "candlestick",
+          "ohlc",
+        ];
       } else {
-        rec = ['bar', 'horizontalbar', 'pie', 'donut', 'radar', 'treemap', 'sunburst', 'funnel', 'dotplot', 'waterfall', 'bullet', 'errorbar'];
-        dis = ['line3d', 'surface', 'candlestick', 'ohlc', 'scatter3d', 'ternary'];
+        rec = [
+          "bar",
+          "horizontalbar",
+          "pie",
+          "donut",
+          "radar",
+          "treemap",
+          "sunburst",
+          "funnel",
+          "dotplot",
+          "waterfall",
+          "bullet",
+          "errorbar",
+        ];
+        dis = [
+          "line3d",
+          "surface",
+          "candlestick",
+          "ohlc",
+          "scatter3d",
+          "ternary",
+        ];
       }
     } else if (yCount >= 2) {
       if (isXDate) {
-        rec = ['line', 'spline', 'stackedarea', 'groupedbar', 'stackedbar', 'candlestick', 'ohlc'];
-        dis = ['pie', 'donut', 'funnelarea', 'ternary'];
+        rec = [
+          "line",
+          "spline",
+          "stackedarea",
+          "groupedbar",
+          "stackedbar",
+          "candlestick",
+          "ohlc",
+        ];
+        dis = ["pie", "donut", "funnelarea", "ternary"];
       } else if (isXNum) {
-        if ((1 + yCount) === 3) {
-          rec = ['scatter', 'bubble', 'scatter3d', 'line3d', 'surface', 'contour', 'ternary'];
+        if (1 + yCount === 3) {
+          rec = [
+            "scatter",
+            "bubble",
+            "scatter3d",
+            "line3d",
+            "surface",
+            "contour",
+            "ternary",
+          ];
         } else {
-          rec = ['scattermatrix', 'parcoords', 'heatmap', 'surface', 'contour'];
+          rec = ["scattermatrix", "parcoords", "heatmap", "surface", "contour"];
         }
-        dis = ['pie', 'donut', 'sunburst', 'funnel'];
+        dis = ["pie", "donut", "sunburst", "funnel"];
       } else {
-        rec = ['groupedbar', 'stackedbar', 'radar', 'heatmap', 'parcats', 'sunburst', 'icicle', 'sankey'];
-        dis = ['line3d', 'surface', 'candlestick', 'ohlc', 'scatter3d'];
+        rec = [
+          "groupedbar",
+          "stackedbar",
+          "radar",
+          "heatmap",
+          "parcats",
+          "sunburst",
+          "icicle",
+          "sankey",
+        ];
+        dis = ["line3d", "surface", "candlestick", "ohlc", "scatter3d"];
       }
     }
   } else {
     if (yCount === 1) {
-      rec = ['histogram', 'box', 'violin', 'strip', 'rug', 'bullet'];
-      dis = ['pie', 'donut', 'sunburst', 'treemap', 'scatter3d', 'surface', 'candlestick', 'ohlc'];
+      rec = ["histogram", "box", "violin", "strip", "rug", "bullet"];
+      dis = [
+        "pie",
+        "donut",
+        "sunburst",
+        "treemap",
+        "scatter3d",
+        "surface",
+        "candlestick",
+        "ohlc",
+      ];
     } else if (yCount >= 2) {
-      rec = ['scatter', 'bubble', 'density2d', 'histogram2d', 'heatmap', 'scattermatrix', 'parcoords', 'box', 'violin'];
-      dis = ['pie', 'donut', 'funnelarea', 'candlestick', 'ohlc'];
+      rec = [
+        "scatter",
+        "bubble",
+        "density2d",
+        "histogram2d",
+        "heatmap",
+        "scattermatrix",
+        "parcoords",
+        "box",
+        "violin",
+      ];
+      dis = ["pie", "donut", "funnelarea", "candlestick", "ohlc"];
     }
   }
 
-  document.querySelectorAll('.chart-card').forEach(card => {
+  document.querySelectorAll(".chart-card").forEach((card) => {
     const id = card.dataset.id;
-    card.className = 'chart-card';
+    card.className = "chart-card";
     card.tabIndex = 0;
-    card.role = 'button';
-    if (dis.includes(id)) card.classList.add('disabled');
-    else if (rec.includes(id)) card.classList.add('recommended');
+    card.role = "button";
+    if (dis.includes(id)) card.classList.add("disabled");
+    else if (rec.includes(id)) card.classList.add("recommended");
   });
 
   if (!yAllNum && yCount > 0 && warning) {
-    warning.textContent = "Uyarı: Y Ekseninde Metinsel (Kategorik) sütun seçtiniz. Sayısal grafikler otomatik adet sayımı ile gösterilebilir.";
-    warning.classList.remove('hidden');
+    warning.textContent =
+      "Uyarı: Y Ekseninde Metinsel (Kategorik) sütun seçtiniz. Sayısal grafikler otomatik adet sayımı ile gösterilebilir.";
+    warning.classList.remove("hidden");
   }
-  
+
   // Step 2 Akıllı Yönlendirme (Auto-Switch)
   if (hasX && yCount > 0) {
     if (isXNum && yAllNum) {
       // 2 veya 3 Sayısal Değişken Girildiğinde -> Otomatik olarak sağdaki İstatiksel Analiz & Testler sekmesine kay
-      switchStep2View('stats');
+      switchStep2View("stats");
     } else {
       // 1 Sözel, 1 Sayısal Girildiğinde -> Grafik sekmesinde kal, arka planda ANOVA/T-test hazırla
-      switchStep2View('charts');
-      updateStep2Stats('linear');
+      switchStep2View("charts");
+      updateStep2Stats("linear");
     }
   } else {
-    switchStep2View('charts');
+    switchStep2View("charts");
   }
 }
 
 /* ── 3. STEP 3 & ACTIVE CHART REFRESH ── */
 async function refreshActiveChart() {
-  const chartArea = document.getElementById('chartArea');
+  const chartArea = document.getElementById("chartArea");
   if (!chartArea) return;
-  
+
   // Clean any old spinner inside chartArea
-  chartArea.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+  chartArea
+    .querySelectorAll(".spinner, .chart-loading-spinner")
+    .forEach((s) => s.remove());
 
   // Show removable overlay loader
-  const container = document.getElementById('chartAreaContainer');
-  let loader = document.getElementById('megaChartLoader');
+  const container = document.getElementById("chartAreaContainer");
+  let loader = document.getElementById("megaChartLoader");
   if (!loader && container) {
-    container.insertAdjacentHTML('beforeend', '<div id="megaChartLoader" class="chart-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:15; pointer-events:none;"><div class="spinner"></div><p style="margin-top:8px; font-size:0.85rem; color:var(--muted);">Grafik Çiziliyor...</p></div>');
+    container.insertAdjacentHTML(
+      "beforeend",
+      '<div id="megaChartLoader" class="chart-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:15; pointer-events:none;"><div class="spinner"></div><p style="margin-top:8px; font-size:0.85rem; color:var(--muted);">Grafik Çiziliyor...</p></div>',
+    );
   }
 
   const targetType = currentPlotType;
-  const is3D = ['scatter3d', 'line3d', 'surface'].includes(targetType);
-  const aggVal = document.getElementById('s2AggFunc')?.value || 'sum';
+  const is3D = ["scatter3d", "line3d", "surface"].includes(targetType);
+  const aggVal = document.getElementById("s2AggFunc")?.value || "sum";
 
   try {
-    const res = await fetch('/get_chart_data', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+    const res = await fetch("/get_chart_data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         x: axisConfig.x,
         x_col: axisConfig.x,
@@ -656,32 +833,34 @@ async function refreshActiveChart() {
         agg_func: aggVal,
         chart_type: targetType,
         is_3d: is3D,
-        filters: activeFilters
-      })
+        filters: activeFilters,
+      }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Veri çekilemedi');
+    if (!res.ok) throw new Error(data.error || "Veri çekilemedi");
 
     currentChartData = data;
     window.currentChartData = data;
 
-    if (typeof drawMegaPlotly === 'function') {
-      await drawMegaPlotly('chartArea', data, targetType, false);
-    } else if (typeof window.drawMegaPlotly === 'function') {
-      await window.drawMegaPlotly('chartArea', data, targetType, false);
+    if (typeof drawMegaPlotly === "function") {
+      await drawMegaPlotly("chartArea", data, targetType, false);
+    } else if (typeof window.drawMegaPlotly === "function") {
+      await window.drawMegaPlotly("chartArea", data, targetType, false);
     }
-    
+
     // Purge loader completely
-    const l = document.getElementById('megaChartLoader');
+    const l = document.getElementById("megaChartLoader");
     if (l) l.remove();
-    chartArea.querySelectorAll('.spinner, .chart-loading-spinner').forEach(s => s.remove());
+    chartArea
+      .querySelectorAll(".spinner, .chart-loading-spinner")
+      .forEach((s) => s.remove());
 
     fetchKpis();
-    let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
+    let statCols = axisConfig.y.filter((c) => numericColumns.includes(c));
     if (!statCols.length) statCols = numericColumns.slice(0, 6);
     fetchStats(statCols);
-  } catch(err) {
-    const l = document.getElementById('megaChartLoader');
+  } catch (err) {
+    const l = document.getElementById("megaChartLoader");
     if (l) l.remove();
     chartArea.innerHTML = `<div style="color:var(--red); padding:40px; text-align:center;">❌ Hata:<br>${err.message}</div>`;
   }
@@ -689,30 +868,31 @@ async function refreshActiveChart() {
 
 /* ── 4. AKILLI FİLTRELEME / SLICERS SİSTEMİ ── */
 function openFilterModal() {
-  const filterModal = document.getElementById('filterModal');
-  const filterColumnSelect = document.getElementById('filterColumnSelect');
+  const filterModal = document.getElementById("filterModal");
+  const filterColumnSelect = document.getElementById("filterColumnSelect");
   if (!filterModal || !filterColumnSelect) return;
 
-  filterColumnSelect.innerHTML = '<option value="">-- Bir Sütun Seçin --</option>';
-  globalColumns.forEach(col => {
+  filterColumnSelect.innerHTML =
+    '<option value="">-- Bir Sütun Seçin --</option>';
+  globalColumns.forEach((col) => {
     const isNum = numericColumns.includes(col);
-    filterColumnSelect.innerHTML += `<option value="${col}">${isNum ? '#' : 'T'} ${col}</option>`;
+    filterColumnSelect.innerHTML += `<option value="${col}">${isNum ? "#" : "T"} ${col}</option>`;
   });
-  
-  const dynContainer = document.getElementById('filterDynamicContainer');
-  if (dynContainer) dynContainer.classList.add('hidden');
-  filterModal.classList.remove('hidden');
+
+  const dynContainer = document.getElementById("filterDynamicContainer");
+  if (dynContainer) dynContainer.classList.add("hidden");
+  filterModal.classList.remove("hidden");
 }
 
 function renderCatCheckboxes(col, values) {
-  const catCheckboxesList = document.getElementById('catCheckboxesList');
+  const catCheckboxesList = document.getElementById("catCheckboxesList");
   if (!catCheckboxesList) return;
-  catCheckboxesList.innerHTML = '';
-  
-  values.forEach(val => {
-    const safeVal = String(val).replaceAll('"', '&quot;');
-    const item = document.createElement('label');
-    item.className = 'cat-checkbox-item';
+  catCheckboxesList.innerHTML = "";
+
+  values.forEach((val) => {
+    const safeVal = String(val).replaceAll('"', "&quot;");
+    const item = document.createElement("label");
+    item.className = "cat-checkbox-item";
     item.innerHTML = `
       <input type="checkbox" value="${safeVal}" checked>
       <span>${val}</span>
@@ -722,44 +902,76 @@ function renderCatCheckboxes(col, values) {
 }
 
 function renderActiveFilterChips() {
-  const bar = document.getElementById('activeFiltersBar');
-  const list = document.getElementById('activeFiltersList');
-  if (!bar || !list) return;
+  const targets = [
+    {
+      bar: document.getElementById("s2FilterBar"),
+      list: document.getElementById("s2ActiveFiltersList"),
+      isGlobalBar: true,
+    },
+    {
+      bar: document.getElementById("s3FilterBar"),
+      list: document.getElementById("s3ActiveFiltersList"),
+      isGlobalBar: true,
+    },
+    {
+      bar: document.getElementById("activeFiltersBar"),
+      list: document.getElementById("activeFiltersList"),
+      isGlobalBar: false,
+    },
+  ];
 
-  list.innerHTML = '';
-  if (activeFilters.length === 0) {
-    bar.classList.add('hidden');
-    return;
-  }
+  targets.forEach(({ bar, list, isGlobalBar }) => {
+    if (!list && !bar) return;
+    if (bar) {
+      if (activeFilters.length > 0) {
+        bar.classList.remove("hidden");
+      } else if (!isGlobalBar) {
+        bar.classList.add("hidden");
+      }
+    }
+    if (!list) return;
+    list.innerHTML = "";
 
-  bar.classList.remove('hidden');
-  activeFilters.forEach((f, idx) => {
-    const chip = document.createElement('div');
-    chip.className = 'filter-chip';
-    
-    let desc = '';
-    if (f.type === 'categorical') {
-      desc = `${f.column}: ${f.selected_values.length} değer`;
-    } else if (f.type === 'numeric_range') {
-      desc = `${f.column}: ${f.min} - ${f.max}`;
-    } else if (f.type === 'date_range') {
-      desc = `${f.column}: ${f.start} / ${f.end}`;
+    if (activeFilters.length === 0) {
+      if (isGlobalBar) {
+        list.innerHTML =
+          '<span class="no-filter-hint">Filtre uygulanmadı (Tüm veri aktif)</span>';
+      }
+      return;
     }
 
-    chip.innerHTML = `
-      <span>${desc}</span>
-      <span class="remove-chip" data-idx="${idx}">×</span>
-    `;
-    list.appendChild(chip);
-  });
+    activeFilters.forEach((f, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "filter-chip";
 
-  list.querySelectorAll('.remove-chip').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = parseInt(e.target.dataset.idx);
-      activeFilters.splice(idx, 1);
-      window.activeFilters = activeFilters;
-      renderActiveFilterChips();
-      if (currentChartData && currentPlotType) refreshActiveChart();
+      const fType = f.filter_type || f.type;
+      const vals = f.selected_values || f.values || [];
+      let desc = "";
+      if (fType === "categorical" || fType === "cat") {
+        desc = `${f.column}: ${vals.length} değer`;
+      } else if (fType === "numeric_range" || fType === "num") {
+        desc = `${f.column}: ${f.min ?? "-"} - ${f.max ?? "-"}`;
+      } else if (fType === "date_range") {
+        desc = `${f.column}: ${f.start} / ${f.end}`;
+      } else {
+        desc = `${f.column}`;
+      }
+
+      chip.innerHTML = `
+        <span>${desc}</span>
+        <span class="remove-chip" data-idx="${idx}">×</span>
+      `;
+      list.appendChild(chip);
+    });
+
+    list.querySelectorAll(".remove-chip").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.target.dataset.idx);
+        activeFilters.splice(idx, 1);
+        window.activeFilters = activeFilters;
+        renderActiveFilterChips();
+        if (currentChartData && currentPlotType) refreshActiveChart();
+      });
     });
   });
 }
@@ -767,45 +979,45 @@ function renderActiveFilterChips() {
 /* ── 5. EXECUTIVE KPI ÖZETLERİ ── */
 async function fetchKpis() {
   try {
-    const res = await fetch('/get_kpi_summary', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+    const res = await fetch("/get_kpi_summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         x: axisConfig.x,
         x_col: axisConfig.x,
         y: axisConfig.y,
         y_cols: axisConfig.y,
-        filters: activeFilters
-      })
+        filters: activeFilters,
+      }),
     });
     const data = await res.json();
     if (res.ok && data.kpis) {
       currentKpis = data.kpis;
       window.currentKpis = currentKpis;
-      renderKpiTiles('chartKpiStrip', currentKpis);
-      renderKpiTiles('dashboardKpiGrid', currentKpis);
-      renderKpiTiles('kpiTilesRow', currentKpis);
+      renderKpiTiles("chartKpiStrip", currentKpis);
+      renderKpiTiles("dashboardKpiGrid", currentKpis);
+      renderKpiTiles("kpiTilesRow", currentKpis);
     }
   } catch (e) {
-    console.error('KPI fetch error:', e);
+    console.error("KPI fetch error:", e);
   }
 }
 
 function renderKpiTiles(targetId, kpiList) {
   const container = document.getElementById(targetId);
   if (!container || !kpiList || kpiList.length === 0) return;
-  container.innerHTML = '';
+  container.innerHTML = "";
 
-  kpiList.forEach(k => {
-    const tile = document.createElement('div');
-    tile.className = `kpi-tile-card ${k.color || 'blue'}`;
+  kpiList.forEach((k) => {
+    const tile = document.createElement("div");
+    tile.className = `kpi-tile-card ${k.color || "blue"}`;
     tile.innerHTML = `
       <div class="kpi-tile-header">
-        <span class="kpi-tile-title">${k.title || k.label || ''}</span>
-        <span class="kpi-tile-icon">${k.icon || '📌'}</span>
+        <span class="kpi-tile-title">${k.title || k.label || ""}</span>
+        <span class="kpi-tile-icon">${k.icon || "📌"}</span>
       </div>
-      <div class="kpi-tile-val">${k.value || ''}</div>
-      <div class="kpi-tile-sub">${k.sub || k.change || ''}</div>
+      <div class="kpi-tile-val">${k.value || ""}</div>
+      <div class="kpi-tile-sub">${k.sub || k.change || ""}</div>
     `;
     container.appendChild(tile);
   });
@@ -813,39 +1025,70 @@ function renderKpiTiles(targetId, kpiList) {
 
 /* ── 6. ÇOKLU PANO (DASHBOARD CANVAS) SİSTEMİ ── */
 function updateDashboardBadge() {
-  const badge = document.getElementById('dashItemCount');
-  if (!badge) return;
-  badge.textContent = dashboardCharts.length;
-  if (dashboardCharts.length > 0) {
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
+  ["dashBadgeCount", "dashItemCount"].forEach((id) => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    badge.textContent = dashboardCharts.length;
+    if (id === "dashItemCount") {
+      if (dashboardCharts.length > 0) {
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+  });
+}
+
+function addChartToDashboard(chartItem) {
+  if (!chartItem) return null;
+  const item = {
+    id:
+      chartItem.id ||
+      "dash_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    title: chartItem.title || "Grafik",
+    chartType: chartItem.chartType || chartItem.type || "scatter",
+    chartData: chartItem.chartData || null,
+    pivotData: chartItem.pivotData || null,
+    isCustomRegression: !!chartItem.isCustomRegression,
+    regData: chartItem.data || chartItem.regData || null,
+    plotlyTraces: chartItem.plotlyTraces || null,
+    plotlyLayout: chartItem.plotlyLayout || null,
+    xCol: chartItem.xCol || null,
+    yCol: chartItem.yCol || null,
+    filtersCount: activeFilters ? activeFilters.length : 0,
+  };
+  dashboardCharts.push(item);
+  window.dashboardCharts = dashboardCharts;
+  updateDashboardBadge();
+  renderDashboardGrid();
+  return item;
 }
 
 function renderDashboardGrid() {
-  const grid = document.getElementById('dashboardChartsGrid');
+  const grid =
+    document.getElementById("dashboardGrid") ||
+    document.getElementById("dashboardChartsGrid");
   if (!grid) return;
-  grid.innerHTML = '';
+  grid.innerHTML = "";
 
   if (dashboardCharts.length === 0) {
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--muted); border: 2px dashed rgba(255,255,255,0.08); border-radius: 12px;">
-        Panoda henüz kaydedilmiş grafik yok. Üst kısımdaki <strong>"📌 Panoya Sabitle"</strong> butonunu kullanarak grafikleri panoya ekleyebilirsiniz.
+        Panoda henüz kaydedilmiş grafik yok. Üst kısımdaki <strong>"📌 Panoya Ekle"</strong> butonunu kullanarak grafikleri panoya ekleyebilirsiniz.
       </div>
     `;
     return;
   }
 
   dashboardCharts.forEach((item, idx) => {
-    const card = document.createElement('div');
-    card.className = 'dash-card';
+    const card = document.createElement("div");
+    card.className = "dash-card";
     card.dataset.id = item.id;
 
-    if (item.chartType === 'pivot') {
+    if (item.chartType === "pivot") {
       card.innerHTML = `
         <div class="dash-card-header">
-          <div class="dash-card-title">${item.title}</div>
+          <div class="dash-card-title" contenteditable="true" data-idx="${idx}">${item.title}</div>
           <div class="dash-card-actions">
             <button class="dash-act-btn btn-dash-del" data-idx="${idx}" title="Kaldır">✕</button>
           </div>
@@ -854,10 +1097,10 @@ function renderDashboardGrid() {
       `;
       grid.appendChild(card);
       renderDashboardPivotTable(`plot_${item.id}`, item.pivotData);
-    } else {
+    } else if (item.isCustomRegression && (item.plotlyTraces || item.regData)) {
       card.innerHTML = `
         <div class="dash-card-header">
-          <div class="dash-card-title">${item.title}</div>
+          <div class="dash-card-title" contenteditable="true" data-idx="${idx}">${item.title}</div>
           <div class="dash-card-actions">
             <button class="dash-act-btn btn-dash-del" data-idx="${idx}" title="Kaldır">✕</button>
           </div>
@@ -865,10 +1108,79 @@ function renderDashboardGrid() {
         <div class="dash-card-plot" id="plot_${item.id}"></div>
       `;
       grid.appendChild(card);
-      if (typeof drawMegaPlotly === 'function') {
+      const plotEl = document.getElementById(`plot_${item.id}`);
+      if (plotEl && window.Plotly) {
+        let traces = item.plotlyTraces;
+        let layout = item.plotlyLayout;
+        if (!traces && item.regData) {
+          const rd = item.regData;
+          traces = [
+            {
+              x: rd.x || [],
+              y: rd.y || [],
+              mode: "markers",
+              type: "scatter",
+              name: "Örneklem",
+              marker: { color: "#38bdf8", size: 4, opacity: 0.6 },
+            },
+          ];
+          if (rd.trend_x && rd.trend_y) {
+            traces.push({
+              x: rd.trend_x,
+              y: rd.trend_y,
+              mode: "lines",
+              type: "scatter",
+              name: rd.equation || "Regresyon",
+              line: { color: "#f59e0b", width: 2.5 },
+            });
+          }
+        }
+        if (!layout) {
+          layout = {
+            autosize: true,
+            paper_bgcolor: "transparent",
+            plot_bgcolor: "#070711",
+            font: { family: "Inter", color: "#94a3b8", size: 10 },
+            margin: { t: 15, r: 15, b: 35, l: 45 },
+            showlegend: false,
+            xaxis: {
+              title: { text: item.xCol || "" },
+              gridcolor: "rgba(255,255,255,0.08)",
+              zeroline: false,
+            },
+            yaxis: {
+              title: { text: item.yCol || "" },
+              gridcolor: "rgba(255,255,255,0.08)",
+              zeroline: false,
+            },
+          };
+        }
+        Plotly.newPlot(plotEl, traces, layout, {
+          responsive: true,
+          displayModeBar: false,
+          displaylogo: false,
+        });
+      }
+    } else {
+      card.innerHTML = `
+        <div class="dash-card-header">
+          <div class="dash-card-title" contenteditable="true" data-idx="${idx}">${item.title}</div>
+          <div class="dash-card-actions">
+            <button class="dash-act-btn btn-dash-del" data-idx="${idx}" title="Kaldır">✕</button>
+          </div>
+        </div>
+        <div class="dash-card-plot" id="plot_${item.id}"></div>
+      `;
+      grid.appendChild(card);
+      if (typeof drawMegaPlotly === "function") {
         drawMegaPlotly(`plot_${item.id}`, item.chartData, item.chartType, true);
-      } else if (typeof window.drawMegaPlotly === 'function') {
-        window.drawMegaPlotly(`plot_${item.id}`, item.chartData, item.chartType, true);
+      } else if (typeof window.drawMegaPlotly === "function") {
+        window.drawMegaPlotly(
+          `plot_${item.id}`,
+          item.chartData,
+          item.chartType,
+          true,
+        );
       }
     }
   });
@@ -882,21 +1194,24 @@ function renderDashboardPivotTable(containerId, data) {
 
   let html = `<table class="pivot-matrix-table" style="font-size: 0.78rem;">`;
   html += `<thead><tr>`;
-  (data.index_names || []).forEach(name => {
+  (data.index_names || []).forEach((name) => {
     html += `<th class="pmt-corner">${name}</th>`;
   });
-  (data.column_headers || []).forEach(h => {
+  (data.column_headers || []).forEach((h) => {
     html += `<th class="pmt-col-header">${h}</th>`;
   });
   html += `</tr></thead><tbody>`;
 
-  (data.rows || []).forEach(r => {
+  (data.rows || []).forEach((r) => {
     html += `<tr>`;
-    (r.row_labels || []).forEach(lbl => {
+    (r.row_labels || []).forEach((lbl) => {
       html += `<td class="pmt-row-header">${lbl}</td>`;
     });
-    (r.cells || []).forEach(val => {
-      let formattedVal = val.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    (r.cells || []).forEach((val) => {
+      let formattedVal = val.toLocaleString("tr-TR", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
       html += `<td class="pmt-val-cell">${formattedVal}</td>`;
     });
     html += `</tr>`;
@@ -907,8 +1222,8 @@ function renderDashboardPivotTable(containerId, data) {
 }
 
 function setupDashboardEvents() {
-  document.querySelectorAll('.btn-dash-del').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  document.querySelectorAll(".btn-dash-del").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
       const idx = parseInt(e.currentTarget.dataset.idx);
       dashboardCharts.splice(idx, 1);
       window.dashboardCharts = dashboardCharts;
@@ -916,33 +1231,47 @@ function setupDashboardEvents() {
       renderDashboardGrid();
     });
   });
+  document
+    .querySelectorAll('.dash-card-title[contenteditable="true"]')
+    .forEach((titleEl) => {
+      titleEl.addEventListener("blur", (e) => {
+        const idx = parseInt(e.currentTarget.dataset.idx);
+        if (dashboardCharts[idx]) {
+          dashboardCharts[idx].title =
+            e.currentTarget.textContent.trim() || dashboardCharts[idx].title;
+        }
+      });
+    });
 }
 
 /* ── 7. STATS & AI (Qwen2.5) & EXPORT ── */
 async function fetchStats(cols = null) {
   if (!cols || !cols.length) {
-    cols = axisConfig.y.filter(c => numericColumns.includes(c));
+    cols = axisConfig.y.filter((c) => numericColumns.includes(c));
     if (!cols.length) cols = numericColumns.slice(0, 6);
   }
   if (!cols.length && !axisConfig.x) return;
 
-  const statsContainer = document.getElementById('statsGrid') || document.getElementById('bentoStatsGrid');
+  const statsContainer =
+    document.getElementById("statsGrid") ||
+    document.getElementById("bentoStatsGrid");
   if (statsContainer) {
-    statsContainer.innerHTML = '<div class="spinner" style="grid-column: 1 / -1; margin: 30px auto;"></div>';
+    statsContainer.innerHTML =
+      '<div class="spinner" style="grid-column: 1 / -1; margin: 30px auto;"></div>';
   }
 
   try {
-    const res = await fetch('/get_stats', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+    const res = await fetch("/get_stats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         columns: cols,
         y: cols,
         y_cols: cols,
         x: axisConfig.x,
         x_col: axisConfig.x,
-        filters: activeFilters
-      })
+        filters: activeFilters,
+      }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -967,17 +1296,31 @@ function renderStatsCards(data) {
     return '<div class="bento-loading" style="grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center; color: var(--muted);">İstatistik bulunamadı veya hesaplanamadı.</div>';
   }
 
-  let html = '';
-  
-  Object.keys(data.stats).forEach(col => {
+  let html = "";
+
+  Object.keys(data.stats).forEach((col) => {
     const m = data.stats[col];
     const adv = data.advanced && data.advanced[col] ? data.advanced[col] : null;
-    
-    let advHtml = '';
+
+    let advHtml = "";
     if (adv) {
-      if (adv.type === 'numeric') {
-        const corrMethodName = adv.corr_method === 'spearman' ? 'Spearman (ρ)' : (adv.corr_method === 'kendall' ? 'Kendall Tau (τ)' : 'Pearson (r)');
-        const regModelName = adv.reg_model === 'poly2' ? '2. Derece Polinom' : (adv.reg_model === 'poly3' ? '3. Derece Polinom' : (adv.reg_model === 'log' ? 'Logaritmik' : (adv.reg_model === 'exp' ? 'Üstel' : 'Doğrusal')));
+      if (adv.type === "numeric") {
+        const corrMethodName =
+          adv.corr_method === "spearman"
+            ? "Spearman (ρ)"
+            : adv.corr_method === "kendall"
+              ? "Kendall Tau (τ)"
+              : "Pearson (r)";
+        const regModelName =
+          adv.reg_model === "poly2"
+            ? "2. Derece Polinom"
+            : adv.reg_model === "poly3"
+              ? "3. Derece Polinom"
+              : adv.reg_model === "log"
+                ? "Logaritmik"
+                : adv.reg_model === "exp"
+                  ? "Üstel"
+                  : "Doğrusal";
 
         advHtml = `
           <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -988,44 +1331,44 @@ function renderStatsCards(data) {
             <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="b-metric">
                 <span>${corrMethodName}</span>
-                <strong style="color: #60a5fa;">${adv.correlation != null ? adv.correlation.toFixed(4) : '-'}</strong>
+                <strong style="color: #60a5fa;">${adv.correlation !== null && adv.correlation !== undefined ? Number(adv.correlation).toFixed(4) : "-"}</strong>
               </div>
               <div class="b-metric">
                 <span>Belirlilik (R²)</span>
-                <strong style="color: #34d399;">${adv.r_squared != null ? adv.r_squared.toFixed(4) : '-'}</strong>
+                <strong style="color: #34d399;">${adv.r_squared !== null && adv.r_squared !== undefined ? Number(adv.r_squared).toFixed(4) : "-"}</strong>
               </div>
               <div class="b-metric">
                 <span>P Değeri</span>
-                <strong>${adv.p_value != null ? (adv.p_value < 0.0001 ? '< 0.0001' : adv.p_value.toFixed(4)) : '-'}</strong>
+                <strong>${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
               </div>
               <div class="b-metric">
                 <span>İlişki Gücü</span>
-                <strong style="font-size: 0.82rem; color: #fbbf24;">${adv.interpretation || '-'}</strong>
+                <strong style="font-size: 0.82rem; color: #fbbf24;">${adv.interpretation || "-"}</strong>
               </div>
               <div class="b-metric" style="grid-column: 1 / -1; background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.2); padding: 8px 10px; border-radius: 6px;">
                 <span style="color: #c4b5fd;">Model Denklemi:</span>
-                <strong style="color: #fbbf24; font-family: monospace; font-size: 0.85rem; word-break: break-all;">${adv.regression || '-'}</strong>
+                <strong style="color: #fbbf24; font-family: monospace; font-size: 0.85rem; word-break: break-all;">${adv.regression || "-"}</strong>
               </div>
             </div>
           </div>
         `;
-      } else if (adv.type === 'categorical_2') {
+      } else if (adv.type === "categorical_2") {
         advHtml = `
           <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
             <h4 style="font-size: 0.9rem; color: #34d399; margin-bottom: 8px;">Bağımsız Örneklem T-Testi</h4>
             <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="b-metric"><span>T İstatistiği</span><strong>${adv.t_test_stat ? adv.t_test_stat.toFixed(3) : '-'}</strong></div>
-              <div class="b-metric"><span>P Değeri</span><strong>${adv.p_value != null ? adv.p_value.toExponential(2) : '-'}</strong></div>
+              <div class="b-metric"><span>T İstatistiği</span><strong>${adv.t_test_stat !== null && adv.t_test_stat !== undefined ? Number(adv.t_test_stat).toFixed(3) : "-"}</strong></div>
+              <div class="b-metric"><span>P Değeri</span><strong>${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong></div>
             </div>
           </div>
         `;
-      } else if (adv.type === 'categorical_n') {
+      } else if (adv.type === "categorical_n") {
         advHtml = `
           <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
             <h4 style="font-size: 0.9rem; color: #fbbf24; margin-bottom: 8px;">Tek Yönlü ANOVA</h4>
             <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="b-metric"><span>F İstatistiği</span><strong>${adv.anova_f ? adv.anova_f.toFixed(3) : '-'}</strong></div>
-              <div class="b-metric"><span>P Değeri</span><strong>${adv.p_value != null ? adv.p_value.toExponential(2) : '-'}</strong></div>
+              <div class="b-metric"><span>F İstatistiği</span><strong>${adv.anova_f !== null && adv.anova_f !== undefined ? Number(adv.anova_f).toFixed(3) : "-"}</strong></div>
+              <div class="b-metric"><span>P Değeri</span><strong>${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong></div>
             </div>
           </div>
         `;
@@ -1038,34 +1381,34 @@ function renderStatsCards(data) {
           <div class="b-stat-name" style="font-weight: 700; font-size: 1.1rem; color: var(--text);">${col}</div>
           <div class="b-stat-badge" style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">Sayısal</div>
         </div>
-        
+
         <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="b-metric primary" style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Ortalama</span>
-            <strong style="color: #60a5fa; font-size: 1.1rem;">${m.mean ? m.mean.toFixed(2) : '-'}</strong>
+            <strong style="color: #60a5fa; font-size: 1.1rem;">${m.mean !== null && m.mean !== undefined ? Number(m.mean).toFixed(2) : "-"}</strong>
           </div>
           <div class="b-metric" style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Medyan</span>
-            <strong style="font-size: 1.1rem;">${m.median ? m.median.toFixed(2) : '-'}</strong>
+            <strong style="font-size: 1.1rem;">${m.median !== null && m.median !== undefined ? Number(m.median).toFixed(2) : "-"}</strong>
           </div>
           <div class="b-metric danger" style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Min</span>
-            <strong style="color: #f87171; font-size: 1.1rem;">${m.min ? m.min.toFixed(2) : '-'}</strong>
+            <strong style="color: #f87171; font-size: 1.1rem;">${m.min !== null && m.min !== undefined ? Number(m.min).toFixed(2) : "-"}</strong>
           </div>
           <div class="b-metric success" style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Max</span>
-            <strong style="color: #34d399; font-size: 1.1rem;">${m.max ? m.max.toFixed(2) : '-'}</strong>
+            <strong style="color: #34d399; font-size: 1.1rem;">${m.max !== null && m.max !== undefined ? Number(m.max).toFixed(2) : "-"}</strong>
           </div>
           <div class="b-metric" style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Std. Sapma</span>
-            <strong style="font-size: 1.1rem;">${m.std ? m.std.toFixed(2) : '-'}</strong>
+            <strong style="font-size: 1.1rem;">${m.std !== null && m.std !== undefined ? Number(m.std).toFixed(2) : "-"}</strong>
           </div>
           <div class="b-metric" style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Eksik Veri</span>
-            <strong style="font-size: 1.1rem;">${m.missing !== undefined ? m.missing : '-'}</strong>
+            <strong style="font-size: 1.1rem;">${m.missing !== null && m.missing !== undefined ? m.missing : "-"}</strong>
           </div>
         </div>
-        
+
         ${advHtml}
       </div>
     `;
@@ -1074,38 +1417,43 @@ function renderStatsCards(data) {
 }
 
 async function exportActiveDataset(format) {
-  const btnId = format === 'csv' ? 'downloadCsvBtn' : (format === 'parquet' ? 'downloadParquetBtn' : 'downloadExcelBtn');
+  const btnId =
+    format === "csv"
+      ? "downloadCsvBtn"
+      : format === "parquet"
+        ? "downloadParquetBtn"
+        : "downloadExcelBtn";
   const btn = document.getElementById(btnId);
-  const orig = btn ? btn.innerHTML : '';
+  const orig = btn ? btn.innerHTML : "";
   if (btn) {
-    btn.innerHTML = '⏳ İndiriliyor...';
+    btn.innerHTML = "⏳ İndiriliyor...";
     btn.disabled = true;
   }
 
   try {
-    const res = await fetch('/export_data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/export_data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         format: format,
-        filters: activeFilters
-      })
+        filters: activeFilters,
+      }),
     });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Dışa aktarma başarısız');
+      throw new Error(err.error || "Dışa aktarma başarısız");
     }
 
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `DataViz_Aktif_Veri_${Date.now()}.${format === 'excel' ? 'xlsx' : format}`;
+    a.download = `DataViz_Aktif_Veri_${Date.now()}.${format === "excel" ? "xlsx" : format}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-  } catch(err) {
+  } catch (err) {
     alert("Dışa aktarma hatası: " + err.message);
   } finally {
     if (btn) {
@@ -1118,73 +1466,98 @@ async function exportActiveDataset(format) {
 /* ── 8. EVENT LISTENERS INITIALIZATION ── */
 function initChartManagerListeners() {
   // Pool search & filter
-  document.getElementById('poolSearchInput')?.addEventListener('input', (e) => {
+  document.getElementById("poolSearchInput")?.addEventListener("input", (e) => {
     currentPoolSearch = e.target.value.toLowerCase().trim();
     applyPoolFilterAndSearch();
   });
 
-  document.querySelectorAll('.pfc-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.pfc-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+  document.querySelectorAll(".pfc-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document
+        .querySelectorAll(".pfc-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
       currentPoolFilter = btn.dataset.pfilter;
       applyPoolFilterAndSearch();
     });
   });
 
   // Drag & drop zones for axis
-  document.querySelectorAll('.dd-zone').forEach(zone => {
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-    zone.addEventListener('drop', e => {
+  document.querySelectorAll(".dd-zone").forEach((zone) => {
+    zone.addEventListener("dragover", (e) => {
       e.preventDefault();
-      zone.classList.remove('dragover');
-      const colName = e.dataTransfer.getData('text/plain');
+      zone.classList.add("dragover");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+    zone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      zone.classList.remove("dragover");
+      const colName = e.dataTransfer.getData("text/plain");
       if (!colName) return;
-      if (zone.id === 'xZone') handleDropX(colName);
-      else if (zone.id === 'yZone') handleDropY(colName);
+      if (zone.id === "xZone") handleDropX(colName);
+      else if (zone.id === "yZone") handleDropY(colName);
       else assignPillToZone(colName, zone.id);
     });
   });
 
   // Chart filters click
-  const chartFilters = document.getElementById('chartFilters');
-  chartFilters?.addEventListener('click', (e) => {
-    if (e.target.tagName !== 'BUTTON') return;
-    chartFilters.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
+  const chartFilters = document.getElementById("chartFilters");
+  chartFilters?.addEventListener("click", (e) => {
+    if (e.target.tagName !== "BUTTON") return;
+    chartFilters
+      .querySelectorAll("button")
+      .forEach((b) => b.classList.remove("active"));
+    e.target.classList.add("active");
     renderChartGrid(e.target.dataset.filter);
   });
 
   // Magic templates
-  document.querySelectorAll('.magic-btn[data-tpl]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  document.querySelectorAll(".magic-btn[data-tpl]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
       const tpl = e.currentTarget.dataset.tpl;
       initDragDropPool();
-      
+
       let xMatch = null;
       let yMatch = null;
-      
-      if (tpl === 'sales') {
-        xMatch = globalColumns.find(c => /tarih|date|zaman|ay|yıl|gün/i.test(c)) || categoricalColumns[0];
-        yMatch = globalColumns.find(c => /satış|tutar|fiyat|gelir|price|sales/i.test(c)) || numericColumns[0];
-      } else if (tpl === 'hr') {
-        xMatch = globalColumns.find(c => /departman|bölüm|pozisyon|unvan|dept/i.test(c)) || categoricalColumns[0];
-        yMatch = globalColumns.find(c => /maaş|ücret|çalışan|salary|pay/i.test(c)) || numericColumns[0];
-      } else if (tpl === 'finance') {
-        xMatch = globalColumns.find(c => /tarih|date|zaman/i.test(c)) || categoricalColumns[0];
-        yMatch = globalColumns.find(c => /kapanış|açılış|fiyat|close|open/i.test(c)) || numericColumns[0];
+
+      if (tpl === "sales") {
+        xMatch =
+          globalColumns.find((c) => /tarih|date|zaman|ay|yıl|gün/i.test(c)) ||
+          categoricalColumns[0];
+        yMatch =
+          globalColumns.find((c) =>
+            /satış|tutar|fiyat|gelir|price|sales/i.test(c),
+          ) || numericColumns[0];
+      } else if (tpl === "hr") {
+        xMatch =
+          globalColumns.find((c) =>
+            /departman|bölüm|pozisyon|unvan|dept/i.test(c),
+          ) || categoricalColumns[0];
+        yMatch =
+          globalColumns.find((c) => /maaş|ücret|çalışan|salary|pay/i.test(c)) ||
+          numericColumns[0];
+      } else if (tpl === "finance") {
+        xMatch =
+          globalColumns.find((c) => /tarih|date|zaman/i.test(c)) ||
+          categoricalColumns[0];
+        yMatch =
+          globalColumns.find((c) =>
+            /kapanış|açılış|fiyat|close|open/i.test(c),
+          ) || numericColumns[0];
       }
 
-      if (xMatch) assignPillToZone(xMatch, 'xZone');
-      if (yMatch) assignPillToZone(yMatch, 'yZone');
-      
+      if (xMatch) assignPillToZone(xMatch, "xZone");
+      if (yMatch) assignPillToZone(yMatch, "yZone");
+
       if (xMatch && yMatch) {
         setTimeout(() => {
-          if (tpl === 'finance' && document.querySelector('.chart-card[data-id="candlestick"]')) {
-            if (typeof goToStep3 === 'function') goToStep3('line', 'Çizgi');
+          if (
+            tpl === "finance" &&
+            document.querySelector('.chart-card[data-id="candlestick"]')
+          ) {
+            if (typeof goToStep3 === "function") goToStep3("line", "Çizgi");
           } else {
-            if (typeof goToStep3 === 'function') goToStep3('bar', 'Çubuk');
+            if (typeof goToStep3 === "function") goToStep3("bar", "Çubuk");
           }
         }, 600);
       }
@@ -1192,249 +1565,334 @@ function initChartManagerListeners() {
   });
 
   // Formula wizard (Calculated Columns)
-  const calcColModal = document.getElementById('calcColModal');
-  const calcCol1Select = document.getElementById('calcCol1Select');
-  const calcCol2Select = document.getElementById('calcCol2Select');
-  const calcScalarInput = document.getElementById('calcScalarInput');
-  const calcUseScalar = document.getElementById('calcUseScalar');
-  const calcNewColName = document.getElementById('calcNewColName');
-  let selectedCalcOp = '+';
+  const calcColModal = document.getElementById("calcColModal");
+  const calcCol1Select = document.getElementById("calcCol1Select");
+  const calcCol2Select = document.getElementById("calcCol2Select");
+  const calcScalarInput = document.getElementById("calcScalarInput");
+  const calcUseScalar = document.getElementById("calcUseScalar");
+  const calcNewColName = document.getElementById("calcNewColName");
+  let selectedCalcOp = "+";
 
-  ['btnOpenCalcModal', 'btnOpenCalcModalS2'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', () => {
-      if (calcCol1Select) calcCol1Select.innerHTML = '';
-      if (calcCol2Select) calcCol2Select.innerHTML = '';
-      numericColumns.forEach(c => {
-        if (calcCol1Select) calcCol1Select.innerHTML += `<option value="${c}">${c}</option>`;
-        if (calcCol2Select) calcCol2Select.innerHTML += `<option value="${c}">${c}</option>`;
+  ["btnOpenCalcModal", "btnOpenCalcModalS2"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", () => {
+      if (calcCol1Select) calcCol1Select.innerHTML = "";
+      if (calcCol2Select) calcCol2Select.innerHTML = "";
+      numericColumns.forEach((c) => {
+        if (calcCol1Select)
+          calcCol1Select.innerHTML += `<option value="${c}">${c}</option>`;
+        if (calcCol2Select)
+          calcCol2Select.innerHTML += `<option value="${c}">${c}</option>`;
       });
-      if (calcNewColName) calcNewColName.value = '';
-      calcColModal?.classList.remove('hidden');
+      if (calcNewColName) calcNewColName.value = "";
+      calcColModal?.classList.remove("hidden");
     });
   });
 
-  calcUseScalar?.addEventListener('change', (e) => {
+  calcUseScalar?.addEventListener("change", (e) => {
     const isScalar = e.target.checked;
-    const col2Box = document.getElementById('calcCol2Box');
-    const scalarBox = document.getElementById('calcScalarBox');
-    if (col2Box) col2Box.style.display = isScalar ? 'none' : 'block';
-    if (scalarBox) scalarBox.style.display = isScalar ? 'block' : 'none';
+    const col2Box = document.getElementById("calcCol2Box");
+    const scalarBox = document.getElementById("calcScalarBox");
+    if (col2Box) {
+      col2Box.classList.toggle("hidden", isScalar);
+      col2Box.style.display = isScalar ? "none" : "block";
+    }
+    if (scalarBox) {
+      scalarBox.classList.toggle("hidden", !isScalar);
+      scalarBox.style.display = isScalar ? "block" : "none";
+    }
   });
 
-  document.querySelectorAll('.calc-op-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.calc-op-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+  document.querySelectorAll(".calc-op-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document
+        .querySelectorAll(".calc-op-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
       selectedCalcOp = btn.dataset.op;
     });
   });
 
-  document.getElementById('btnCancelCalcCol')?.addEventListener('click', () => calcColModal?.classList.add('hidden'));
-  document.getElementById('btnCloseCalcColModal')?.addEventListener('click', () => calcColModal?.classList.add('hidden'));
+  document
+    .getElementById("btnCancelCalcCol")
+    ?.addEventListener("click", () => calcColModal?.classList.add("hidden"));
+  document
+    .getElementById("btnCloseCalcColModal")
+    ?.addEventListener("click", () => calcColModal?.classList.add("hidden"));
 
-  document.getElementById('btnApplyCalcCol')?.addEventListener('click', async () => {
-    const col1 = calcCol1Select?.value;
-    const isScalar = calcUseScalar?.checked ?? false;
-    const col2 = isScalar ? null : calcCol2Select?.value;
-    const scalarVal = isScalar ? parseFloat(calcScalarInput?.value) : null;
-    let newCol = calcNewColName?.value?.trim();
+  document
+    .getElementById("btnApplyCalcCol")
+    ?.addEventListener("click", async () => {
+      const col1 = calcCol1Select?.value;
+      const isScalar = calcUseScalar?.checked ?? false;
+      const col2 = isScalar ? null : calcCol2Select?.value;
+      const scalarVal = isScalar ? parseFloat(calcScalarInput?.value) : null;
+      let newCol = calcNewColName?.value?.trim();
 
-    if (!col1) { alert("Lütfen 1. sütunu seçin."); return; }
-    if (isScalar && (isNaN(scalarVal) || scalarVal === null)) { alert("Lütfen geçerli bir sabit sayı girin."); return; }
-    if (!newCol) {
-      newCol = isScalar ? `${col1}_${selectedCalcOp}_${scalarVal}` : `${col1}_${selectedCalcOp}_${col2}`;
-    }
+      if (!col1) {
+        alert("Lütfen 1. sütunu seçin.");
+        return;
+      }
+      if (isScalar && (isNaN(scalarVal) || scalarVal === null)) {
+        alert("Lütfen geçerli bir sabit sayı girin.");
+        return;
+      }
+      if (!newCol) {
+        newCol = isScalar
+          ? `${col1}_${selectedCalcOp}_${scalarVal}`
+          : `${col1}_${selectedCalcOp}_${col2}`;
+      }
 
-    try {
-      const res = await fetch('/add_calculated_column', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          col1: col1,
-          op: selectedCalcOp,
-          col2: col2,
-          scalar: scalarVal,
-          new_col_name: newCol
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      try {
+        const res = await fetch("/add_calculated_column", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            col1: col1,
+            op: selectedCalcOp,
+            col2: col2,
+            scalar: scalarVal,
+            new_col_name: newCol,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
 
-      numericColumns = data.numeric_columns || [];
-      categoricalColumns = data.categorical_columns || [];
-      globalColumns = [...categoricalColumns, ...numericColumns];
-      if (!calculatedColumns.includes(newCol)) calculatedColumns.push(newCol);
+        numericColumns = data.numeric_columns || [];
+        categoricalColumns = data.categorical_columns || [];
+        globalColumns = [...categoricalColumns, ...numericColumns];
+        if (!calculatedColumns.includes(newCol)) calculatedColumns.push(newCol);
 
-      window.numericColumns = numericColumns;
-      window.categoricalColumns = categoricalColumns;
-      window.globalColumns = globalColumns;
-      window.calculatedColumns = calculatedColumns;
+        window.numericColumns = numericColumns;
+        window.categoricalColumns = categoricalColumns;
+        window.globalColumns = globalColumns;
+        window.calculatedColumns = calculatedColumns;
 
-      calcColModal?.classList.add('hidden');
-      initDragDropPool();
-    } catch(err) {
-      alert("Hesaplama başarısız: " + err.message);
-    }
-  });
+        calcColModal?.classList.add("hidden");
+        initDragDropPool(true);
+      } catch (err) {
+        alert("Hesaplama başarısız: " + err.message);
+      }
+    });
 
   // Filter Modal Controls
-  ['btnOpenFilterModal', 'btnOpenFilterModalS2'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', openFilterModal);
+  [
+    "btnOpenFilterModal",
+    "btnOpenFilterModalS2",
+    "btnOpenFilterModalS3",
+  ].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", openFilterModal);
   });
-  document.getElementById('btnCloseFilterModal')?.addEventListener('click', () => {
-    document.getElementById('filterModal')?.classList.add('hidden');
+  document
+    .getElementById("btnCloseFilterModal")
+    ?.addEventListener("click", () => {
+      document.getElementById("filterModal")?.classList.add("hidden");
+    });
+
+  document.getElementById("catSearchInput")?.addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    document
+      .querySelectorAll(
+        "#catCheckboxesList .cat-checkbox-item, #catCheckboxesList label",
+      )
+      .forEach((item) => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = !q || text.includes(q) ? "" : "none";
+      });
   });
 
-  const filterColumnSelect = document.getElementById('filterColumnSelect');
-  filterColumnSelect?.addEventListener('change', async (e) => {
+  const filterColumnSelect = document.getElementById("filterColumnSelect");
+  filterColumnSelect?.addEventListener("change", async (e) => {
     const col = e.target.value;
-    const dynContainer = document.getElementById('filterDynamicContainer');
-    const catArea = document.getElementById('catFilterArea');
-    const numArea = document.getElementById('numFilterArea');
+    const dynContainer = document.getElementById("filterDynamicContainer");
+    const catArea = document.getElementById("catFilterArea");
+    const numArea = document.getElementById("numFilterArea");
+    const catSearch = document.getElementById("catSearchInput");
+    if (catSearch) catSearch.value = "";
     if (!col) {
-      dynContainer?.classList.add('hidden');
+      dynContainer?.classList.add("hidden");
       return;
     }
 
-    dynContainer?.classList.remove('hidden');
+    dynContainer?.classList.remove("hidden");
     const isNum = numericColumns.includes(col);
 
     if (isNum) {
-      if (catArea) catArea.classList.add('hidden');
-      if (numArea) numArea.classList.remove('hidden');
+      if (catArea) catArea.classList.add("hidden");
+      if (numArea) numArea.classList.remove("hidden");
       try {
-        const res = await fetch(`/get_column_unique_values?column=${encodeURIComponent(col)}`);
+        const res = await fetch(
+          `/get_column_unique_values?column=${encodeURIComponent(col)}`,
+        );
         const data = await res.json();
         if (data.min != null && data.max != null) {
-          const minIn = document.getElementById('numFilterMin');
-          const maxIn = document.getElementById('numFilterMax');
-          if (minIn) { minIn.value = data.min; minIn.placeholder = `Min: ${data.min}`; }
-          if (maxIn) { maxIn.value = data.max; maxIn.placeholder = `Max: ${data.max}`; }
+          const minIn = document.getElementById("numFilterMin");
+          const maxIn = document.getElementById("numFilterMax");
+          if (minIn) {
+            minIn.value = data.min;
+            minIn.placeholder = `Min: ${data.min}`;
+          }
+          if (maxIn) {
+            maxIn.value = data.max;
+            maxIn.placeholder = `Max: ${data.max}`;
+          }
         }
-      } catch(err){ console.error(err); }
+      } catch (err) {
+        console.error(err);
+      }
     } else {
-      if (numArea) numArea.classList.add('hidden');
-      if (catArea) catArea.classList.remove('hidden');
+      if (numArea) numArea.classList.add("hidden");
+      if (catArea) catArea.classList.remove("hidden");
       try {
-        const res = await fetch(`/get_column_unique_values?column=${encodeURIComponent(col)}`);
+        const res = await fetch(
+          `/get_column_unique_values?column=${encodeURIComponent(col)}`,
+        );
         const data = await res.json();
         renderCatCheckboxes(col, data.values || []);
-      } catch(err){ console.error(err); }
+      } catch (err) {
+        console.error(err);
+      }
     }
   });
 
-  document.getElementById('btnApplyFilter')?.addEventListener('click', () => {
+  document.getElementById("btnApplyFilter")?.addEventListener("click", () => {
     const col = filterColumnSelect?.value;
     if (!col) return;
     const isNum = numericColumns.includes(col);
 
     if (isNum) {
-      const minVal = parseFloat(document.getElementById('numFilterMin')?.value);
-      const maxVal = parseFloat(document.getElementById('numFilterMax')?.value);
-      if (!isNaN(minVal) || !isNaN(maxVal)) {
-        activeFilters = activeFilters.filter(f => f.column !== col);
+      const minRaw = parseFloat(document.getElementById("numFilterMin")?.value);
+      const maxRaw = parseFloat(document.getElementById("numFilterMax")?.value);
+      const minVal = isNaN(minRaw) ? null : minRaw;
+      const maxVal = isNaN(maxRaw) ? null : maxRaw;
+      if (minVal !== null || maxVal !== null) {
+        activeFilters = activeFilters.filter((f) => f.column !== col);
         activeFilters.push({
           column: col,
-          type: 'numeric_range',
-          min: isNaN(minVal) ? null : minVal,
-          max: isNaN(maxVal) ? null : maxVal
+          type: "num",
+          filter_type: "numeric_range",
+          min: minVal,
+          max: maxVal,
         });
       }
     } else {
-      const checkedBoxes = document.querySelectorAll('#catCheckboxesList input[type="checkbox"]:checked');
-      const selectedVals = Array.from(checkedBoxes).map(cb => cb.value);
-      activeFilters = activeFilters.filter(f => f.column !== col);
+      const checkedBoxes = document.querySelectorAll(
+        '#catCheckboxesList input[type="checkbox"]:checked',
+      );
+      const selectedVals = Array.from(checkedBoxes).map((cb) => cb.value);
+      activeFilters = activeFilters.filter((f) => f.column !== col);
       if (selectedVals.length > 0) {
         activeFilters.push({
           column: col,
-          type: 'categorical',
-          selected_values: selectedVals
+          type: "cat",
+          filter_type: "categorical",
+          values: selectedVals,
+          selected_values: selectedVals,
         });
       }
     }
 
     window.activeFilters = activeFilters;
-    document.getElementById('filterModal')?.classList.add('hidden');
+    document.getElementById("filterModal")?.classList.add("hidden");
     renderActiveFilterChips();
     if (currentChartData && currentPlotType) refreshActiveChart();
   });
 
-  document.getElementById('btnResetFilters')?.addEventListener('click', () => {
+  document.getElementById("btnResetFilters")?.addEventListener("click", () => {
     activeFilters = [];
     window.activeFilters = activeFilters;
     renderActiveFilterChips();
     if (currentChartData && currentPlotType) refreshActiveChart();
   });
 
-  // Pin To Dashboard
-  document.getElementById('btnPinToDashboard')?.addEventListener('click', () => {
-    if (!currentChartData || !currentPlotType) return;
-    const xName = axisConfig.x || 'Endeks';
-    const yName = axisConfig.y.join(', ') || 'Değerler';
-    const title = `${currentPlotType.toUpperCase()} — ${xName} vs ${yName}`;
+  // Aggregation Function Sync
+  document.getElementById("s2AggFunc")?.addEventListener("change", (e) => {
+    const aggEl = document.getElementById("aggFunc");
+    if (aggEl) aggEl.value = e.target.value;
+    if (currentChartData && currentPlotType) refreshActiveChart();
+  });
+  document.getElementById("aggFunc")?.addEventListener("change", (e) => {
+    const s2AggEl = document.getElementById("s2AggFunc");
+    if (s2AggEl) s2AggEl.value = e.target.value;
+    if (currentChartData && currentPlotType) refreshActiveChart();
+  });
 
-    dashboardCharts.push({
-      id: 'dash_' + Date.now(),
-      title: title,
-      chartType: currentPlotType,
-      chartData: JSON.parse(JSON.stringify(currentChartData)),
-      filtersCount: activeFilters.length
+  // Trace Size Slider Display
+  document.getElementById("traceSize")?.addEventListener("input", (e) => {
+    const valEl = document.getElementById("traceSizeVal");
+    if (valEl) valEl.textContent = e.target.value + "px";
+  });
+
+  // Pin To Dashboard
+  document
+    .getElementById("btnPinToDashboard")
+    ?.addEventListener("click", () => {
+      if (!currentChartData || !currentPlotType) return;
+      const xName = axisConfig.x || "Endeks";
+      const yName = axisConfig.y.join(", ") || "Değerler";
+      const title = `${currentPlotType.toUpperCase()} — ${xName} vs ${yName}`;
+
+      addChartToDashboard({
+        id: "dash_" + Date.now(),
+        title: title,
+        chartType: currentPlotType,
+        chartData: JSON.parse(JSON.stringify(currentChartData)),
+      });
+
+      const btn = document.getElementById("btnPinToDashboard");
+      if (btn) {
+        btn.innerHTML = "<span>✓</span> Panoya Eklendi!";
+        setTimeout(() => {
+          btn.innerHTML = "<span>📌</span> Panoya Ekle";
+        }, 2000);
+      }
     });
 
-    window.dashboardCharts = dashboardCharts;
-    updateDashboardBadge();
-    renderDashboardGrid();
-
-    const btn = document.getElementById('btnPinToDashboard');
-    if (btn) {
-      btn.innerHTML = '<span>✓</span> Panoya Eklendi!';
-      setTimeout(() => {
-        btn.innerHTML = '<span>📌</span> Panoya Ekle';
-      }, 2000);
-    }
-  });
-
-  document.getElementById('btnClearDashboard')?.addEventListener('click', () => {
-    if (confirm("Panodaki tüm grafikleri temizlemek istediğinize emin misiniz?")) {
-      dashboardCharts = [];
-      window.dashboardCharts = dashboardCharts;
-      updateDashboardBadge();
-      renderDashboardGrid();
-    }
-  });
+  document
+    .getElementById("btnClearDashboard")
+    ?.addEventListener("click", () => {
+      if (
+        confirm("Panodaki tüm grafikleri temizlemek istediğinize emin misiniz?")
+      ) {
+        dashboardCharts = [];
+        window.dashboardCharts = dashboardCharts;
+        updateDashboardBadge();
+        renderDashboardGrid();
+      }
+    });
 
   // Ask AI Insight
-  document.getElementById('btnAskAi')?.addEventListener('click', async () => {
-    const box = document.getElementById('aiInsightBox');
-    const textEl = document.getElementById('aiInsightText');
-    const btn = document.getElementById('btnAskAi');
+  document.getElementById("btnAskAi")?.addEventListener("click", async () => {
+    const box = document.getElementById("aiInsightBox");
+    const textEl = document.getElementById("aiInsightText");
+    const btn = document.getElementById("btnAskAi");
     if (!box || !textEl) return;
 
-    box.classList.remove('hidden');
-    textEl.innerHTML = '🤖 Qwen2.5 yapay zeka modeli verinizi analiz ediyor, lütfen bekleyin...';
+    box.classList.remove("hidden");
+    textEl.innerHTML =
+      "🤖 Qwen2.5 yapay zeka modeli verinizi analiz ediyor, lütfen bekleyin...";
     if (btn) btn.disabled = true;
 
     try {
-      const res = await fetch('/get_ai_insight', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+      const res = await fetch("/get_ai_insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chart_type: currentPlotType,
           x: axisConfig.x,
           y: axisConfig.y,
           stats: currentStats?.stats || null,
-          filters: activeFilters
-        })
+          filters: activeFilters,
+        }),
       });
       const data = await res.json();
       if (res.ok && data.insight) {
         currentAiInsight = data.insight;
         window.currentAiInsight = currentAiInsight;
-        textEl.innerHTML = data.insight.replace(/\n/g, '<br>');
+        textEl.innerHTML = data.insight.replace(/\n/g, "<br>");
       } else {
         textEl.innerHTML = `<span style="color:var(--red);">Yapay zeka yorumu oluşturulamadı: ${data.error}</span>`;
       }
-    } catch(e) {
+    } catch (e) {
       textEl.innerHTML = `<span style="color:var(--red);">Hata: ${e.message}</span>`;
     } finally {
       if (btn) btn.disabled = false;
@@ -1442,14 +1900,20 @@ function initChartManagerListeners() {
   });
 
   // Single chart PDF Export
-  document.getElementById('downloadSinglePdfBtn')?.addEventListener('click', async () => {
-    const chartDiv = document.getElementById('chartArea');
-    if (!chartDiv) return;
+  document
+    .getElementById("downloadSinglePdfBtn")
+    ?.addEventListener("click", async () => {
+      const chartDiv = document.getElementById("chartArea");
+      if (!chartDiv) return;
 
-    try {
-      const imgData = await Plotly.toImage(chartDiv, {format: 'png', width: 1000, height: 600});
-      const win = window.open('');
-      win.document.write(`
+      try {
+        const imgData = await Plotly.toImage(chartDiv, {
+          format: "png",
+          width: 1000,
+          height: 600,
+        });
+        const win = window.open("");
+        win.document.write(`
         <html>
           <head><title>DataViz Grafik Çıktısı</title></head>
           <body style="margin:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0f172a; color:white; font-family:sans-serif;">
@@ -1460,20 +1924,24 @@ function initChartManagerListeners() {
           </body>
         </html>
       `);
-      win.document.close();
-    } catch(e) {
-      alert("Grafik dışa aktarılamadı: " + e.message);
-    }
-  });
+        win.document.close();
+      } catch (e) {
+        alert("Grafik dışa aktarılamadı: " + e.message);
+      }
+    });
 
   // Inspector tabs
-  document.querySelectorAll('#inspectorTabs .tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#inspectorTabs .tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
+  document.querySelectorAll("#inspectorTabs .tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document
+        .querySelectorAll("#inspectorTabs .tab-btn")
+        .forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".tab-content")
+        .forEach((c) => c.classList.remove("active"));
+      btn.classList.add("active");
       const target = btn.dataset.tab;
-      document.getElementById(`tab-${target}`)?.classList.add('active');
+      document.getElementById(`tab-${target}`)?.classList.add("active");
     });
   });
 
@@ -1481,91 +1949,114 @@ function initChartManagerListeners() {
   const handleAnalyticsChange = () => {
     if (currentChartData && currentPlotType) refreshActiveChart();
   };
-  document.getElementById('showTrendline')?.addEventListener('change', handleAnalyticsChange);
-  document.getElementById('regModelSelect')?.addEventListener('change', handleAnalyticsChange);
-  document.getElementById('corrMethodSelect')?.addEventListener('change', handleAnalyticsChange);
+  document
+    .getElementById("showTrendline")
+    ?.addEventListener("change", handleAnalyticsChange);
+  document
+    .getElementById("regModelSelect")
+    ?.addEventListener("change", handleAnalyticsChange);
+  document
+    .getElementById("corrMethodSelect")
+    ?.addEventListener("change", handleAnalyticsChange);
 
-  document.getElementById('applyCustomsBtn')?.addEventListener('click', () => {
+  document.getElementById("applyCustomsBtn")?.addEventListener("click", () => {
     if (currentChartData && currentPlotType) {
-      if (typeof drawMegaPlotly === 'function') {
-        drawMegaPlotly('chartArea', currentChartData, currentPlotType, false);
-      } else if (typeof window.drawMegaPlotly === 'function') {
-        window.drawMegaPlotly('chartArea', currentChartData, currentPlotType, false);
+      if (typeof drawMegaPlotly === "function") {
+        drawMegaPlotly("chartArea", currentChartData, currentPlotType, false);
+      } else if (typeof window.drawMegaPlotly === "function") {
+        window.drawMegaPlotly(
+          "chartArea",
+          currentChartData,
+          currentPlotType,
+          false,
+        );
       }
     }
   });
 
   // Export buttons
-  document.getElementById('downloadCsvBtn')?.addEventListener('click', () => exportActiveDataset('csv'));
-  document.getElementById('downloadExcelBtn')?.addEventListener('click', () => exportActiveDataset('excel'));
-  document.getElementById('downloadParquetBtn')?.addEventListener('click', () => exportActiveDataset('parquet'));
+  document
+    .getElementById("downloadCsvBtn")
+    ?.addEventListener("click", () => exportActiveDataset("csv"));
+  document
+    .getElementById("downloadExcelBtn")
+    ?.addEventListener("click", () => exportActiveDataset("excel"));
+  document
+    .getElementById("downloadParquetBtn")
+    ?.addEventListener("click", () => exportActiveDataset("parquet"));
 
   // Step 3 resize observer
-  const chartAreaContainerEl = document.getElementById('chartAreaContainer');
+  const chartAreaContainerEl = document.getElementById("chartAreaContainer");
   if (chartAreaContainerEl && window.ResizeObserver) {
     const ro = new ResizeObserver(() => {
-      const step3 = document.getElementById('step3-dashboard');
-      if (step3 && step3.classList.contains('active')) {
-        try { Plotly.Plots.resize('chartArea'); } catch(e){}
+      const step3 = document.getElementById("step3-dashboard");
+      if (step3 && step3.classList.contains("active")) {
+        try {
+          Plotly.Plots.resize("chartArea");
+        } catch (e) {}
       }
     });
     ro.observe(chartAreaContainerEl);
   }
 
   // Refresh stats button
-  document.getElementById('refreshStatsBtn')?.addEventListener('click', () => {
-    let statCols = axisConfig.y.filter(c => numericColumns.includes(c));
+  document.getElementById("refreshStatsBtn")?.addEventListener("click", () => {
+    let statCols = axisConfig.y.filter((c) => numericColumns.includes(c));
     if (!statCols.length) statCols = numericColumns.slice(0, 6);
     fetchStats(statCols);
   });
 
   // AI Interpretation Generator
-  document.getElementById('btnGenerateInsight')?.addEventListener('click', async () => {
-    const btn = document.getElementById('btnGenerateInsight');
-    const container = document.getElementById('aiResponseContainer');
-    const content = document.getElementById('aiResponseContent');
-    if (!btn || !container || !content) return;
+  document
+    .getElementById("btnGenerateInsight")
+    ?.addEventListener("click", async () => {
+      const btn = document.getElementById("btnGenerateInsight");
+      const container = document.getElementById("aiResponseContainer");
+      const content = document.getElementById("aiResponseContent");
+      if (!btn || !container || !content) return;
 
-    btn.disabled = true;
-    btn.innerHTML = '🔄 AI Yorumluyor...';
-    container.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = "🔄 AI Yorumluyor...";
+      container.classList.add("hidden");
 
-    try {
-      const res = await fetch('/generate_insight', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          stats: currentStats,
-          advanced_stats: window.currentAdvancedStats || {},
-          chart_type: document.getElementById('currentChartTypeName')?.textContent || 'Grafik',
-          x_col: axisConfig.x,
-          y_cols: axisConfig.y
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'AI yorumu alınamadı');
+      try {
+        const res = await fetch("/generate_insight", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stats: currentStats,
+            advanced_stats: window.currentAdvancedStats || {},
+            chart_type:
+              document.getElementById("currentChartTypeName")?.textContent ||
+              "Grafik",
+            x_col: axisConfig.x,
+            y_cols: axisConfig.y,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "AI yorumu alınamadı");
 
-      let text = data.insight || '';
-      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      text = text.replace(/\n\*/g, '<br/>•');
-      text = text.replace(/\n/g, '<br/>');
+        let text = data.insight || "";
+        text = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        text = text.replace(/\n\*/g, "<br/>•");
+        text = text.replace(/\n/g, "<br/>");
 
-      currentAiInsight = text;
-      window.currentAiInsight = text;
-      content.innerHTML = text;
-      container.classList.remove('hidden');
-    } catch(err) {
-      content.innerHTML = `<div style="color:var(--red);">${err.message}</div>`;
-      container.classList.remove('hidden');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = 'Veriyi Yorumla';
-    }
-  });
+        currentAiInsight = text;
+        window.currentAiInsight = text;
+        content.innerHTML = text;
+        container.classList.remove("hidden");
+      } catch (err) {
+        content.innerHTML = `<div style="color:var(--red);">${err.message}</div>`;
+        container.classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Veriyi Yorumla";
+      }
+    });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initChartManagerListeners);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initChartManagerListeners);
 } else {
   initChartManagerListeners();
 }
@@ -1581,8 +2072,12 @@ window.assignPillToZone = assignPillToZone;
 window.handleDropX = handleDropX;
 window.handleDropY = handleDropY;
 
-  document.getElementById('s2TabChartsBtn')?.addEventListener('click', () => switchStep2View('charts'));
-  document.getElementById('s2TabStatsBtn')?.addEventListener('click', () => switchStep2View('stats'));
+document
+  .getElementById("s2TabChartsBtn")
+  ?.addEventListener("click", () => switchStep2View("charts"));
+document
+  .getElementById("s2TabStatsBtn")
+  ?.addEventListener("click", () => switchStep2View("stats"));
 
 window.switchStep2View = switchStep2View;
 window.updateStep2Stats = updateStep2Stats;
@@ -1596,6 +2091,7 @@ window.renderActiveFilterChips = renderActiveFilterChips;
 window.fetchKpis = fetchKpis;
 window.renderKpiTiles = renderKpiTiles;
 window.updateDashboardBadge = updateDashboardBadge;
+window.addChartToDashboard = addChartToDashboard;
 window.renderDashboardGrid = renderDashboardGrid;
 window.setupDashboardEvents = setupDashboardEvents;
 window.fetchStats = fetchStats;

@@ -10,3 +10,5 @@ uploads/
 *.xlsx
 *.xls
 *.csv
+*.parquet
+scratch/

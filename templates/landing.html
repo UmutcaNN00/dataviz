@@ -230,7 +230,9 @@
             <div
               class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
             >
-              <span class="text-[11px] text-[#86868b] block mb-1"
+              <span
+                id="kpiRTitle"
+                class="text-[11px] text-[#86868b] block mb-1"
                 >Pearson Korelasyon (r)</span
               >
               <span
@@ -238,14 +240,16 @@
                 class="text-2xl font-semibold text-white tracking-tight font-mono"
                 >0.8842</span
               >
-              <span class="text-[10px] text-[#86868b] block mt-1"
+              <span id="kpiRSub" class="text-[10px] text-[#86868b] block mt-1"
                 >Güçlü Doğrusal Bağ</span
               >
             </div>
             <div
               class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
             >
-              <span class="text-[11px] text-[#86868b] block mb-1"
+              <span
+                id="kpiR2Title"
+                class="text-[11px] text-[#86868b] block mb-1"
                 >Belirlilik Katsayısı (R²)</span
               >
               <span
@@ -253,29 +257,35 @@
                 class="text-2xl font-semibold text-white tracking-tight font-mono"
                 >0.7818</span
               >
-              <span class="text-[10px] text-[#86868b] block mt-1"
+              <span id="kpiR2Sub" class="text-[10px] text-[#86868b] block mt-1"
                 >%78.2 Açıklayıcılık</span
               >
             </div>
             <div
               class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
             >
-              <span class="text-[11px] text-[#86868b] block mb-1"
-                >Anlamlılık (P Değeri)</span
+              <span
+                id="kpiPTitle"
+                class="text-[11px] text-[#86868b] block mb-1"
+                >Anlamlılık Düzeyi</span
               >
               <span
                 id="kpiP"
                 class="text-2xl font-semibold text-white tracking-tight font-mono"
                 >&lt; 0.0001</span
               >
-              <span class="text-[10px] text-emerald-400 block mt-1"
+              <span
+                id="kpiPSub"
+                class="text-[10px] text-emerald-400 block mt-1"
                 >İstatistiksel Olarak Kesin</span
               >
             </div>
             <div
               class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
             >
-              <span class="text-[11px] text-[#86868b] block mb-1"
+              <span
+                id="kpiEqTitle"
+                class="text-[11px] text-[#86868b] block mb-1"
                 >Model Denklemi</span
               >
               <span
@@ -283,7 +293,7 @@
                 class="text-sm font-semibold text-white tracking-tight font-mono block mt-1"
                 >y = 0.84x + 1200</span
               >
-              <span class="text-[10px] text-[#86868b] block mt-1"
+              <span id="kpiEqSub" class="text-[10px] text-[#86868b] block mt-1"
                 >OLS Doğrusal Model</span
               >
             </div>
@@ -554,24 +564,44 @@
       function switchAppleDemo(type) {
         const btnReg = document.getElementById("btnAppleReg");
         const btnAnova = document.getElementById("btnAppleAnova");
+        const kpiRTitle = document.getElementById("kpiRTitle");
         const kpiR = document.getElementById("kpiR");
+        const kpiRSub = document.getElementById("kpiRSub");
+        const kpiR2Title = document.getElementById("kpiR2Title");
         const kpiR2 = document.getElementById("kpiR2");
+        const kpiR2Sub = document.getElementById("kpiR2Sub");
+        const kpiPTitle = document.getElementById("kpiPTitle");
         const kpiP = document.getElementById("kpiP");
+        const kpiPSub = document.getElementById("kpiPSub");
+        const kpiEqTitle = document.getElementById("kpiEqTitle");
         const kpiEq = document.getElementById("kpiEq");
+        const kpiEqSub = document.getElementById("kpiEqSub");
         const chartLabel = document.getElementById("chartLabel");
         const svg = document.getElementById("appleChartSvg");
         const text = document.getElementById("appleInsightParagraph");
 
-        if (type === "regression") {
+        if (type === "regression" || type === "reg") {
           btnReg.className =
             "px-3 py-1 rounded-full text-[11px] font-medium transition-all apple-pill-active";
           btnAnova.className =
             "px-3 py-1 rounded-full text-[11px] font-medium text-[#86868b] hover:text-white transition-all";
 
+          if (kpiRTitle) kpiRTitle.textContent = "Pearson Korelasyon (r)";
           kpiR.textContent = "0.8842";
+          if (kpiRSub) kpiRSub.textContent = "Güçlü Doğrusal Bağ";
+
+          if (kpiR2Title) kpiR2Title.textContent = "Belirlilik Katsayısı (R²)";
           kpiR2.textContent = "0.7818";
+          if (kpiR2Sub) kpiR2Sub.textContent = "%78.2 Açıklayıcılık";
+
+          if (kpiPTitle) kpiPTitle.textContent = "Anlamlılık Düzeyi";
           kpiP.textContent = "< 0.0001";
+          if (kpiPSub) kpiPSub.textContent = "İstatistiksel Olarak Kesin";
+
+          if (kpiEqTitle) kpiEqTitle.textContent = "Model Denklemi";
           kpiEq.textContent = "y = 0.84x + 1200";
+          if (kpiEqSub) kpiEqSub.textContent = "OLS Doğrusal Model";
+
           chartLabel.textContent = "Maliyet (TL) vs Net Kâr (TL)";
 
           text.innerHTML =
@@ -597,10 +627,22 @@
           btnReg.className =
             "px-3 py-1 rounded-full text-[11px] font-medium text-[#86868b] hover:text-white transition-all";
 
+          if (kpiRTitle) kpiRTitle.textContent = "ANOVA F-İstatistiği";
           kpiR.textContent = "18.42";
+          if (kpiRSub) kpiRSub.textContent = "Gruplar Arası Varyans";
+
+          if (kpiR2Title) kpiR2Title.textContent = "En Yüksek Grup";
           kpiR2.textContent = "Marmara";
+          if (kpiR2Sub) kpiR2Sub.textContent = "Ortalama: 52.400 TL";
+
+          if (kpiPTitle) kpiPTitle.textContent = "Anlamlılık Düzeyi";
           kpiP.textContent = "p < 0.001";
+          if (kpiPSub) kpiPSub.textContent = "Gruplar Farklı (p < 0.05)";
+
+          if (kpiEqTitle) kpiEqTitle.textContent = "En Düşük Grup";
           kpiEq.textContent = "Karadeniz (Min)";
+          if (kpiEqSub) kpiEqSub.textContent = "Ortalama: 11.200 TL";
+
           chartLabel.textContent =
             "Bölge (X) vs Satış Tutarı (Y) - ANOVA Grup Karşılaştırması";
 

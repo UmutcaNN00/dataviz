@@ -1,5 +1,7 @@
 flask
+flask-cors
 pandas
+numpy
 openpyxl
 scipy
 polars

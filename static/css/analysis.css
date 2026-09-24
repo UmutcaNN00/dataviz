@@ -25,6 +25,7 @@
   --surface: rgba(255,255,255,0.04); --surface-h: rgba(255,255,255,0.07);
   --border: rgba(255,255,255,0.08); --border-hi: rgba(255,255,255,0.14);
   --purple: #38bdf8; --blue: #0284c7; --green: #10b981; --orange: #f59e0b; --red: #f43f5e; --pink: #818cf8;
+  --cyan: #06b6d4; --indigo: #6366f1;
   --text: #f1f5f9; --muted: #94a3b8; --subtle: #475569;
   --topbar-h: 56px;
   --r: 10px; --r-lg: 16px; --r-xl: 20px;
@@ -661,62 +662,6 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
 
 /* Utilities */
 /* .hidden is handled per-component: wizard-screen.hidden (L22), modal-overlay.hidden (L27) */
-
-
-
-
-/* SPRINT 2 & 3: RESPONSIVE & A11Y */
-.pfs-pool-container { flex: 1; min-height: 140px; background: rgba(0,0,0,0.2); border: 1px dashed var(--border-hi); border-radius: var(--r-lg); padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
-.pfs-pool-header { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; }
-.pfs-col-list { flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
-
-/* Sağ Panel: Tam Ekran Pivot Matrisi (Flex 1) */
-.pivot-matrix-stage { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 18px 24px; background: var(--bg); }
-.pms-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
-.pms-toolbar-left h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 2px; }
-.pms-stats-badge { font-size: 0.72rem; font-weight: 700; color: var(--green); background: rgba(52,211,153,0.15); padding: 2px 8px; border-radius: 50px; }
-.pms-toolbar-right { display: flex; align-items: center; gap: 10px; }
-
-.pms-table-stage-wrapper { flex: 1; background: var(--bg-2); border: 1px solid var(--border-hi); border-radius: var(--r-xl); overflow: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
-.pms-table-container { min-width: 100%; display: inline-block; }
-
-/* Table Matrix & Cells */
-.pivot-matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; text-align: left; }
-.pivot-matrix-table th { background: var(--bg-3); color: var(--text); padding: 12px 16px; font-weight: 800; border-bottom: 2px solid var(--border-hi); border-right: 1px solid var(--border); position: sticky; top: 0; z-index: 10; white-space: nowrap; }
-.pivot-matrix-table th.pmt-corner { background: var(--surface); color: var(--purple); font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; z-index: 20; left: 0; }
-.pivot-matrix-table th.pmt-col-header { text-align: right; background: rgba(167,139,250,0.12); color: var(--purple); }
-.pivot-matrix-table th.pmt-grand-total-th { text-align: right; background: rgba(52,211,153,0.15); color: var(--green); }
-
-.pivot-matrix-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; transition: background 0.15s; }
-.pivot-matrix-table td.pmt-row-header { background: var(--bg-3); color: var(--text); font-weight: 700; position: sticky; left: 0; z-index: 5; border-right: 2px solid var(--border-hi); }
-.pivot-matrix-table td.pmt-val-cell { text-align: right; font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace, sans-serif; font-size: 0.82rem; }
-
-.pivot-matrix-table tr:hover td { background-color: rgba(255,255,255,0.03); }
-.pivot-matrix-table tr.pmt-grand-total-row td { background: rgba(52,211,153,0.12) !important; font-weight: 800; color: var(--green); border-top: 2px solid rgba(52,211,153,0.3); }
-.pivot-matrix-table td.pmt-grand-total-cell { background: rgba(52,211,153,0.18) !important; font-weight: 800; color: var(--green); }
-
-/* Heatmap cell coloring */
-.pmt-val-cell.has-heatmap { border-radius: 4px; font-weight: 600; }
-
-/* Pivot Studio Pill Components */
-.col-pill-tag { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; flex-shrink: 0; }
-.col-pill-name { flex: 1; font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.col-pill-remove { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 0 2px; line-height: 1; opacity: 0.6; transition: all 0.15s; flex-shrink: 0; }
-.col-pill-remove:hover { color: var(--red); opacity: 1; transform: scale(1.2); }
-.pivot-loading-msg { text-align: center; padding: 40px; color: var(--muted); font-size: 0.9rem; }
-.pivot-toggle-label { font-size: 0.8rem; color: var(--muted); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-
-/* Dashboard Mini Pivot Widget */
-.dash-pivot-widget { width: 100%; height: 100%; overflow: auto; padding: 8px; font-size: 0.75rem; }
-.dash-pivot-widget table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-.dash-pivot-widget th { background: var(--bg-3); padding: 6px 10px; font-weight: 700; border-bottom: 1px solid var(--border); font-size: 0.72rem; }
-.dash-pivot-widget td { padding: 5px 10px; border-bottom: 1px solid var(--border); font-size: 0.72rem; }
-
-/* Utilities */
-/* .hidden is handled per-component: wizard-screen.hidden (L22), modal-overlay.hidden (L27) */
-
-
-
 
 /* SPRINT 2 & 3: RESPONSIVE & A11Y */
 *:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
@@ -1376,7 +1321,7 @@ h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-
 @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(50px); } }
 
 /* ==============================================================
-   PREMIUM GLASSMORPHISM MODAL (Forml Sihirbaz in)
+   PREMIUM GLASSMORPHISM MODAL (Formül Sihirbazı İçin)
    ============================================================== */
 .premium-modal-content {
   background: rgba(15, 23, 42, 0.65);
@@ -1465,7 +1410,7 @@ h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-
   background: rgba(0,0,0,0.2); transition: all 0.2s;
 }
 .glass-checkbox-label input:checked + .custom-checkbox { background: #a78bfa; border-color: #a78bfa; }
-.glass-checkbox-label input:checked + .custom-checkbox::after { content: '?'; color: #1e1e2f; font-size: 0.75rem; font-weight: 800; }
+.glass-checkbox-label input:checked + .custom-checkbox::after { content: '✓'; color: #1e1e2f; font-size: 0.75rem; font-weight: 800; }
 
 .premium-modal-actions {
   padding: 16px 24px;
@@ -1487,7 +1432,7 @@ h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-
 .btn-primary-glass:hover { box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5); transform: translateY(-1px); }
 
 /* ==============================================================
-   STEP 2 ST KISIM (HEADER & POOL) FERAHLATMA (LIQUEFY)
+   STEP 2 ÜST KISIM (HEADER & POOL) FERAHLATMA (LIQUEFY)
    ============================================================== */
 .s2-header {
   padding: 16px 32px !important;

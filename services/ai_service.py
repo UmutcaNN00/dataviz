@@ -64,10 +64,10 @@ def generate_rule_based_insight(stats, advanced=None, chart_type='Grafik', x_col
             if adv.get('p_value') is not None and adv.get('p_value') < 0.05:
                 business_notes.append(f"  *Not: {x_col} grupları arasındaki bu fark istatistiksel olarak anlamlıdır (p < 0.05).*")
 
-        elif adv.get('type') == 'numeric' and adv.get('correlation'):
+        elif adv.get('type') == 'numeric' and adv.get('correlation') is not None:
             has_business_insight = True
             corr = adv.get('correlation', 0)
-            direction = "pozitif (biri artarken diğeri de artan)" if corr > 0 else "negatif (biri artarken diğeri azalan)"
+            direction = "pozitif (biri artarken diğeri de artan)" if corr >= 0 else "negatif (biri artarken diğeri azalan)"
             strength = adv.get('interpretation', 'zayıf')
             business_notes.append(
                 f"- **{x_col}** ile **{col}** arasında **{strength}** düzeyde ve **{direction}** yönlü bir ilişki tespit edilmiştir (Korelasyon: {corr:.2f})."
@@ -104,9 +104,11 @@ def generate_rule_based_insight(stats, advanced=None, chart_type='Grafik', x_col
             col_notes = [f"#### 🔹 **{col} İstatistiksel Analizi:**"]
             if mean is not None and med is not None:
                 skew = "simetrik ve normal dağılıma yakın"
-                if mean > med * 1.15:
+                scale_ref = abs(med) if abs(med) > 1e-9 else (std_v if std_v and std_v > 1e-9 else 1.0)
+                rel_diff = (mean - med) / scale_ref
+                if rel_diff > 0.15:
                     skew = "sağa çarpık (pozitif çarpıklık) dağılım yönünde"
-                elif mean < med * 0.85:
+                elif rel_diff < -0.15:
                     skew = "sola çarpık (negatif çarpıklık) dağılım yönünde"
                 col_notes.append(
                     f"- **Merkezi Eğilim Ölçüleri:** Ortalama: **{mean:,.2f}**, Medyan: **{med:,.2f}**. "
@@ -119,7 +121,7 @@ def generate_rule_based_insight(stats, advanced=None, chart_type='Grafik', x_col
                     f"(Aralık: **{max_v - min_v:,.2f}**)."
                 )
 
-            if std_v is not None and mean and mean != 0:
+            if std_v is not None and mean is not None and mean != 0:
                 cv = (std_v / abs(mean)) * 100
                 col_notes.append(
                     f"- **Dağılım Ölçüleri:** Standart Sapma: **{std_v:,.2f}** "
@@ -146,7 +148,7 @@ def generate_academic_insight(stats, advanced=None, chart_type='Grafik', x_col='
     falling back to high-fidelity rule-based statistical interpreter.
     
     Returns:
-        dict: {"insight": str, "fallback": bool}
+        dict: {"insight": str, "text": str, "fallback": bool}
     """
     y_cols = y_cols or []
     advanced = advanced or {}
@@ -156,8 +158,9 @@ def generate_academic_insight(stats, advanced=None, chart_type='Grafik', x_col='
         try:
             prompt = (
                 f"Şu istatistikleri (Grafik: {chart_type}, X: {x_col}, Y: {', '.join(y_cols)}) "
-                f"teknik olmayan birinin anlayacağı basitlikte, Türkçe olarak kısaca yorumla: "
-                f"{json.dumps(stats, ensure_ascii=False)}"
+                f"akademik ve yönetici özeti düzeyinde Türkçe olarak kısaca yorumla: "
+                f"İstatistikler: {json.dumps(stats, ensure_ascii=False)}, "
+                f"İleri Testler: {json.dumps(advanced, ensure_ascii=False)}"
             )
             messages = [
                 {
@@ -176,10 +179,10 @@ def generate_academic_insight(stats, advanced=None, chart_type='Grafik', x_col='
             ]
             response = pipeline_obj(messages, max_new_tokens=400, temperature=0.3)
             reply = response[0]['generated_text'][-1]['content']
-            return {"insight": reply, "fallback": False}
+            return {"insight": reply, "text": reply, "fallback": False}
         except Exception as e:
             logger.warning(f"Qwen2.5 üretim hatası, kural motoru devreye girdi: {e}")
 
     # Fallback to academic rule engine
     rule_insight = generate_rule_based_insight(stats, advanced=advanced, chart_type=chart_type, x_col=x_col, y_cols=y_cols)
-    return {"insight": rule_insight, "fallback": True}
+    return {"insight": rule_insight, "text": rule_insight, "fallback": True}
