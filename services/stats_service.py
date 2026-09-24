@@ -292,6 +292,17 @@ def compute_advanced_stats(active_df, cols, x_col=None, corr_method='pearson', r
                 adv_info['type'] = 'numeric'
             else:
                 groups = [group[y_col].values for _, group in valid_df.groupby(x_col) if len(group) > 0]
+                
+                # Compute best and worst groups for AI business templates
+                try:
+                    grouped_sum = valid_df.groupby(x_col)[y_col].sum()
+                    adv_info['best_group'] = str(grouped_sum.idxmax())
+                    adv_info['best_val'] = float(grouped_sum.max())
+                    adv_info['worst_group'] = str(grouped_sum.idxmin())
+                    adv_info['worst_val'] = float(grouped_sum.min())
+                except Exception as e_grp:
+                    logger.debug(f"Group aggregation error: {e_grp}")
+
                 if len(groups) == 2:
                     try:
                         t_stat, p_val = sp_stats.ttest_ind(groups[0], groups[1], equal_var=False)

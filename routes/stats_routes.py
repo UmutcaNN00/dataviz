@@ -92,6 +92,7 @@ def generate_interpretation():
     """Generates academic, APA-style statistical commentary and business insights."""
     data = request.get_json(silent=True) or {}
     stats = data.get('stats', {})
+    advanced = data.get('advanced_stats', {})
     chart = data.get('chart_type', 'Grafik')
     x_col = data.get('x_col') or data.get('x') or 'Bilinmiyor'
     
@@ -104,7 +105,7 @@ def generate_interpretation():
         y_cols = []
 
     try:
-        result = generate_academic_insight(stats, chart_type=chart, x_col=x_col, y_cols=y_cols)
+        result = generate_academic_insight(stats, advanced=advanced, chart_type=chart, x_col=x_col, y_cols=y_cols)
         return jsonify(result)
     except Exception as e:
         logger.exception(f"generate_interpretation hatası: {e}")

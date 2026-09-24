@@ -29,13 +29,54 @@ def get_hf_pipeline():
     return _hf_pipeline
 
 
-def generate_rule_based_insight(stats, chart_type='Grafik', x_col='Bilinmiyor', y_cols=None):
+def generate_rule_based_insight(stats, advanced=None, chart_type='Grafik', x_col='Bilinmiyor', y_cols=None):
     """
     Local Rule-based Executive & Academic Insight Generator.
     Produces rigorous Turkish statistical analysis without needing an external LLM.
     """
     y_cols = y_cols or []
-    items = [f"### 📊 Akademik Veri Analizi Raporu ({chart_type.upper()})"]
+    advanced = advanced or {}
+    
+    items = []
+
+    # --- YÖNETİCİ ÖZETİ (BUSINESS TEMPLATE) ---
+    business_notes = [f"### 💼 Yönetici Özeti ({chart_type.upper()})"]
+    has_business_insight = False
+
+    for col in y_cols:
+        adv = advanced.get(col)
+        if not adv:
+            continue
+        
+        if adv.get('type') in ['categorical_2', 'categorical_n'] and adv.get('best_group'):
+            has_business_insight = True
+            best_g = adv.get('best_group')
+            best_v = adv.get('best_val', 0)
+            worst_g = adv.get('worst_group')
+            worst_v = adv.get('worst_val', 0)
+            business_notes.append(
+                f"- **{col}** metriği baz alındığında; en yüksek değere sahip olan **{x_col}**, "
+                f"**{best_g}** ({best_v:,.2f}) olarak ölçülmüştür. "
+                f"En düşük performansı ise **{worst_g}** ({worst_v:,.2f}) sergilemektedir."
+            )
+            if adv.get('p_value') is not None and adv.get('p_value') < 0.05:
+                business_notes.append(f"  *Not: {x_col} grupları arasındaki bu fark istatistiksel olarak anlamlıdır (p < 0.05).*")
+
+        elif adv.get('type') == 'numeric' and adv.get('correlation'):
+            has_business_insight = True
+            corr = adv.get('correlation', 0)
+            direction = "pozitif (biri artarken diğeri de artan)" if corr > 0 else "negatif (biri artarken diğeri azalan)"
+            strength = adv.get('interpretation', 'zayıf')
+            business_notes.append(
+                f"- **{x_col}** ile **{col}** arasında **{strength}** düzeyde ve **{direction}** yönlü bir ilişki tespit edilmiştir (Korelasyon: {corr:.2f})."
+            )
+
+    if has_business_insight:
+        items.append("\n".join(business_notes))
+        items.append("---")
+
+    # --- AKADEMİK RAPOR ---
+    items.append(f"### 🎓 Akademik Veri Analizi Raporu")
     items.append(
         f"**Değişkenler:** Bağımsız Değişken (X): `{x_col}`, "
         f"Bağımlı Değişkenler (Y): `{', '.join(y_cols) if y_cols else 'Genel Dağılım'}`"
@@ -88,7 +129,7 @@ def generate_rule_based_insight(stats, chart_type='Grafik', x_col='Bilinmiyor', 
     return "\n\n".join(items)
 
 
-def generate_academic_insight(stats, chart_type='Grafik', x_col='Bilinmiyor', y_cols=None):
+def generate_academic_insight(stats, advanced=None, chart_type='Grafik', x_col='Bilinmiyor', y_cols=None):
     """
     Generates academic insight using Qwen2.5 pipeline if available,
     falling back to high-fidelity rule-based statistical interpreter.
@@ -97,6 +138,7 @@ def generate_academic_insight(stats, chart_type='Grafik', x_col='Bilinmiyor', y_
         dict: {"insight": str, "fallback": bool}
     """
     y_cols = y_cols or []
+    advanced = advanced or {}
     pipeline_obj = get_hf_pipeline()
 
     if pipeline_obj:
@@ -116,7 +158,7 @@ def generate_academic_insight(stats, chart_type='Grafik', x_col='Bilinmiyor', y_
                         "istatistiksel eğilimleri (trend), varyans farklılıklarını ve en önemli bulguları "
                         "3-4 madde halinde özetle. Akademik sunumlara uygun, resmi bir istatistiksel "
                         "özet dili (ör. 'harika veriler' yerine 'anlamlı istatistiksel dağılım') kullan. "
-                        "Okunabilirliği artırmak için Markdown kullan."
+                        "Okunabilirliliği artırmak için Markdown kullan."
                     )
                 },
                 {"role": "user", "content": prompt}
@@ -128,5 +170,5 @@ def generate_academic_insight(stats, chart_type='Grafik', x_col='Bilinmiyor', y_
             logger.warning(f"Qwen2.5 üretim hatası, kural motoru devreye girdi: {e}")
 
     # Fallback to academic rule engine
-    rule_insight = generate_rule_based_insight(stats, chart_type=chart_type, x_col=x_col, y_cols=y_cols)
+    rule_insight = generate_rule_based_insight(stats, advanced=advanced, chart_type=chart_type, x_col=x_col, y_cols=y_cols)
     return {"insight": rule_insight, "fallback": True}

@@ -690,6 +690,7 @@ async function fetchStats(cols = null) {
     if (res.ok) {
       currentStats = data.stats;
       window.currentStats = data.stats;
+      window.currentAdvancedStats = data.advanced;
       if (statsContainer) {
         statsContainer.innerHTML = renderStatsCards(data);
       }
@@ -1277,6 +1278,7 @@ function initChartManagerListeners() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           stats: currentStats,
+          advanced_stats: window.currentAdvancedStats || {},
           chart_type: document.getElementById('currentChartTypeName')?.textContent || 'Grafik',
           x_col: axisConfig.x,
           y_cols: axisConfig.y
