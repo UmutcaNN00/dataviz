@@ -365,6 +365,14 @@ function evaluateCharts() {
     warning.textContent = "Uyarı: Y Ekseninde Metinsel (Kategorik) sütun seçtiniz. Sayısal grafikler otomatik adet sayımı ile gösterilebilir.";
     warning.classList.remove('hidden');
   }
+  
+  if (hasX && yCount > 0) {
+    if (isXNum && yAllNum) {
+      document.querySelector('#mainTabsBar .tab-btn[data-tab="stats"]')?.click();
+    } else {
+      document.querySelector('#mainTabsBar .tab-btn[data-tab="chart"]')?.click();
+    }
+  }
 }
 
 /* ── 3. STEP 3 & ACTIVE CHART REFRESH ── */

@@ -255,6 +255,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+  // Inspector Tabs Logic
+  document.querySelectorAll('.inspector-tabs .i-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.inspector-tabs .i-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.inspector-body .i-pane').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.inspector-body .i-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const tabName = btn.dataset.itab;
+      const targetPane = document.getElementById('itab-' + tabName);
+      if (targetPane) {
+        targetPane.classList.remove('hidden');
+        targetPane.classList.add('active');
+      }
+    });
+  });
+
 // Window export
 Object.assign(window, {
   showScreen,
