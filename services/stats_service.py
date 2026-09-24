@@ -217,6 +217,38 @@ def compute_robust_regression(x_vals, y_vals, model_type='linear', num_points=10
         logger.warning(f"Regresyon hesaplama hatası ({model_type}): {e}")
         eq_str = f"Hesaplama hatası: {str(e)}"
 
+    # 95% Confidence Interval band calculation
+    ci_lower = []
+    ci_upper = []
+    try:
+        n = len(x_clean)
+        if n >= 3:
+            # Estimate residual standard error
+            if model_type == 'linear':
+                y_fit_clean = slope * x_clean + intercept
+            elif model_type in ['poly2', 'poly3']:
+                y_fit_clean = np.polyval(coeffs, x_clean)
+            elif model_type == 'exp':
+                y_fit_clean = a * np.exp(b * x_clean)
+            elif model_type == 'log' and np.sum(x_clean > 0) >= 3:
+                y_fit_clean = slope * np.log(x_clean[x_clean > 0]) + intercept
+            else:
+                y_fit_clean = y_clean
+
+            dof = max(n - 2, 1)
+            residuals = y_clean[:len(y_fit_clean)] - y_fit_clean
+            s_err = float(np.sqrt(np.sum(residuals ** 2) / dof))
+            x_bar = float(np.mean(x_clean))
+            ss_x = float(np.sum((x_clean - x_bar) ** 2))
+
+            if ss_x > 0:
+                se_line = s_err * np.sqrt(1.0 / n + ((x_curve - x_bar) ** 2) / ss_x)
+                t_val = 1.96 if n > 120 else 2.15
+                ci_upper = [round(float(v), 4) for v in (y_curve + t_val * se_line)]
+                ci_lower = [round(float(v), 4) for v in (y_curve - t_val * se_line)]
+    except Exception as e_ci:
+        logger.debug(f"CI calculation error: {e_ci}")
+
     finite_mask = np.isfinite(x_curve) & np.isfinite(y_curve)
     trend_x = [round(float(v), 4) for v in x_curve[finite_mask]]
     trend_y = [round(float(v), 4) for v in y_curve[finite_mask]]
@@ -225,11 +257,56 @@ def compute_robust_regression(x_vals, y_vals, model_type='linear', num_points=10
         'equation': eq_str,
         'r_squared': round(float(r_squared), 4) if r_squared is not None and np.isfinite(r_squared) else 0.0,
         'se': round(float(se), 4) if se is not None and np.isfinite(se) else None,
-        'p_value': p_val,
+        'p_value': safe_float(p_val, None),
         'model_type': model_type,
         'trend_x': trend_x,
-        'trend_y': trend_y
+        'trend_y': trend_y,
+        'ci_lower': ci_lower if len(ci_lower) == len(trend_x) else [],
+        'ci_upper': ci_upper if len(ci_upper) == len(trend_x) else []
     }
+
+
+def compute_correlation_matrix(active_df, num_cols=None, method='pearson'):
+    """
+    Computes a full pairwise correlation matrix for numeric columns.
+    Blazing fast, NaN-safe, returns column labels, 2D matrix, and sample count.
+    """
+    if active_df is None or active_df.empty:
+        return {'columns': [], 'matrix': [], 'sample_size': 0}
+
+    if not num_cols:
+        num_cols = active_df.select_dtypes(include=['number']).columns.tolist()
+    else:
+        num_cols = [c for c in num_cols if c in active_df.columns and pd.api.types.is_numeric_dtype(active_df[c])]
+
+    if len(num_cols) < 2:
+        return {
+            'columns': num_cols,
+            'matrix': [[1.0]] if len(num_cols) == 1 else [],
+            'sample_size': len(active_df),
+            'method': method
+        }
+
+    # Limit to max 12 numeric columns for clean layout
+    selected_cols = num_cols[:12]
+    clean_sub = active_df[selected_cols].replace([np.inf, -np.inf], np.nan).dropna()
+    if len(clean_sub) < 3:
+        clean_sub = active_df[selected_cols].fillna(0)
+
+    try:
+        corr_df = clean_sub.corr(method=method)
+        matrix = []
+        for row in corr_df.values:
+            matrix.append([round(float(v), 4) if pd.notnull(v) and np.isfinite(v) else 0.0 for v in row])
+        return {
+            'columns': selected_cols,
+            'matrix': matrix,
+            'sample_size': len(clean_sub),
+            'method': method
+        }
+    except Exception as e:
+        logger.exception(f"compute_correlation_matrix error: {e}")
+        return {'columns': selected_cols, 'matrix': [], 'error': str(e)}
 
 
 def compute_column_statistics(df, columns):
@@ -306,9 +383,17 @@ def compute_advanced_stats(active_df, cols, x_col=None, corr_method='pearson', r
                 if len(groups) == 2:
                     try:
                         t_stat, p_val = sp_stats.ttest_ind(groups[0], groups[1], equal_var=False)
+                        grp_means = {str(k): float(v) for k, v in valid_df.groupby(x_col)[y_col].mean().items()}
                         adv_info['t_test_stat'] = safe_float(t_stat, None)
                         adv_info['p_value'] = safe_float(p_val, None)
+                        adv_info['group_means'] = grp_means
                         adv_info['type'] = 'categorical_2'
+                        adv_info['t_test'] = {
+                            't_stat': safe_float(t_stat, None),
+                            'p_value': safe_float(p_val, None),
+                            'group_means': grp_means,
+                            'groups': list(grp_means.keys())
+                        }
                     except Exception as e_ttest:
                         logger.debug(f"T-Test error: {e_ttest}")
                 elif len(groups) > 2:
@@ -317,10 +402,36 @@ def compute_advanced_stats(active_df, cols, x_col=None, corr_method='pearson', r
                         adv_info['anova_f'] = safe_float(f_stat, None)
                         adv_info['p_value'] = safe_float(p_val, None)
                         adv_info['type'] = 'categorical_n'
+                        adv_info['anova'] = {
+                            'f_stat': safe_float(f_stat, None),
+                            'p_value': safe_float(p_val, None)
+                        }
                     except Exception as e_anova:
                         logger.debug(f"ANOVA error: {e_anova}")
+                else:
+                    adv_info['type'] = 'categorical_single'
+
+                adv_info['anova_best_group'] = adv_info.get('best_group')
+                adv_info['anova_low_group'] = adv_info.get('worst_group')
 
         advanced[y_col] = adv_info
+        if adv_info.get('type') == 'numeric':
+            advanced['type'] = 'numeric'
+            advanced['regression'] = adv_info.get('regression')
+            advanced['correlation'] = adv_info.get('correlation')
+            advanced['r_squared'] = adv_info.get('r_squared')
+            advanced['p_value'] = adv_info.get('p_value')
+        elif 'anova' in adv_info:
+            advanced['type'] = 'categorical_n'
+            advanced['anova'] = adv_info['anova']
+            advanced['anova_best_group'] = adv_info.get('best_group')
+            advanced['anova_low_group'] = adv_info.get('worst_group')
+        elif 't_test' in adv_info:
+            advanced['type'] = 'categorical_2'
+            advanced['t_test'] = adv_info['t_test']
+            advanced['t_test_stat'] = adv_info['t_test']['t_stat']
+            advanced['p_value'] = adv_info['t_test']['p_value']
+            advanced['group_means'] = adv_info.get('group_means', {})
 
     return advanced
 

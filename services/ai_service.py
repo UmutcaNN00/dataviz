@@ -44,8 +44,10 @@ def generate_rule_based_insight(stats, advanced=None, chart_type='Grafik', x_col
     has_business_insight = False
 
     for col in y_cols:
-        adv = advanced.get(col)
-        if not adv:
+        adv = advanced.get(col) if isinstance(advanced, dict) else None
+        if not adv and isinstance(advanced, dict) and ('correlation' in advanced or 'type' in advanced or 't_test' in advanced or 'anova' in advanced):
+            adv = advanced
+        if not adv or not isinstance(adv, dict):
             continue
         
         if adv.get('type') in ['categorical_2', 'categorical_n'] and adv.get('best_group'):
@@ -83,7 +85,16 @@ def generate_rule_based_insight(stats, advanced=None, chart_type='Grafik', x_col
     )
 
     if stats and isinstance(stats, dict):
-        for col, s in stats.items():
+        # Normalize if a flat stat dict was passed (e.g. {'mean': ..., 'std': ...})
+        if any(k in stats for k in ('mean', 'median', 'min', 'max', 'std')) and not any(isinstance(v, dict) for v in stats.values()):
+            col_target = y_cols[0] if y_cols else 'Metrik'
+            stats_dict = {col_target: stats}
+        else:
+            stats_dict = stats
+
+        for col, s in stats_dict.items():
+            if not isinstance(s, dict):
+                continue
             mean = s.get('mean')
             med = s.get('median')
             min_v = s.get('min')

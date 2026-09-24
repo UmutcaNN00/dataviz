@@ -2,7 +2,7 @@
    DATAVIZ PRO — ANALYSIS CSS v6 (ENTERPRISE BI & İSTATİSTİK)
    Filtreleme, Çoklu Pano, KPI Tiles, Hipotez Testleri, Formül Motoru
 ════════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 /* Custom Premium Scrollbar */
 ::-webkit-scrollbar {
@@ -31,7 +31,20 @@
   --ease-out: cubic-bezier(0.19,1,0.22,1);
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Segoe UI Emoji","Apple Color Emoji",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+button,input,select,textarea{font-family:inherit;}
+code,pre,.mono,[style*="monospace"]{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace !important;}
 kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.13);font-size:0.72rem;font-weight:600;color:var(--muted)}
 
 .wizard-screen { 
@@ -148,7 +161,7 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
 }
 
 .s1-logo {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
   color: #fff;
@@ -162,7 +175,7 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
 .s1-logo em { color: #38bdf8; font-style: italic; }
 
 .s1-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 3rem;
   font-weight: 700;
   color: #fff;
@@ -217,7 +230,7 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
 }
 .academic-dropzone h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 1.4rem;
   color: #f8fafc;
   margin-bottom: 8px;
@@ -1132,7 +1145,7 @@ kbd{display:inline-flex;padding:1px 6px;border-radius:4px;background:rgba(255,25
 
 
 /*  TYPOGRAPHY HARMONIZATION  */
-h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-hero h2, .s1-logo, .s1-title, .academic-dropzone h3 { font-family: 'Playfair Display', serif !important; }
+h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-hero h2, .s1-logo, .s1-title, .academic-dropzone h3 { font-family: 'Inter', system-ui, sans-serif !important; }
 .kpi-tile-card .val, .pms-val-cell, .kpi-value, #csbEquation, #csbR2, #csbCorr { font-family: 'JetBrains Mono', monospace !important; }
 
 
@@ -1692,7 +1705,7 @@ h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-
 }
 
 .academic-dropzone h3 {
-  font-family: 'Playfair Display', serif !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
   font-size: 1.8rem !important;
   font-weight: 700 !important;
   color: #f8fafc !important;
@@ -1743,3 +1756,38 @@ h1, h2, h3, h4, .pane-header h3, .modal-content h2, .dash-canvas-header h2, .ai-
   color: #34d399 !important;
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.2) !important;
 }
+
+/* ════════════════════════════════════════════════════════════
+   REGRESSION & CORRELATION STUDIO (Apple Pro Dark Glass)
+   ════════════════════════════════════════════════════════════ */
+.regression-studio-pane {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.regression-studio-pane select:focus {
+  outline: none;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+#regScatterPlotArea, #regHeatmapPlotArea {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+#regMetricsStrip > div {
+  backdrop-filter: blur(12px);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+#regMetricsStrip > div:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+@media (max-width: 1024px) {
+  .regression-studio-pane > div:nth-child(3) {
+    grid-template-columns: 1fr !important;
+  }
+}
+

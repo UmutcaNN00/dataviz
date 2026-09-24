@@ -15,6 +15,6 @@ start http://127.0.0.1:5000
 echo.
 echo  Platform aktif!  -^>  http://127.0.0.1:5000
 echo.
-echo  Bu pencereyi KAPATMAYIN - kapatırsanız sunucu durur.
+echo  Bu pencereyi KAPATMAYIN
 echo.
 pause

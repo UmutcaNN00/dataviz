@@ -1,4 +1,4 @@
-﻿/* ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    DATAVIZ PRO V6 — APPLICATION COORDINATOR (app.js)
    Screen Transitions, Upload Handlers, Navigation & Shortcuts
 ════════════════════════════════════════════════════════════ */
@@ -233,6 +233,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try { Plotly.Plots.resize('chartArea'); } catch(e){}
       } else if (tabName === 'stats') {
         document.getElementById('tabStats')?.classList.remove('hidden');
+        if (typeof fetchStats === 'function') fetchStats();
+      } else if (tabName === 'regression') {
+        document.getElementById('tabRegression')?.classList.remove('hidden');
+        if (typeof window.initRegressionStudio === 'function') {
+          window.initRegressionStudio();
+          window.fetchAndRenderRegressionStudio();
+        }
+        try {
+          Plotly.Plots.resize('regScatterPlotArea');
+          Plotly.Plots.resize('regHeatmapPlotArea');
+        } catch(e){}
       } else if (tabName === 'ai') {
         document.getElementById('tabAi')?.classList.remove('hidden');
       } else if (tabName === 'dashboard') {
@@ -243,33 +254,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Klavye kısayolları
-  document.addEventListener('keydown', e => {
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-    const key = e.key.toLowerCase();
-    if (key === 'g') document.querySelector('#mainTabsBar .tab-btn[data-tab="chart"]')?.click();
-    else if (key === 's') document.querySelector('#mainTabsBar .tab-btn[data-tab="stats"]')?.click();
-    else if (key === 'd') document.querySelector('#mainTabsBar .tab-btn[data-tab="dashboard"]')?.click();
-    else if (key === 'p') document.getElementById('btnPinToDashboard')?.click();
-    else if (key === '?') document.getElementById('topbarHelp')?.click();
-  });
-});
-
-  // Inspector Tabs Logic
+  // Inspector Tabs Logic (Stil & Eksen)
   document.querySelectorAll('.inspector-tabs .i-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.inspector-tabs .i-tab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.inspector-body .i-pane').forEach(p => p.classList.add('hidden'));
-      document.querySelectorAll('.inspector-body .i-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.inspector-body .i-pane').forEach(p => {
+        p.classList.add('hidden');
+        p.classList.remove('active');
+        p.style.display = 'none';
+      });
       btn.classList.add('active');
       const tabName = btn.dataset.itab;
       const targetPane = document.getElementById('itab-' + tabName);
       if (targetPane) {
         targetPane.classList.remove('hidden');
         targetPane.classList.add('active');
+        targetPane.style.display = 'flex';
       }
     });
   });
+
+  // Klavye kısayolları
+  document.addEventListener('keydown', e => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    const key = e.key.toLowerCase();
+    if (key === 'g') document.querySelector('#mainTabsBar .tab-btn[data-tab="chart"]')?.click();
+    else if (key === 's') document.querySelector('#mainTabsBar .tab-btn[data-tab="stats"]')?.click();
+    else if (key === 'r') document.querySelector('#mainTabsBar .tab-btn[data-tab="regression"]')?.click();
+    else if (key === 'd') document.querySelector('#mainTabsBar .tab-btn[data-tab="dashboard"]')?.click();
+    else if (key === 'p') document.getElementById('btnPinToDashboard')?.click();
+    else if (key === '?') document.getElementById('topbarHelp')?.click();
+  });
+});
 
 // Window export
 Object.assign(window, {

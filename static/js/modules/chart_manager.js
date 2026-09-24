@@ -287,6 +287,250 @@ function renderChartGrid(filterCat = 'all') {
   evaluateCharts();
 }
 
+
+/* ── STEP 2 MODE SWITCHER & ADVANCED STATS ── */
+function switchStep2View(view) {
+  const chartsBtn = document.getElementById('s2TabChartsBtn');
+  const statsBtn = document.getElementById('s2TabStatsBtn');
+  const chartsView = document.getElementById('s2ViewCharts');
+  const statsView = document.getElementById('s2ViewStats');
+  if (!chartsBtn || !statsBtn || !chartsView || !statsView) return;
+
+  if (view === 'stats') {
+    chartsBtn.classList.remove('active');
+    chartsBtn.style.background = 'rgba(255,255,255,0.03)';
+    chartsBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+    chartsBtn.style.color = 'var(--muted)';
+
+    statsBtn.classList.add('active');
+    statsBtn.style.background = 'rgba(99,102,241,0.2)';
+    statsBtn.style.borderColor = 'rgba(99,102,241,0.5)';
+    statsBtn.style.color = '#fff';
+
+    chartsView.classList.add('hidden');
+    chartsView.style.display = 'none';
+    statsView.classList.remove('hidden');
+    statsView.style.display = 'flex';
+
+    updateStep2Stats(window.currentRegModel || 'linear');
+  } else {
+    statsBtn.classList.remove('active');
+    statsBtn.style.background = 'rgba(255,255,255,0.03)';
+    statsBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+    statsBtn.style.color = 'var(--muted)';
+
+    chartsBtn.classList.add('active');
+    chartsBtn.style.background = 'rgba(99,102,241,0.2)';
+    chartsBtn.style.borderColor = 'rgba(99,102,241,0.5)';
+    chartsBtn.style.color = '#fff';
+
+    statsView.classList.add('hidden');
+    statsView.style.display = 'none';
+    chartsView.classList.remove('hidden');
+    chartsView.style.display = 'block';
+  }
+}
+
+async function updateStep2Stats(modelType = 'linear') {
+  const content = document.getElementById('s2StatsContent');
+  if (!content) return;
+
+  const hasX = !!axisConfig.x;
+  const yCols = axisConfig.y;
+  if (!hasX || !yCols.length) {
+    content.innerHTML = `
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 36px; text-align: center; color: var(--muted);">
+        <div style="font-size: 2.2rem; margin-bottom: 12px;">📊</div>
+        <h4 style="color: #fff; margin-bottom: 8px;">Değişken Seçimi Bekleniyor</h4>
+        <p style="max-width: 400px; margin: 0 auto; font-size: 0.9rem; line-height: 1.5;">Sol paneldeki veri havuzundan X ve Y eksenlerine değişken sürüklediğinizde otomatik olarak Regresyon, Korelasyon, ANOVA veya T-Testi hesaplamaları burada belirecektir.</p>
+      </div>`;
+    return;
+  }
+
+  const isXNum = numericColumns.includes(axisConfig.x);
+  const numYCols = yCols.filter(c => numericColumns.includes(c));
+  const isNumericPair = isXNum && numYCols.length > 0;
+
+  content.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 250px;">
+      <div class="spinner"></div>
+      <p style="margin-top: 12px; color: var(--muted); font-size: 0.9rem;">İstatistiksel analizler ve test modelleri hesaplanıyor...</p>
+    </div>`;
+
+  try {
+    const res = await fetch('/get_stats', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        columns: numYCols.length ? numYCols : yCols,
+        y_cols: numYCols.length ? numYCols : yCols,
+        x_col: axisConfig.x,
+        filters: activeFilters,
+        reg_model: modelType
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'İstatistikler alınamadı');
+
+    window.currentAdvancedStats = data.advanced;
+    window.currentStats = data.stats;
+
+    renderStep2StatsContent(data, isNumericPair, modelType);
+  } catch(err) {
+    content.innerHTML = `<div style="color: var(--red); background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 20px;">Hata: ${err.message}</div>`;
+  }
+}
+
+function renderStep2StatsContent(data, isNumericPair, modelType = 'linear') {
+  const content = document.getElementById('s2StatsContent');
+  if (!content) return;
+
+  const yCol = axisConfig.y.find(c => numericColumns.includes(c)) || axisConfig.y[0];
+  const adv = data.advanced && data.advanced[yCol] ? data.advanced[yCol] : null;
+
+  if (isNumericPair) {
+    const corr = adv?.correlation != null ? adv.correlation.toFixed(4) : '-';
+    const r2 = adv?.r_squared != null ? adv.r_squared.toFixed(4) : '-';
+    const pVal = adv?.p_value != null ? (adv.p_value < 0.0001 ? '< 0.0001' : adv.p_value.toFixed(4)) : '-';
+    const eq = adv?.regression || 'y = mx + c';
+    const strength = adv?.interpretation || 'İlişki Gücü Hesaplanıyor';
+
+    content.innerHTML = `
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">🔬</span>
+              <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">Korelasyon & Regresyon Analizi</h3>
+            </div>
+            <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--muted);">Bağımsız Değişken (X): <strong>${axisConfig.x}</strong> &nbsp;|&nbsp; Bağımlı Değişken (Y): <strong>${yCol}</strong></p>
+          </div>
+          <span style="background: rgba(99,102,241,0.2); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">2 Sayısal Değişken</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 600;">Regresyon Tipi:</span>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn-reg-select ${modelType === 'linear' ? 'active' : ''}" data-model="linear" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === 'linear' ? '#818cf8' : 'rgba(255,255,255,0.1)'}; background: ${modelType === 'linear' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}; color: ${modelType === 'linear' ? '#fff' : 'var(--muted)'};">Doğrusal (Linear)</button>
+            <button type="button" class="btn-reg-select ${modelType === 'poly2' ? 'active' : ''}" data-model="poly2" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === 'poly2' ? '#818cf8' : 'rgba(255,255,255,0.1)'}; background: ${modelType === 'poly2' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}; color: ${modelType === 'poly2' ? '#fff' : 'var(--muted)'};">2. Derece Polinom</button>
+            <button type="button" class="btn-reg-select ${modelType === 'exp' ? 'active' : ''}" data-model="exp" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === 'exp' ? '#818cf8' : 'rgba(255,255,255,0.1)'}; background: ${modelType === 'exp' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}; color: ${modelType === 'exp' ? '#fff' : 'var(--muted)'};">Üstel (Exp)</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Pearson Korelasyon (r)</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #60a5fa;">${corr}</div>
+            <div style="font-size: 0.7rem; color: #93c5fd; margin-top: 2px;">${strength}</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Belirlilik (R²)</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #34d399;">${r2}</div>
+            <div style="font-size: 0.7rem; color: #6ee7b7; margin-top: 2px;">Varyans Açıklama Gücü</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Anlamlılık (P Değeri)</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #f59e0b;">${pVal}</div>
+            <div style="font-size: 0.7rem; color: #fcd34d; margin-top: 2px;">p &lt; 0.05 (Güvenilir)</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Model Denklemi</div>
+            <div style="font-size: 0.88rem; font-weight: 700; color: #fbbf24; font-family: monospace; word-break: break-all;">${eq}</div>
+          </div>
+        </div>
+
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 10px; padding: 14px; font-size: 0.86rem; line-height: 1.6; color: #e2e8f0;">
+          <strong>💼 Yönetici Özeti:</strong> ${axisConfig.x} ve ${yCol} arasında istatistiksel olarak <strong>${strength}</strong> bir bağ tespit edilmiştir. Regresyon modeli varyansın %${(parseFloat(r2 || 0) * 100).toFixed(1)} kısmını doğrudan açıklamaktadır.
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 4px;">
+          <button type="button" id="btnLaunchRegressionChart" style="flex: 1; padding: 13px 20px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(99,102,241,0.35);">
+            <span>📈</span> Regresyon Grafiğini Çiz & Özelleştir →
+          </button>
+        </div>
+      </div>`;
+
+    content.querySelectorAll('.btn-reg-select').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = btn.dataset.model;
+        window.currentRegModel = m;
+        updateStep2Stats(m);
+      });
+    });
+
+    document.getElementById('btnLaunchRegressionChart')?.addEventListener('click', () => {
+      if (typeof window.openRegressionStudioWithVars === 'function') {
+        window.openRegressionStudioWithVars(axisConfig.x, yCol, window.currentRegModel || 'linear');
+      } else {
+        currentPlotType = 'scatter';
+        goToStep3();
+      }
+    });
+
+  } else {
+    const testName = adv?.test_name || 'Varyans Analizi (ANOVA)';
+    const fVal = adv?.f_statistic != null ? adv.f_statistic.toFixed(4) : (adv?.t_statistic != null ? adv.t_statistic.toFixed(4) : '-');
+    const pVal = adv?.p_value != null ? (adv.p_value < 0.0001 ? '< 0.0001' : adv.p_value.toFixed(4)) : '-';
+    const isSignif = adv?.p_value != null && adv.p_value < 0.05;
+    const bestGrp = adv?.best_group || '-';
+    const bestVal = adv?.best_val != null ? adv.best_val.toLocaleString('tr-TR') : '-';
+    const worstGrp = adv?.worst_group || '-';
+    const worstVal = adv?.worst_val != null ? adv.worst_val.toLocaleString('tr-TR') : '-';
+
+    content.innerHTML = `
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">🧪</span>
+              <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">${testName}</h3>
+            </div>
+            <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--muted);">Grup Değişkeni (X): <strong>${axisConfig.x}</strong> &nbsp;|&nbsp; Sayısal Metrik (Y): <strong>${yCol}</strong></p>
+          </div>
+          <span style="background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">Grup Karşılaştırması</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Test İstatistiği (F/t)</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;">${fVal}</div>
+            <div style="font-size: 0.7rem; color: #7dd3fc; margin-top: 2px;">Gruplar Arası Varyans</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Anlamlılık (P Değeri)</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: ${isSignif ? '#34d399' : '#f59e0b'};">${pVal}</div>
+            <div style="font-size: 0.7rem; color: ${isSignif ? '#6ee7b7' : '#fcd34d'}; margin-top: 2px;">${isSignif ? 'Gruplar Farklı (p < 0.05)' : 'Fark Önemsiz (p > 0.05)'}</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">🏆 En Yüksek Grup</div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: #34d399;">${bestGrp}</div>
+            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Ortalama: ${bestVal}</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">⚠️ En Düşük Grup</div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: #f87171;">${worstGrp}</div>
+            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Ortalama: ${worstVal}</div>
+          </div>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 14px; font-size: 0.86rem; line-height: 1.6; color: #e2e8f0;">
+          <strong>💼 Yönetici Özeti:</strong> ${yCol} metriği baz alındığında; en yüksek performansı <strong>${bestGrp}</strong> (${bestVal}) sergilerken, en düşük performansı ise <strong>${worstGrp}</strong> (${worstVal}) göstermektedir. ${isSignif ? 'Gruplar arasındaki bu fark istatistiksel olarak anlamlıdır.' : 'Gruplar arasındaki fark rastlantısaldır.'}
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 4px;">
+          <button type="button" id="btnLaunchComparisonChart" style="flex: 1; padding: 13px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(16,185,129,0.35);">
+            <span>📊</span> Karşılaştırma Grafiğini Çiz & Özelleştir →
+          </button>
+        </div>
+      </div>`;
+
+    document.getElementById('btnLaunchComparisonChart')?.addEventListener('click', () => {
+      currentPlotType = 'bar';
+      goToStep3();
+    });
+  }
+}
+
 function evaluateCharts() {
   const hasX = !!axisConfig.x;
   const yCount = axisConfig.y.length;
@@ -366,12 +610,18 @@ function evaluateCharts() {
     warning.classList.remove('hidden');
   }
   
+  // Step 2 Akıllı Yönlendirme (Auto-Switch)
   if (hasX && yCount > 0) {
     if (isXNum && yAllNum) {
-      document.querySelector('#mainTabsBar .tab-btn[data-tab="stats"]')?.click();
+      // 2 veya 3 Sayısal Değişken Girildiğinde -> Otomatik olarak sağdaki İstatiksel Analiz & Testler sekmesine kay
+      switchStep2View('stats');
     } else {
-      document.querySelector('#mainTabsBar .tab-btn[data-tab="chart"]')?.click();
+      // 1 Sözel, 1 Sayısal Girildiğinde -> Grafik sekmesinde kal, arka planda ANOVA/T-test hazırla
+      switchStep2View('charts');
+      updateStep2Stats('linear');
     }
+  } else {
+    switchStep2View('charts');
   }
 }
 
@@ -1330,6 +1580,12 @@ window.restoreZonePlaceholder = restoreZonePlaceholder;
 window.assignPillToZone = assignPillToZone;
 window.handleDropX = handleDropX;
 window.handleDropY = handleDropY;
+
+  document.getElementById('s2TabChartsBtn')?.addEventListener('click', () => switchStep2View('charts'));
+  document.getElementById('s2TabStatsBtn')?.addEventListener('click', () => switchStep2View('stats'));
+
+window.switchStep2View = switchStep2View;
+window.updateStep2Stats = updateStep2Stats;
 window.updateAxisConfig = updateAxisConfig;
 window.renderChartGrid = renderChartGrid;
 window.evaluateCharts = evaluateCharts;

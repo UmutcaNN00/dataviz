@@ -26,6 +26,28 @@ def create_app(config_class=Config):
     app.config['UPLOAD_FOLDER'] = config_class.UPLOAD_FOLDER
     app.config['MAX_CONTENT_LENGTH'] = config_class.MAX_CONTENT_LENGTH
 
+    # Custom JSON provider for NumPy / SciPy types
+    try:
+        import numpy as np
+        from flask.json.provider import DefaultJSONProvider
+
+        class NumpyJSONProvider(DefaultJSONProvider):
+            def default(self, obj):
+                if isinstance(obj, (np.integer, int)):
+                    return int(obj)
+                elif isinstance(obj, (np.floating, float)):
+                    return float(obj)
+                elif isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                elif isinstance(obj, np.bool_):
+                    return bool(obj)
+                return super().default(obj)
+
+        app.json_provider_class = NumpyJSONProvider
+        app.json = NumpyJSONProvider(app)
+    except Exception as e_json:
+        logger.warning(f"Could not configure NumpyJSONProvider: {e_json}")
+
     # CORS support: enable flask_cors if available or use standard response headers
     try:
         from flask_cors import CORS

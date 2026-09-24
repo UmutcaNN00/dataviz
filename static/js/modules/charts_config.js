@@ -1,7 +1,14 @@
-/* ════════════════════════════════════════════════════════════
-   DATAVIZ PRO V6 — CHARTS CONFIGURATION & PLOTLY ENGINE
-   40+ Chart Types Definitions, buildLayout & drawMegaPlotly
-════════════════════════════════════════════════════════════ */
+// Safe Global Fallbacks
+if (typeof window.axisConfig === 'undefined') window.axisConfig = { x: null, y: [] };
+if (typeof window.numericColumns === 'undefined') window.numericColumns = [];
+if (typeof window.categoricalColumns === 'undefined') window.categoricalColumns = [];
+if (typeof window.activeFilters === 'undefined') window.activeFilters = [];
+if (typeof window.PALETTE === 'undefined') window.PALETTE = ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#f43f5e', '#a78bfa', '#4ade80', '#c084fc', '#f97316', '#22d3ee'];
+var axisConfig = window.axisConfig;
+var numericColumns = window.numericColumns;
+var categoricalColumns = window.categoricalColumns;
+var activeFilters = window.activeFilters;
+var PALETTE = window.PALETTE;
 
 const CHARTS = [
   // 📈 TREND
@@ -23,6 +30,10 @@ const CHARTS = [
   { id: 'radar', name: 'Radar (Örümcek)', cat: 'comp', icon: '🕸️', desc: 'Çoklu eksen profili.' },
   { id: 'dotplot', name: 'Nokta Kıyas', cat: 'comp', icon: '⏺', desc: 'Hafif kıyaslama.' },
   { id: 'bullet', name: 'Bullet / KPI', cat: 'comp', icon: '🌡️', desc: 'Hedef takibi.' },
+  { id: 'dumbbell', name: 'Halter (Dumbbell)', cat: 'comp', icon: '🏋️', desc: 'İki nokta arası fark.' },
+  { id: 'lollipop', name: 'Lolipop', cat: 'comp', icon: '🍭', desc: 'Hafif çubuk kıyası.' },
+  { id: 'gauge', name: 'Kadran (Gauge)', cat: 'comp', icon: '⏲️', desc: 'İbreli hedef göstergesi.' },
+  { id: 'radialbar', name: 'Radyal Çubuk', cat: 'comp', icon: '🎯', desc: 'Dairesel oran kıyası.' },
 
   // 📉 DAĞILIM
   { id: 'histogram', name: 'Histogram', cat: 'dist', icon: '📉', desc: 'Frekans dağılımı.' },
@@ -86,7 +97,7 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
   const preLoader = document.getElementById('megaChartLoader');
   if (preLoader) preLoader.remove();
 
-  const mainColor = document.getElementById('chartColor')?.value || '#a78bfa';
+  const mainColor = window.currentPalette || (typeof state !== 'undefined' && state.currentPalette) || document.getElementById('chartColor')?.value || '#38bdf8';
   const bg = document.getElementById('chartBgColor')?.value || '#070711';
   const sGrid = document.getElementById('showGrid')?.checked ?? true;
   const sLeg = isMini ? false : (document.getElementById('showLegend')?.checked ?? true);
@@ -95,11 +106,13 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
   let traces = [];
   const layout = buildLayout(bg, sGrid, sLeg, isMini);
   if (!isMini) {
+    const curX = (window.axisConfig && window.axisConfig.x) || (typeof state !== 'undefined' && state.axis && state.axis.x && state.axis.x.name) || '';
+    const curY = (window.axisConfig && window.axisConfig.y && window.axisConfig.y.length) ? window.axisConfig.y : ((typeof state !== 'undefined' && state.axis && state.axis.y) ? state.axis.y.map(i => i.name) : []);
     if (layout.xaxis && layout.xaxis.title) {
-      layout.xaxis.title.text = document.getElementById('customXTitle')?.value || axisConfig.x || '';
+      layout.xaxis.title.text = document.getElementById('customXTitle')?.value || curX;
     }
     if (layout.yaxis && layout.yaxis.title) {
-      layout.yaxis.title.text = document.getElementById('customYTitle')?.value || (axisConfig.y.length ? axisConfig.y.join(', ') : '');
+      layout.yaxis.title.text = document.getElementById('customYTitle')?.value || curY.join(', ');
     }
   }
 
@@ -389,12 +402,17 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
     }
 
     // ════════ 4. CANLI TRENDLINE & KORELASYON OVERLAY ════════
-    if (!isMini && targetElementId === 'chartArea') {
-      const isXNum = axisConfig.x && numericColumns.includes(axisConfig.x);
-      const firstY = axisConfig.y && axisConfig.y.length > 0 ? axisConfig.y[0] : null;
-      const isYNum = firstY && numericColumns.includes(firstY);
-      const badgeEl = document.getElementById('chartStatsBadge');
-      const showTrend = document.getElementById('showTrendline')?.checked ?? false;
+    if (!isMini && (targetElementId === 'chartArea' || targetElementId === 'livePlotlyArea')) {
+      const curAxisX = (window.axisConfig && window.axisConfig.x) || (typeof state !== 'undefined' && state.axis && state.axis.x && state.axis.x.name) || null;
+      const curAxisY = (window.axisConfig && window.axisConfig.y && window.axisConfig.y.length) ? window.axisConfig.y : ((typeof state !== 'undefined' && state.axis && state.axis.y) ? state.axis.y.map(i => i.name) : []);
+      const numCols = window.numericColumns || (typeof state !== 'undefined' && state.activeDataset && state.activeDataset.numericColumns) || [];
+      const curFilters = window.activeFilters || (typeof state !== 'undefined' && state.activeFilters) || [];
+
+      const isXNum = curAxisX && numCols.includes(curAxisX);
+      const firstY = curAxisY.length > 0 ? curAxisY[0] : null;
+      const isYNum = firstY && numCols.includes(firstY);
+      const badgeEl = document.getElementById('chartStatsBadge') || document.getElementById('canvasEquationBadge');
+      const showTrend = document.getElementById('showTrendline')?.checked ?? (type === 'scatter');
       const regModel = document.getElementById('regModelSelect')?.value || 'linear';
       const corrMethod = document.getElementById('corrMethodSelect')?.value || 'pearson';
 
@@ -404,11 +422,11 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              x_col: axisConfig.x,
+              x_col: curAxisX,
               y_col: firstY,
               model_type: regModel,
               corr_method: corrMethod,
-              filters: activeFilters
+              filters: curFilters
             })
           });
           const regData = await regRes.json();

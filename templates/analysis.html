@@ -1,780 +1,2581 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataViz V6 â€” Kurumsal BI, Ä°statistik & Veri BirleÅŸtirme Platformu</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-  <!-- PDF Ã‡Ä±ktÄ±sÄ± Ä°Ã§in html2pdf -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}?v=20260922_master_ui5">
-</head>
-<body>
-
-<!-- â•â•â•â•â•â•â•â•â•â• DATA PREP (VERÄ° SAÄLIÄI, TÄ°P ONARIMI & NAN TEMÄ°ZLEME) MODALI â•â•â•â•â•â•â•â•â•â• -->
-<div id="dataPrepModal" class="modal-overlay hidden">
-  <div class="modal-content filter-modal-content" style="max-width: 900px; max-height: 88vh; display: flex; flex-direction: column;">
-    <div class="modal-header-row" style="margin-bottom: 12px;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:1.5rem;">ğŸ©º</span>
-        <div>
-          <h3 style="margin: 0; font-size: 1.15rem;">Veri SaÄŸlÄ±ÄŸÄ± &amp; AkÄ±llÄ± Tip OnarÄ±cÄ±</h3>
-          <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--muted);">SayÄ±sal alanlara girilen sÃ¶zel deÄŸerleri, para/yÃ¼zde eklerini ayÄ±klayÄ±n ve eksik verileri onarÄ±n.</p>
-        </div>
-      </div>
-      <button class="modal-close-btn" id="btnCloseDataPrepModal">Ã—</button>
-    </div>
-
-    <!-- MODAL SEKMELERÄ° -->
-    <div class="dp-tabs" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 14px;">
-      <button type="button" class="dp-tab-btn active" id="dpTabBtnAnomalies" data-dptab="anomalies" style="background: rgba(167,139,250,0.15); color: var(--purple); border: 1px solid rgba(167,139,250,0.3); border-radius: 8px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-        <span>ğŸ§© SÃ¶zel / Tip UyuÅŸmazlÄ±ÄŸÄ±</span>
-        <span id="dpAnomalyTabCount" class="hidden" style="background: #ef4444; color: #fff; font-size: 0.68rem; padding: 1px 6px; border-radius: 10px;">0</span>
-      </button>
-      <button type="button" class="dp-tab-btn" id="dpTabBtnNans" data-dptab="nans" style="background: transparent; color: var(--muted); border: 1px solid transparent; border-radius: 8px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-        <span>ğŸ©º Eksik DeÄŸer (NaN)</span>
-        <span id="dpNanTabCount" class="hidden" style="background: var(--orange); color: #fff; font-size: 0.68rem; padding: 1px 6px; border-radius: 10px;">0</span>
-      </button>
-    </div>
-
-    <!-- SEKME 1: SÃ–ZEL / ALAKASIZ DEÄER ONARIMI -->
-    <div id="dpPaneAnomalies" class="dp-pane" style="overflow-y: auto; flex: 1; padding-right: 4px;">
-      <div id="dpAnomalyHeaderBanner" style="margin-bottom: 12px;"></div>
-      
-      <!-- Toplu OnarÄ±m Buton BarÄ± -->
-      <div id="dpBatchActionBar" class="hidden" style="display: flex; justify-content: space-between; align-items: center; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;">
-        <div>
-          <strong style="color: #fbbf24; font-size: 0.85rem;">âš¡ HÄ±zlÄ± Toplu Ã‡Ã¶zÃ¼m:</strong>
-          <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--muted);">Tespit edilen tÃ¼m sÃ¼tunlardaki sÃ¶zel ekleri ayÄ±klar ve sayÄ±sal tipe dÃ¶nÃ¼ÅŸtÃ¼rÃ¼r.</p>
-        </div>
-        <button type="button" class="btn-primary" id="btnHealAllColumns" style="width: auto; padding: 8px 14px; font-size: 0.82rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; white-space: nowrap;">
-          ğŸª„ TÃ¼mÃ¼nÃ¼ AkÄ±llÄ± Onar
-        </button>
-      </div>
-
-      <!-- SÃ¼tun Anomali KartlarÄ± Listesi -->
-      <div id="dpAnomalyCardsList" style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="color: var(--muted); text-align: center; padding: 20px; font-size: 0.85rem;">SÃ¼tunlar taranÄ±yor...</div>
-      </div>
-    </div>
-
-    <!-- SEKME 2: BOÅ DEÄER (NAN) TEMÄ°ZLEME -->
-    <div id="dpPaneNans" class="dp-pane hidden" style="overflow-y: auto; flex: 1;">
-      <p id="dpMessage" class="filter-hint" style="margin-top:0;">Veri setinizdeki boÅŸ satÄ±rlar ve eksik hÃ¼creler:</p>
-      
-      <div class="dp-stats-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:14px 0;">
-        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
-          <div style="font-size:0.75rem; color:var(--muted);">Toplam SatÄ±r</div>
-          <div id="dpTotalRows" style="font-size:1.3rem; font-weight:700; color:var(--text); margin-top:4px;">0</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
-          <div style="font-size:0.75rem; color:var(--muted);">BoÅŸ HÃ¼cre (HÃ¼cre BazlÄ±)</div>
-          <div id="dpMissingCells" style="font-size:1.3rem; font-weight:700; color:var(--cyan); margin-top:4px;">0</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
-          <div style="font-size:0.75rem; color:var(--muted);">Eksik SatÄ±r SayÄ±sÄ±</div>
-          <div id="dpMissingRows" style="font-size:1.3rem; font-weight:700; color:var(--orange); margin-top:4px;">0</div>
-        </div>
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
-        <div style="font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:4px;">TÃ¼m BoÅŸ (NaN) DeÄŸerleri Doldur veya Sil:</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-          <button class="btn-primary" id="dpDropBtn" style="background:#ef4444; border-color:#ef4444; font-size:0.82rem; padding:10px;">ğŸ—‘ï¸ BoÅŸ SatÄ±rlarÄ± Sil</button>
-          <button class="btn-secondary" id="dpFillBtn" style="font-size:0.82rem; padding:10px;">ğŸ“ˆ Ortalamayla Doldur</button>
-          <button class="btn-secondary" id="dpFillZeroBtn" style="font-size:0.82rem; padding:10px;">0ï¸âƒ£ SÄ±fÄ±r (0) ile Doldur</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL ALTI BUTONLAR -->
-    <div class="modal-actions" style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px; display: flex; justify-content: flex-end;">
-      <button class="btn-ghost" id="dpSkipBtn" style="min-width: 120px;">Kapat</button>
-    </div>
-  </div>
-</div>
-
-<!-- â•â•â•â•â•â•â•â•â•â• AKILLI VERÄ° BÄ°RLEÅTÄ°RÄ°CÄ° (DATA MERGE & JOIN) MODALI â•â•â•â•â•â•â•â•â•â• -->
-<div id="dataMergeModal" class="modal-overlay hidden">
-  <div class="modal-content filter-modal-content" style="max-width: 620px;">
-    <div class="modal-header-row">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.4rem;">ğŸ”—</span>
-        <h3>AkÄ±llÄ± Veri BirleÅŸtirici (Data Merge &amp; Join)</h3>
-      </div>
-      <button class="modal-close-btn" id="btnCloseMergeModal">Ã—</button>
-    </div>
-    <p class="filter-hint">2. bir Parquet, Excel veya CSV dosyasÄ± seÃ§erek ortak bir sÃ¼tun Ã¼zerinden iki tabloyu yan yana birleÅŸtirin:</p>
-    
-    <!-- 2. Dosya YÃ¼kleme AlanÄ± -->
-    <div class="merge-drop-zone" id="mergeDropZone">
-      <input type="file" id="mergeFileInput" accept=".xlsx,.xls,.csv,.parquet" style="display:none;">
-      <div style="font-size: 2rem; margin-bottom: 6px;">ğŸ“‚</div>
-      <div style="font-weight: 700; font-size: 0.95rem;">2. DosyayÄ± Buraya SÃ¼rÃ¼kleyin (.parquet, .xlsx, .csv)</div>
-      <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">veya <label for="mergeFileInput" class="gdz-link">bilgisayardan seÃ§in</label></div>
-    </div>
-    <div id="mergeFileStatus" class="status-msg" style="margin-top:10px; font-size:0.85rem; display:none;"></div>
-
-    <!-- BirleÅŸtirme KonfigÃ¼rasyon AlanÄ± -->
-    <div id="mergeConfigArea" class="hidden" style="margin-top:16px; background:var(--surface); padding:16px; border-radius:var(--r-lg); border:1px solid var(--border);">
-      <div style="font-weight:800; font-size:0.85rem; color:var(--purple); margin-bottom:12px;">ğŸ”— Ortak BaÄŸlantÄ± SÃ¼tunlarÄ± (EÅŸleÅŸme)</div>
-      
-      <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center;">
-        <div class="form-group">
-          <label style="font-size:0.75rem;">1. Tablo SÃ¼tunu</label>
-          <select id="mergeKey1Select"></select>
-        </div>
-        <div style="color:var(--purple); font-weight:900; font-size:1.2rem; padding-top:16px;">=</div>
-        <div class="form-group">
-          <label style="font-size:0.75rem;">2. Tablo SÃ¼tunu</label>
-          <select id="mergeKey2Select"></select>
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-top:12px;">
-        <label style="font-size:0.75rem;">BirleÅŸtirme YÃ¶ntemi</label>
-        <select id="mergeJoinType">
-          <option value="left" selected>Sol BirleÅŸim (Left Join - 1. Tabloyu Esas Al)</option>
-          <option value="inner">KesiÅŸim (Inner Join - Sadece EÅŸleÅŸenleri Al)</option>
-          <option value="outer">Tam BirleÅŸim (Outer Join - TÃ¼m SatÄ±rlarÄ± Koru)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:20px; flex-direction:row;">
-      <button class="btn-ghost" id="btnCancelMerge" style="flex:1;">Ä°ptal</button>
-      <button class="btn-primary" id="btnExecuteMerge" style="flex:1;" disabled>âš¡ DosyalarÄ± BirleÅŸtir</button>
-    </div>
-  </div>
-</div>
-
-<!-- â•â•â•â•â•â•â•â•â•â• FORMÃœL / HESAPLANMIÅ SÃœTUN MODALI â•â•â•â•â•â•â•â•â•â• -->
-<div id="calcColModal" class="modal-overlay hidden">
-  <div class="modal-content premium-modal-content" style="max-width: 550px;">
-    <div class="modal-header-row premium-header">
-      <div class="modal-title-group">
-        <div class="modal-icon-glass">ğŸ§®</div>
-        <div>
-          <h3>FormÃ¼l & Yeni SÃ¼tun Ãœretici</h3>
-          <p class="modal-subtitle">Mevcut sayÄ±sal sÃ¼tunlarÄ± kullanarak tek tÄ±kla yeni bir veri sÃ¼tunu tÃ¼retin.</p>
-        </div>
-      </div>
-      <button class="modal-close-btn" id="btnCloseCalcColModal">Ã—</button>
-    </div>
-    
-    <div class="premium-form-body">
-      <div class="form-group glass-input-group">
-        <label>Ãœretilecek Yeni SÃ¼tun AdÄ±</label>
-        <input type="text" id="calcNewColName" class="glass-input" placeholder="Ã–rn: Net Kar, KDV Dahil Tutar, Kar MarjÄ±">
-      </div>
-
-      <div class="calc-builder-box">
-        <div class="form-group">
-          <label>1. SayÄ±sal SÃ¼tun</label>
-          <select id="calcCol1Select" class="glass-select"></select>
-        </div>
-
-        <div class="calc-operator-selector">
-          <label style="text-align: center; width: 100%;">Ä°ÅŸlem</label>
-          <div class="calc-op-btns glass-ops">
-            <button type="button" class="calc-op-btn op-btn glass-op active" data-op="+">+</button>
-            <button type="button" class="calc-op-btn op-btn glass-op" data-op="-">-</button>
-            <button type="button" class="calc-op-btn op-btn glass-op" data-op="*">Ã—</button>
-            <button type="button" class="calc-op-btn op-btn glass-op" data-op="/">Ã·</button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>2. DeÄŸiÅŸken (SÃ¼tun veya SayÄ±)</label>
-          <div class="calc-variable-inputs">
-            <div id="calcCol2Box" style="flex:1; width:100%;"><select id="calcCol2Select" class="glass-select" style="width:100%;"></select></div>
-            <div id="calcScalarBox" class="hidden" style="flex:1; width:100%;"><input type="number" id="calcScalarInput" class="glass-input" placeholder="Sabit (Ã–rn: 1.20)" step="any" style="width:100%;"></div>
-          </div>
-          <div class="calc-checkbox-wrap">
-            <label class="glass-checkbox-label">
-              <input type="checkbox" id="calcUseScalar"> 
-              <span class="custom-checkbox"></span>
-              Sabit bir katsayÄ± kullan
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions premium-modal-actions">
-      <button class="btn-ghost-glass" id="btnCancelCalcCol">Ä°ptal</button>
-      <button class="btn-primary-glass" id="btnApplyCalcCol">âœ¨ SÃ¼tunu Ãœret</button>
-    </div>
-  </div>
-</div>
-
-<!-- â•â•â•â•â•â•â•â•â•â• AKILLI FÄ°LTRELEME (SLICER) MODALI â•â•â•â•â•â•â•â•â•â• -->
-<div id="filterModal" class="modal-overlay hidden">
-  <div class="modal-content filter-modal-content">
-    <div class="modal-header-row">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.4rem;">ğŸ”</span>
-        <h3>Veri Dilimleyici (Filtre Ekle)</h3>
-      </div>
-      <button class="modal-close-btn" id="btnCloseFilterModal">Ã—</button>
-    </div>
-    
-    <div class="form-group" style="margin-top:16px;">
-      <label>Filtrelenecek SÃ¼tunu SeÃ§in</label>
-      <select id="filterColumnSelect">
-        <option value="" disabled selected>Bir sÃ¼tun seÃ§in...</option>
-      </select>
-    </div>
-
-    <!-- Dinamik Filtre Ä°Ã§erik AlanÄ± -->
-    <div id="filterDynamicContainer" class="filter-dynamic-area hidden">
-      <!-- Kategorik Arama & SeÃ§im -->
-      <div id="catFilterArea" class="hidden">
-        <div class="filter-search-row">
-          <input type="text" id="catSearchInput" placeholder="Kategori ara..." class="filter-search-input">
-          <div class="filter-quick-actions">
-            <button type="button" id="btnSelectAllCat" class="btn-link">TÃ¼mÃ¼</button>
-            <button type="button" id="btnClearAllCat" class="btn-link">Temizle</button>
-          </div>
-        </div>
-        <div id="catCheckboxesList" class="cat-checkboxes-list"></div>
-      </div>
-
-      <!-- SayÄ±sal AralÄ±k SeÃ§imi -->
-      <div id="numFilterArea" class="hidden">
-        <p class="filter-hint">GÃ¶sterilecek deÄŸerlerin BÃ¼yÃ¼ktÃ¼r / KÃ¼Ã§Ã¼ktÃ¼r sÄ±nÄ±rlarÄ±nÄ± girin:</p>
-        <div class="num-range-inputs">
-          <div>
-            <label>> BÃ¼yÃ¼ktÃ¼r (Min)</label>
-            <input type="number" id="numFilterMin" step="any" placeholder="Alt SÄ±nÄ±r">
-          </div>
-          <span style="align-self:flex-end; padding-bottom:10px; color:var(--muted);">-</span>
-          <div>
-            <label>&lt; KÃ¼Ã§Ã¼ktÃ¼r (Max)</label>
-            <input type="number" id="numFilterMax" step="any" placeholder="Ãœst SÄ±nÄ±r">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:20px; flex-direction:row;">
-      <button class="btn-ghost" id="btnCancelFilter" style="flex:1;">Ä°ptal</button>
-      <button class="btn-primary" id="btnApplyFilter" style="flex:1;">Filtreyi Uygula</button>
-    </div>
-  </div>
-</div>
-
-<!-- â•â•â•â•â•â•â•â•â•â• AÅAMA 1: DOSYA YÃœKLEME â•â•â•â•â•â•â•â•â•â• -->
-<!-- â•â•â•â•â•â•â•â•â•â• AÅAMA 1: DOSYA YÃœKLEME (PREMIUM) â•â•â•â•â•â•â•â•â•â• -->
-<div id="step1-upload" class="wizard-screen active">
-  <div class="hero-glow glow-1"></div>
-  <div class="hero-glow glow-2"></div>
-
-  <div class="s1-container">
-    <div class="s1-header-text">
-      <a href="/" class="s1-logo"><span class="logo-icon">â¬¡</span> DataViz <em>Research</em></a>
-      <h1 class="s1-title">Verinizi Bilgiye DÃ¶nÃ¼ÅŸtÃ¼rÃ¼n.</h1>
-      <p class="s1-subtitle">Excel, CSV veya Parquet dosyanÄ±zÄ± yÃ¼kleyin; SciPy motoru saniyeler iÃ§inde istatistiksel analizlerinizi ve interaktif panolarÄ±nÄ±zÄ± hazÄ±rlasÄ±n.</p>
-    </div>
-
-    <div class="upload-glass-panel">
-      <!-- Status Box (Hidden by default) -->
-      <div id="mainUploadStatus" class="status-msg hidden"></div>
-      
-      <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv,.parquet" style="display: none;">
-
-      <div class="academic-dropzone" id="mainDropZone" tabindex="0">
-        <div class="dz-icon-circle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </div>
-        
-        <h3>DosyanÄ±zÄ± SÃ¼rÃ¼kleyip BÄ±rakÄ±n</h3>
-        <p class="dz-text">veya bilgisayarÄ±nÄ±zdan seÃ§mek iÃ§in <span class="dz-browse-text">tÄ±klayÄ±n</span></p>
-        
-        <div class="dz-format-tags">
-          <span class="fmt-tag">.XLSX</span>
-          <span class="fmt-tag">.CSV</span>
-          <span class="fmt-tag highlight">.PARQUET (Ã–nerilen)</span>
-        </div>
-      </div>
-      
-      <div class="upload-actions">
-        <button type="button" class="btn-hero-primary" id="btnBrowseFile">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Dosya SeÃ§in
-        </button>
-        <button type="button" class="btn-hero-ghost" id="btnLoadSampleData">
-          ğŸ§ª Ã–rnek Veri ile BaÅŸla
-        </button>
-      </div>
-    </div>
-
-    <div class="security-footer">
-      <div class="sec-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> %100 Yerel Ä°ÅŸlem (Bulutsuz)</div>
-      <div class="sec-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Veriler Asla DÄ±ÅŸarÄ± Ã‡Ä±kmaz</div>
-      <div class="sec-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> SciPy 1.11+ Destekli</div>
-    </div>
-  </div>
-</div>
-<!-- â•â•â•â•â•â•â•â•â•â• AÅAMA 2: 50/50 VERÄ° VE GRAFÄ°K SEÃ‡Ä°MÄ° â•â•â•â•â•â•â•â•â•â• -->
-<div id="step2-config" class="wizard-screen hidden">
-  <header class="s2-header">
-    <div class="s2-header-left">
-      <span class="s2-file-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> <span id="s2FileName">veri.xlsx</span></span>
-      
-      <!-- HIZLI VERÄ° ARAÃ‡LARI (DATA TOOLBAR) -->
-      <div class="s2-quick-tools">
-        <button type="button" class="btn-quick-data-tool" id="btnOpenDataPrepModalS2" title="Eksik deÄŸerleri ve sÃ¶zel bozulmalarÄ± tespit et ve onar">
-          ğŸ©º Veri &amp; Tip Onarma <span id="s2AnomalyBadge" class="hidden" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:800; margin-left:4px;">0</span>
-        </button>
-        <button type="button" class="btn-quick-data-tool btn-tool-merge" id="btnOpenMergeModalS2" title="2. bir Excel/CSV dosyasÄ± yÃ¼kleyip tablolarÄ± birleÅŸtirin">
-          ğŸ”— 2. DosyayÄ± BirleÅŸtir (Join)
-        </button>
-        <button type="button" class="btn-quick-data-tool" id="btnOpenCalcModalS2" title="SÃ¼tunlar arasÄ± formÃ¼l ve yeni sÃ¼tun Ã¼ret">
-          ğŸ§® FormÃ¼l SihirbazÄ±
-        </button>
-        <button type="button" class="btn-quick-data-tool" id="btnQuickExportParquet" title="Aktif veriyi sÄ±kÄ±ÅŸtÄ±rÄ±lmÄ±ÅŸ Apache Parquet formatÄ±nda indir" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 600;">
-          âš¡ Parquet Ä°ndir
-        </button>
-      </div>
-    </div>
-
-    <!-- Ortada StÃ¼dyo GeÃ§iÅŸ ButonlarÄ± -->
-    <div class="studio-mode-switcher">
-      <button type="button" class="sms-btn active" id="btnModeChartsS2">ğŸ“Š 50 Grafik StÃ¼dyosu</button>
-    </div>
-
-    <div class="wizard-steps">
-      <div class="wizard-step done"><div class="ws-num">âœ“</div><span>YÃ¼kle</span></div>
-      <div class="wizard-arrow">â€º</div>
-      <div class="wizard-step active"><div class="ws-num">2</div><span>SeÃ§im</span></div>
-      <div class="wizard-arrow">â€º</div>
-      <div class="wizard-step"><div class="ws-num">3</div><span>GÃ¶rÃ¼nÃ¼m</span></div>
-    </div>
-    <div class="s2-header-right">
-      <button class="btn-ghost" id="btnCancelStep2">Ä°ptal</button>
-    </div>
-  </header>
-
-  <!-- Ã‡OKLU EXCEL SAYFALARI (MULTI-SHEET) BARI -->
-  <div id="sheetTabsBar" class="sheet-tabs-bar hidden">
-    <span class="stb-label">ğŸ“‘ Ã‡alÄ±ÅŸma SayfasÄ±:</span>
-    <div id="sheetTabsList" class="sheet-tabs-list"></div>
-  </div>
-
-  <!-- CANLI FÄ°LTRELEME BARI (HER EKRANDA KULLANILABÄ°LÄ°R) -->
-  <div class="global-filter-bar" id="s2FilterBar">
-    <div class="gfb-left">
-      <span class="gfb-title">ğŸ” Aktif Dilimleyiciler:</span>
-      <div id="s2ActiveFiltersList" class="active-filters-chips">
-        <span class="no-filter-hint">Filtre uygulanmadÄ± (TÃ¼m veri aktif)</span>
-      </div>
-    </div>
-    <button type="button" class="btn-add-filter" id="btnOpenFilterModalS2">+ Filtre Ekle</button>
-  </div>
-
-  <div class="s2-body-split">
-    <!-- SOL YARI (%50) -->
-    <div class="s2-pane s2-left-pane">
-      <div class="pane-header">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <h3>1. Eksenleri SÃ¼rÃ¼kle BÄ±rak YapÄ±n</h3>
-            <p>AÅŸaÄŸÄ±daki havuzdan sÃ¼tunlarÄ± tutup saÄŸdaki kutulara sÃ¼rÃ¼kleyin.</p>
-          </div>
-
-        </div>
-      </div>
-      
-      <!-- Veri Havuzu -->
-      <div class="s2-pool-container">
-        <div class="pool-header-row">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <h4>Veri Havuzu</h4>
-            <span id="poolCountBadge" class="pool-total-badge">0 SÃ¼tun</span>
-          </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" class="btn-calc-col" id="btnOpenDataPrepModalPool" title="Eksik Verileri ve SÃ¶zel HatalarÄ± Onar" style="color:var(--cyan); border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.1);">ğŸ©º Onar / NaN <span id="poolAnomalyBadge" class="hidden" style="background:#ef4444; color:#fff; font-size:0.65rem; padding:1px 5px; border-radius:10px; font-weight:800; margin-left:2px;">0</span></button>
-            <button type="button" class="btn-calc-col" id="btnOpenMergeModal" style="color:var(--green); border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.1);">ğŸ”— 2. DosyayÄ± BirleÅŸtir</button>
-            <button type="button" class="btn-calc-col" id="btnOpenCalcModal">ğŸ§® + FormÃ¼l</button>
-          </div>
-        </div>
-
-        <!-- Havuz Arama ve Filtreleme BarÄ± -->
-        <div class="pool-controls-row">
-          <div class="pool-search-box">
-            <input type="text" id="poolSearchInput" placeholder="ğŸ” SÃ¼tun ara (Ã¶rn: Åehir, Ciro, Tarih)...">
-          </div>
-          <div class="pool-filter-chips" id="poolFilterChips">
-            <button type="button" class="pfc-btn active" data-pfilter="all">TÃ¼mÃ¼ (<span id="pfcAllCount">0</span>)</button>
-            <button type="button" class="pfc-btn" data-pfilter="cat">T Metin (<span id="pfcCatCount">0</span>)</button>
-            <button type="button" class="pfc-btn" data-pfilter="num"># SayÄ±sal (<span id="pfcNumCount">0</span>)</button>
-            <button type="button" class="pfc-btn hidden" data-pfilter="joined" id="pfcJoinedBtn">ğŸ”— 2. Dosya (<span id="pfcJoinedCount">0</span>)</button>
-          </div>
-        </div>
-
-        <div id="colPool" class="col-pool-structured">
-          <!-- JS Pills injected here by groups -->
-        </div>
-      </div>
-
-      <!-- Drop Zones -->
-      <div class="s2-zones-container">
-        <div class="dd-zone-wrapper">
-          <h4>X Ekseni <span class="zone-hint">ğŸ“Œ Kategori / Zaman: Åehir, Tarih, ÃœrÃ¼n, MÃ¼ÅŸteri vb.</span></h4>
-          <div id="xZone" class="dd-zone" data-max="1">SÃ¼tunu Buraya BÄ±rakÄ±n</div>
-        </div>
-        <div class="dd-zone-wrapper">
-          <h4>Y Ekseni <span class="zone-hint">ğŸ“Š SayÄ±sal DeÄŸerler: Ciro, KÃ¢r, Adet, Puan vb.</span></h4>
-          <div id="yZone" class="dd-zone" data-max="10">SÃ¼tunlarÄ± Buraya BÄ±rakÄ±n</div>
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-top:20px;">
-        <label>Hesaplama TÃ¼rÃ¼ (Grup BazlÄ± Grafikler Ä°Ã§in)</label>
-        <select id="s2AggFunc">
-          <option value="sum">Toplam (Sum)</option>
-          <option value="mean">Ortalama (Mean)</option>
-          <option value="median">Medyan (Median)</option>
-          <option value="count">Adet (Count)</option>
-          <option value="min">Minimum</option>
-          <option value="max">Maksimum</option>
-        </select>
-      </div>
-      <div id="axisWarning" class="axis-warning hidden"></div>
-    </div>
-
-    <div class="resizer" id="s2-resizer"></div>
-
-    <!-- SAÄ YARI (%50) -->
-    <div class="s2-pane s2-right-pane">
-      <div class="pane-header" style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <h3>2. Grafik SeÃ§in (50 TÃ¼r)</h3>
-          <p>Eksenlerinize en uygun olanlar parlatÄ±lmÄ±ÅŸtÄ±r.</p>
-        </div>
-        <div class="chart-filters" id="chartFilters">
-          <button data-filter="all" class="active">TÃ¼mÃ¼</button>
-          <button data-filter="trend">Trend</button>
-          <button data-filter="comp">KÄ±yas</button>
-          <button data-filter="dist">DaÄŸÄ±lÄ±m</button>
-          <button data-filter="rel">Ä°liÅŸki</button>
-          <button data-filter="part">BÃ¼tÃ¼n</button>
-          <button data-filter="sci">3D/Matris</button>
-        </div>
-      </div>
-      <div class="s2-chart-grid" id="s2ChartGrid">
-        <!-- 50 Chart cards injected by JS -->
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- â•â•â•â•â•â•â•â•â•â• AÅAMA 3: DASHBOARD / DÃœZENLEME â•â•â•â•â•â•â•â•â•â• -->
-<div id="step3-dashboard" class="wizard-screen hidden">
-  
-  <header class="topbar">
-    <div class="topbar-left">
-      <button class="btn-ghost" id="btnBackToStep2" title="Eksen SeÃ§imine Geri DÃ¶n" style="margin-right:12px;">â† Geri</button>
-      <a href="/" class="topbar-logo">â¬¡ <span>DataViz V6</span></a>
-    </div>
-
-    <!-- Ortada StÃ¼dyo GeÃ§iÅŸ ButonlarÄ± -->
-    <div class="studio-mode-switcher">
-      <button type="button" class="sms-btn active" id="btnModeChartsS3">ğŸ“Š 50 Grafik StÃ¼dyosu</button>
-    </div>
-
-    <div class="wizard-steps">
-      <div class="wizard-step done"><div class="ws-num">âœ“</div><span>YÃ¼kle</span></div>
-      <div class="wizard-arrow">â€º</div>
-      <div class="wizard-step done"><div class="ws-num">âœ“</div><span>SeÃ§im</span></div>
-      <div class="wizard-arrow">â€º</div>
-      <div class="wizard-step active"><div class="ws-num">3</div><span>Grafik & Pano</span></div>
-    </div>
-
-    <div class="topbar-right">
-      <!-- VERÄ° Ä°ÅLEMLERÄ° BUTONLARI -->
-      <button type="button" class="btn-topbar-action" id="btnOpenDataPrepModalS3" title="Eksik deÄŸerleri ve sÃ¶zel bozulmalarÄ± incele ve temizle">
-        ğŸ©º Veri &amp; Tip Onarma <span id="s3AnomalyBadge" class="hidden" style="background:#ef4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:10px; font-weight:800; margin-left:4px;">0</span>
-      </button>
-      <button type="button" class="btn-topbar-action" id="btnOpenMergeModalS3" title="2. bir dosya birleÅŸtirin">
-        ğŸ”— 2. Dosya BirleÅŸtir
-      </button>
-
-      <!-- PANOYA EKLEME BUTONU -->
-      <button class="btn-pin" id="btnPinToDashboard" title="Bu grafiÄŸi Ã‡oklu GÃ¶sterge Panosuna ekle">
-        <span>ğŸ“Œ</span> Panoya Ekle
-      </button>
-      <button class="btn-ghost" id="btnNewFile" style="margin-right:12px;">Yeni Dosya</button>
-      <button class="topbar-icon-btn" id="topbarHelp" title="KÄ±sayollar (?)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
-    </div>
-  </header>
-
-  <!-- CANLI FÄ°LTRELEME BARI (ADIM 3) -->
-  <div class="global-filter-bar" id="s3FilterBar">
-    <div class="gfb-left">
-      <span class="gfb-title">ğŸ” Dilimleyiciler:</span>
-      <div id="s3ActiveFiltersList" class="active-filters-chips">
-        <span class="no-filter-hint">Filtre uygulanmadÄ± (TÃ¼m veri aktif)</span>
-      </div>
-    </div>
-    <button type="button" class="btn-add-filter" id="btnOpenFilterModalS3">+ Filtre Ekle</button>
-  </div>
-
-  <div class="app-body">
-    
-    <!-- MAIN AREA -->
-    <main class="main-area">
-      <div class="tab-bar" id="mainTabsBar">
-        <button class="tab-btn active" data-tab="chart">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 12v5M12 7v10M17 10v7"/></svg>
-          <span id="currentChartTypeName">Grafik</span>
-        </button>
-        <button class="tab-btn" data-tab="stats">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          Ä°statistik & Analiz
-        </button>
-
-        <!-- Ã‡OKLU PANO (DASHBOARD) SEKME -->
-        <button class="tab-btn tab-btn-dashboard" data-tab="dashboard" style="color:var(--orange);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Ã‡oklu Pano <span id="dashBadgeCount" class="dash-count-badge">0</span>
-        </button>
-      </div>
-
-
-      <!-- GRAFÄ°K SEKME Ä°Ã‡ERÄ°ÄÄ° -->
-      <div class="tab-pane active" id="tabChart">
-        
-        <div class="chart-wrapper" id="chartAreaContainer" style="position: relative;">
-          <!-- CanlÄ± Ä°statistik ve Regresyon Rozeti (Overlay) -->
-          <div id="chartStatsBadge" class="hidden" style="position: absolute; top: 14px; right: 18px; z-index: 20; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 7px 12px; font-size: 0.8rem; color: #f8fafc; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 10px;">
-            <span id="csbEquation" style="color: #fbbf24; font-family: monospace; font-weight: 600;">y = mx + c</span>
-            <span style="color: rgba(255,255,255,0.2);">|</span>
-            <span>RÂ² = <strong id="csbR2" style="color: #34d399;">-</strong></span>
-            <span style="color: rgba(255,255,255,0.2);">|</span>
-            <span><span id="csbCorrName">r</span> = <strong id="csbCorr" style="color: #60a5fa;">-</strong></span>
-          </div>
-
-          <div id="chartArea" style="width:100%; height:100%;"></div>
-        </div>
-      </div>
-
-      <!-- Ä°STATÄ°STÄ°K & AI SEKME Ä°Ã‡ERÄ°ÄÄ° -->
-      <div class="tab-pane hidden" id="tabStats" style="overflow-y: auto; padding: 24px;">
-        <div class="premium-stats-pane" style="display: flex; flex-direction: column; gap: 24px; min-height: 100%;">
-          <div class="p-stats-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="p-stats-title">
-              <h2 style="font-size: 1.6rem; font-weight: 800;">Ä°statistik Analizi & Yapay Zeka Ã–zeti</h2>
-              <p style="color: var(--muted); margin-top: 4px;">SeÃ§ilen eksenlerdeki veri daÄŸÄ±lÄ±mlarÄ± ve AI destekli akademik yorumlar.</p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <button id="refreshStatsBtn" class="btn-premium secondary" style="padding: 8px 16px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
-                Yenile
-              </button>
-            </div>
-          </div>
-
-          <!-- HÄ±zlÄ± KPI Åeridi (Genel) -->
-          <div id="chartKpiStrip" class="dashboard-kpis"></div>
-
-          <!-- Ana Grid AlanÄ± -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-            
-            <!-- AI Box (Sol Taraf veya Ãœst) -->
-            <div class="ai-pane-grid-item" style="grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
-              <div class="ai-hero" style="text-align: left;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                  <div class="ai-icon" style="font-size: 2rem; margin: 0; filter: drop-shadow(0 4px 10px rgba(244,114,182,0.3));">ğŸ§ </div>
-                  <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--pink);">Akademik Ä°statistiksel YorumlayÄ±cÄ±</h3>
-                </div>
-                <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">Ä°leri dÃ¼zey varyans ve daÄŸÄ±lÄ±m testleri Ã¼zerinden profesyonel bir veri analisti yorumu alÄ±n.</p>
-                <button id="btnGenerateInsight" class="btn-primary" style="margin-top: 16px; width: 100%; max-width: 250px;">Veriyi Yorumla</button>
-              </div>
-
-              <div id="aiResponseContainer" class="ai-response-container hidden" style="margin: 0; max-width: 100%; box-shadow: none; border-color: rgba(244,114,182,0.2); background: rgba(0,0,0,0.2);">
-                <div class="ai-response-header" style="padding: 12px 16px;">
-                  <h4 style="font-size: 0.95rem; margin: 0; color: var(--pink);">SonuÃ§</h4>
-                </div>
-                <div id="aiResponseContent" class="ai-response-content" style="padding: 16px; font-size: 0.9rem;"></div>
-              </div>
-            </div>
-
-            <!-- Stats Grid -->
-            <div id="statsGrid" class="bento-stats-grid" style="display: contents;">
-               <!-- JS tarafÄ±ndan Doldurulacak -->
-               <div class="bento-loading" style="grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center; color: var(--muted);">Analiz yÃ¼kleniyor... LÃ¼tfen grafiÄŸi Ã§izin.</div>
-            </div>
-            
-          </div>
-        </div>
-      </div>
-
-      <!-- Ã‡OKLU PANO (DASHBOARD CANVAS) Ä°Ã‡ERÄ°ÄÄ° -->
-      <div class="tab-pane hidden" id="tabDashboard">
-        <div class="dashboard-canvas-pane">
-          <div class="dash-canvas-header">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      DataViz — Kurumsal BI, İstatistik & Veri Birleştirme Platformu
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- PDF Çıktısı İçin html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/analysis.css') }}?v=20260922_master_ui5"
+    />
+  </head>
+  <body>
+    <!-- ══════════ DATA PREP (VERİ SAĞLIĞI, TİP ONARIMI & NAN TEMİZLEME) MODALI ══════════ -->
+    <div id="dataPrepModal" class="modal-overlay hidden">
+      <div
+        class="modal-content filter-modal-content"
+        style="
+          max-width: 900px;
+          max-height: 88vh;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <div class="modal-header-row" style="margin-bottom: 12px">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span style="font-size: 1.5rem">🩺</span>
             <div>
-              <h2>ğŸ›ï¸ Ã–zel GÃ¶sterge Panosu (Executive Dashboard)</h2>
-              <p>EklediÄŸiniz tÃ¼m grafikleri ve Ã¼st dÃ¼zey KPI Ã¶zetlerini tek bir Ã§alÄ±ÅŸma alanÄ±nda yÃ¶netin.</p>
+              <h3 style="margin: 0; font-size: 1.15rem">
+                Veri Sağlığı &amp; Akıllı Tip Onarıcı
+              </h3>
+              <p
+                style="
+                  margin: 2px 0 0 0;
+                  font-size: 0.78rem;
+                  color: var(--muted);
+                "
+              >
+                Sayısal alanlara girilen sözel değerleri, para/yüzde eklerini
+                ayıklayın ve eksik verileri onarın.
+              </p>
             </div>
-            <div class="dash-canvas-actions">
-              <button class="btn-ghost" id="btnClearDashboard" title="Panodaki tÃ¼m grafikleri temizle">ğŸ§¹ Panoyu Temizle</button>
-              <button class="btn-download" id="downloadDashboardPdfBtn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                TÃ¼m Panoyu PDF Ä°ndir
+          </div>
+          <button class="modal-close-btn" id="btnCloseDataPrepModal">×</button>
+        </div>
+
+        <!-- MODAL SEKMELERİ -->
+        <div
+          class="dp-tabs"
+          style="
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+          "
+        >
+          <button
+            type="button"
+            class="dp-tab-btn active"
+            id="dpTabBtnAnomalies"
+            data-dptab="anomalies"
+            style="
+              background: rgba(167, 139, 250, 0.15);
+              color: var(--purple);
+              border: 1px solid rgba(167, 139, 250, 0.3);
+              border-radius: 8px;
+              padding: 6px 14px;
+              font-size: 0.82rem;
+              font-weight: 700;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            "
+          >
+            <span>🧩 Sözel / Tip Uyuşmazlığı</span>
+            <span
+              id="dpAnomalyTabCount"
+              class="hidden"
+              style="
+                background: #ef4444;
+                color: #fff;
+                font-size: 0.68rem;
+                padding: 1px 6px;
+                border-radius: 10px;
+              "
+              >0</span
+            >
+          </button>
+          <button
+            type="button"
+            class="dp-tab-btn"
+            id="dpTabBtnNans"
+            data-dptab="nans"
+            style="
+              background: transparent;
+              color: var(--muted);
+              border: 1px solid transparent;
+              border-radius: 8px;
+              padding: 6px 14px;
+              font-size: 0.82rem;
+              font-weight: 700;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            "
+          >
+            <span>🩺 Eksik Değer (NaN)</span>
+            <span
+              id="dpNanTabCount"
+              class="hidden"
+              style="
+                background: var(--orange);
+                color: #fff;
+                font-size: 0.68rem;
+                padding: 1px 6px;
+                border-radius: 10px;
+              "
+              >0</span
+            >
+          </button>
+        </div>
+
+        <!-- SEKME 1: SÖZEL / ALAKASIZ DEĞER ONARIMI -->
+        <div
+          id="dpPaneAnomalies"
+          class="dp-pane"
+          style="overflow-y: auto; flex: 1; padding-right: 4px"
+        >
+          <div id="dpAnomalyHeaderBanner" style="margin-bottom: 12px"></div>
+
+          <!-- Toplu Onarım Buton Barı -->
+          <div
+            id="dpBatchActionBar"
+            class="hidden"
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background: rgba(251, 191, 36, 0.08);
+              border: 1px solid rgba(251, 191, 36, 0.25);
+              border-radius: 8px;
+              padding: 10px 14px;
+              margin-bottom: 14px;
+            "
+          >
+            <div>
+              <strong style="color: #fbbf24; font-size: 0.85rem"
+                >⚡ Hızlı Toplu Çözüm:</strong
+              >
+              <p
+                style="
+                  margin: 2px 0 0 0;
+                  font-size: 0.75rem;
+                  color: var(--muted);
+                "
+              >
+                Tespit edilen tüm sütunlardaki sözel ekleri ayıklar ve sayısal
+                tipe dönüştürür.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn-primary"
+              id="btnHealAllColumns"
+              style="
+                width: auto;
+                padding: 8px 14px;
+                font-size: 0.82rem;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                border: none;
+                white-space: nowrap;
+              "
+            >
+              🪄 Tümünü Akıllı Onar
+            </button>
+          </div>
+
+          <!-- Sütun Anomali Kartları Listesi -->
+          <div
+            id="dpAnomalyCardsList"
+            style="display: flex; flex-direction: column; gap: 10px"
+          >
+            <div
+              style="
+                color: var(--muted);
+                text-align: center;
+                padding: 20px;
+                font-size: 0.85rem;
+              "
+            >
+              Sütunlar taranıyor...
+            </div>
+          </div>
+        </div>
+
+        <!-- SEKME 2: BOŞ DEĞER (NAN) TEMİZLEME -->
+        <div
+          id="dpPaneNans"
+          class="dp-pane hidden"
+          style="overflow-y: auto; flex: 1"
+        >
+          <p id="dpMessage" class="filter-hint" style="margin-top: 0">
+            Veri setinizdeki boş satırlar ve eksik hücreler:
+          </p>
+
+          <div
+            class="dp-stats-grid"
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 10px;
+              margin: 14px 0;
+            "
+          >
+            <div
+              style="
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px;
+                text-align: center;
+              "
+            >
+              <div style="font-size: 0.75rem; color: var(--muted)">
+                Toplam Satır
+              </div>
+              <div
+                id="dpTotalRows"
+                style="
+                  font-size: 1.3rem;
+                  font-weight: 700;
+                  color: var(--text);
+                  margin-top: 4px;
+                "
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px;
+                text-align: center;
+              "
+            >
+              <div style="font-size: 0.75rem; color: var(--muted)">
+                Boş Hücre (Hücre Bazlı)
+              </div>
+              <div
+                id="dpMissingCells"
+                style="
+                  font-size: 1.3rem;
+                  font-weight: 700;
+                  color: var(--cyan);
+                  margin-top: 4px;
+                "
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px;
+                text-align: center;
+              "
+            >
+              <div style="font-size: 0.75rem; color: var(--muted)">
+                Eksik Satır Sayısı
+              </div>
+              <div
+                id="dpMissingRows"
+                style="
+                  font-size: 1.3rem;
+                  font-weight: 700;
+                  color: var(--orange);
+                  margin-top: 4px;
+                "
+              >
+                0
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+              margin-top: 14px;
+            "
+          >
+            <div
+              style="
+                font-size: 0.8rem;
+                font-weight: 700;
+                color: var(--text);
+                margin-bottom: 4px;
+              "
+            >
+              Tüm Boş (NaN) Değerleri Doldur veya Sil:
+            </div>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 8px;
+              "
+            >
+              <button
+                class="btn-primary"
+                id="dpDropBtn"
+                style="
+                  background: #ef4444;
+                  border-color: #ef4444;
+                  font-size: 0.82rem;
+                  padding: 10px;
+                "
+              >
+                🗑️ Boş Satırları Sil
+              </button>
+              <button
+                class="btn-secondary"
+                id="dpFillBtn"
+                style="font-size: 0.82rem; padding: 10px"
+              >
+                📈ˆ Ortalamayla Doldur
+              </button>
+              <button
+                class="btn-secondary"
+                id="dpFillZeroBtn"
+                style="font-size: 0.82rem; padding: 10px"
+              >
+                0️⃣ Sıfır (0) ile Doldur
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL ALTI BUTONLAR -->
+        <div
+          class="modal-actions"
+          style="
+            margin-top: 14px;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+          "
+        >
+          <button class="btn-ghost" id="dpSkipBtn" style="min-width: 120px">
+            Kapat
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ AKILLI VERİ BİRLEŞTİRİCİ (DATA MERGE & JOIN) MODALI ══════════ -->
+    <div id="dataMergeModal" class="modal-overlay hidden">
+      <div class="modal-content filter-modal-content" style="max-width: 620px">
+        <div class="modal-header-row">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-size: 1.4rem">🔗</span>
+            <h3>Akıllı Veri Birleştirici (Data Merge &amp; Join)</h3>
+          </div>
+          <button class="modal-close-btn" id="btnCloseMergeModal">×</button>
+        </div>
+        <p class="filter-hint">
+          2. bir Parquet, Excel veya CSV dosyası seçerek ortak bir sütun
+          üzerinden iki tabloyu yan yana birleştirin:
+        </p>
+
+        <!-- 2. Dosya Yükleme Alanı -->
+        <div class="merge-drop-zone" id="mergeDropZone">
+          <input
+            type="file"
+            id="mergeFileInput"
+            accept=".xlsx,.xls,.csv,.parquet"
+            style="display: none"
+          />
+          <div style="font-size: 2rem; margin-bottom: 6px">📁</div>
+          <div style="font-weight: 700; font-size: 0.95rem">
+            2. Dosyayı Buraya Sürükleyin (.parquet, .xlsx, .csv)
+          </div>
+          <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px">
+            veya
+            <label for="mergeFileInput" class="gdz-link"
+              >bilgisayardan seçin</label
+            >
+          </div>
+        </div>
+        <div
+          id="mergeFileStatus"
+          class="status-msg"
+          style="margin-top: 10px; font-size: 0.85rem; display: none"
+        ></div>
+
+        <!-- Birleştirme Konfigürasyon Alanı -->
+        <div
+          id="mergeConfigArea"
+          class="hidden"
+          style="
+            margin-top: 16px;
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--r-lg);
+            border: 1px solid var(--border);
+          "
+        >
+          <div
+            style="
+              font-weight: 800;
+              font-size: 0.85rem;
+              color: var(--purple);
+              margin-bottom: 12px;
+            "
+          >
+            🔗 Ortak Bağlantı Sütunları (Eşleşme)
+          </div>
+
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr auto 1fr;
+              gap: 10px;
+              align-items: center;
+            "
+          >
+            <div class="form-group">
+              <label style="font-size: 0.75rem">1. Tablo Sütunu</label>
+              <select id="mergeKey1Select"></select>
+            </div>
+            <div
+              style="
+                color: var(--purple);
+                font-weight: 900;
+                font-size: 1.2rem;
+                padding-top: 16px;
+              "
+            >
+              =
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.75rem">2. Tablo Sütunu</label>
+              <select id="mergeKey2Select"></select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px">
+            <label style="font-size: 0.75rem">Birleştirme Yöntemi</label>
+            <select id="mergeJoinType">
+              <option value="left" selected>
+                Sol Birleşim (Left Join - 1. Tabloyu Esas Al)
+              </option>
+              <option value="inner">
+                Kesişim (Inner Join - Sadece Eşleşenleri Al)
+              </option>
+              <option value="outer">
+                Tam Birleşim (Outer Join - Tüm Satırları Koru)
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          class="modal-actions"
+          style="margin-top: 20px; flex-direction: row"
+        >
+          <button class="btn-ghost" id="btnCancelMerge" style="flex: 1">
+            İptal
+          </button>
+          <button
+            class="btn-primary"
+            id="btnExecuteMerge"
+            style="flex: 1"
+            disabled
+          >
+            ⚡ Dosyaları Birleştir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ FORMÜL / HESAPLANMIŞ SÜTUN MODALI ══════════ -->
+    <div id="calcColModal" class="modal-overlay hidden">
+      <div class="modal-content premium-modal-content" style="max-width: 550px">
+        <div class="modal-header-row premium-header">
+          <div class="modal-title-group">
+            <div class="modal-icon-glass">🧠®</div>
+            <div>
+              <h3>Formül & Yeni Sütun Üretici</h3>
+              <p class="modal-subtitle">
+                Mevcut sayısal sütunları kullanarak tek tıkla yeni bir veri
+                sütunu türetin.
+              </p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="btnCloseCalcColModal">×</button>
+        </div>
+
+        <div class="premium-form-body">
+          <div class="form-group glass-input-group">
+            <label>Üretilecek Yeni Sütun Adı</label>
+            <input
+              type="text"
+              id="calcNewColName"
+              class="glass-input"
+              placeholder="Örn: Net Kar, KDV Dahil Tutar, Kar Marjı"
+            />
+          </div>
+
+          <div class="calc-builder-box">
+            <div class="form-group">
+              <label>1. Sayısal Sütun</label>
+              <select id="calcCol1Select" class="glass-select"></select>
+            </div>
+
+            <div class="calc-operator-selector">
+              <label style="text-align: center; width: 100%">İşlem</label>
+              <div class="calc-op-btns glass-ops">
+                <button
+                  type="button"
+                  class="calc-op-btn op-btn glass-op active"
+                  data-op="+"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  class="calc-op-btn op-btn glass-op"
+                  data-op="-"
+                >
+                  -
+                </button>
+                <button
+                  type="button"
+                  class="calc-op-btn op-btn glass-op"
+                  data-op="*"
+                >
+                  ×
+                </button>
+                <button
+                  type="button"
+                  class="calc-op-btn op-btn glass-op"
+                  data-op="/"
+                >
+                  ÷
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>2. Değişken (Sütun veya Sayı)</label>
+              <div class="calc-variable-inputs">
+                <div id="calcCol2Box" style="flex: 1; width: 100%">
+                  <select
+                    id="calcCol2Select"
+                    class="glass-select"
+                    style="width: 100%"
+                  ></select>
+                </div>
+                <div
+                  id="calcScalarBox"
+                  class="hidden"
+                  style="flex: 1; width: 100%"
+                >
+                  <input
+                    type="number"
+                    id="calcScalarInput"
+                    class="glass-input"
+                    placeholder="Sabit (Örn: 1.20)"
+                    step="any"
+                    style="width: 100%"
+                  />
+                </div>
+              </div>
+              <div class="calc-checkbox-wrap">
+                <label class="glass-checkbox-label">
+                  <input type="checkbox" id="calcUseScalar" />
+                  <span class="custom-checkbox"></span>
+                  Sabit bir katsayı kullan
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions premium-modal-actions">
+          <button class="btn-ghost-glass" id="btnCancelCalcCol">İptal</button>
+          <button class="btn-primary-glass" id="btnApplyCalcCol">
+            ✨ Sütunu Üret
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ AKILLI FİLTRELEME (SLICER) MODALI ══════════ -->
+    <div id="filterModal" class="modal-overlay hidden">
+      <div class="modal-content filter-modal-content">
+        <div class="modal-header-row">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-size: 1.4rem">🔍</span>
+            <h3>Veri Dilimleyici (Filtre Ekle)</h3>
+          </div>
+          <button class="modal-close-btn" id="btnCloseFilterModal">×</button>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px">
+          <label>Filtrelenecek Sütunu Seçin</label>
+          <select id="filterColumnSelect">
+            <option value="" disabled selected>Bir sütun seçin...</option>
+          </select>
+        </div>
+
+        <!-- Dinamik Filtre İçerik Alanı -->
+        <div id="filterDynamicContainer" class="filter-dynamic-area hidden">
+          <!-- Kategorik Arama & Seçim -->
+          <div id="catFilterArea" class="hidden">
+            <div class="filter-search-row">
+              <input
+                type="text"
+                id="catSearchInput"
+                placeholder="Kategori ara..."
+                class="filter-search-input"
+              />
+              <div class="filter-quick-actions">
+                <button type="button" id="btnSelectAllCat" class="btn-link">
+                  Tümü
+                </button>
+                <button type="button" id="btnClearAllCat" class="btn-link">
+                  Temizle
+                </button>
+              </div>
+            </div>
+            <div id="catCheckboxesList" class="cat-checkboxes-list"></div>
+          </div>
+
+          <!-- Sayısal Aralık Seçimi -->
+          <div id="numFilterArea" class="hidden">
+            <p class="filter-hint">
+              Gösterilecek değerlerin Büyüktür / Küçüktür sınırlarını girin:
+            </p>
+            <div class="num-range-inputs">
+              <div>
+                <label>> Büyüktür (Min)</label>
+                <input
+                  type="number"
+                  id="numFilterMin"
+                  step="any"
+                  placeholder="Alt Sınır"
+                />
+              </div>
+              <span
+                style="
+                  align-self: flex-end;
+                  padding-bottom: 10px;
+                  color: var(--muted);
+                "
+                >-</span
+              >
+              <div>
+                <label>&lt; Küçüktür (Max)</label>
+                <input
+                  type="number"
+                  id="numFilterMax"
+                  step="any"
+                  placeholder="Üst Sınır"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="modal-actions"
+          style="margin-top: 20px; flex-direction: row"
+        >
+          <button class="btn-ghost" id="btnCancelFilter" style="flex: 1">
+            İptal
+          </button>
+          <button class="btn-primary" id="btnApplyFilter" style="flex: 1">
+            Filtreyi Uygula
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ AŞAMA 1: DOSYA YÜKLEME ══════════ -->
+    <!-- ══════════ AŞAMA 1: DOSYA YÜKLEME (PREMIUM) ══════════ -->
+    <div id="step1-upload" class="wizard-screen active">
+      <div class="hero-glow glow-1"></div>
+      <div class="hero-glow glow-2"></div>
+
+      <div class="s1-container">
+        <div class="s1-header-text">
+          <a href="/" class="s1-logo"
+            ><span class="logo-icon">⬡</span> DataViz <em>Research</em></a
+          >
+          <h1 class="s1-title">Verinizi Bilgiye Dönüştürün.</h1>
+          <p class="s1-subtitle">
+            Excel, CSV veya Parquet dosyanızı yükleyin; SciPy motoru saniyeler
+            içinde istatistiksel analizlerinizi ve interaktif panolarınızı
+            hazırlasın.
+          </p>
+        </div>
+
+        <div class="upload-glass-panel">
+          <!-- Status Box (Hidden by default) -->
+          <div id="mainUploadStatus" class="status-msg hidden"></div>
+
+          <input
+            type="file"
+            id="mainFileInput"
+            accept=".xlsx,.xls,.csv,.parquet"
+            style="display: none"
+          />
+
+          <div class="academic-dropzone" id="mainDropZone" tabindex="0">
+            <div class="dz-icon-circle">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+
+            <h3>Dosyanızı Sürükleyip Bırakın</h3>
+            <p class="dz-text">
+              veya bilgisayarınızdan seçmek için
+              <span class="dz-browse-text">tıklayın</span>
+            </p>
+
+            <div class="dz-format-tags">
+              <span class="fmt-tag">.XLSX</span>
+              <span class="fmt-tag">.CSV</span>
+              <span class="fmt-tag highlight">.PARQUET (Önerilen)</span>
+            </div>
+          </div>
+
+          <div class="upload-actions">
+            <button type="button" class="btn-hero-primary" id="btnBrowseFile">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Dosya Seçin
+            </button>
+            <button type="button" class="btn-hero-ghost" id="btnLoadSampleData">
+              🧠ª Örnek Veri ile Başla
+            </button>
+          </div>
+        </div>
+
+        <div class="security-footer">
+          <div class="sec-item">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            %100 Yerel İşlem (Bulutsuz)
+          </div>
+          <div class="sec-item">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            Veriler Asla Dışarı Çıkmaz
+          </div>
+          <div class="sec-item">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            SciPy 1.11+ Destekli
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ══════════ AŞAMA 2: 50/50 VERİ VE GRAFİK SEÇİMİ ══════════ -->
+    <div id="step2-config" class="wizard-screen hidden">
+      <header class="s2-header">
+        <div class="s2-header-left">
+          <span class="s2-file-badge"
+            ><svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <span id="s2FileName">veri.xlsx</span></span
+          >
+
+          <!-- HIZLI VERİ ARAÇLARI (DATA TOOLBAR) -->
+          <div class="s2-quick-tools">
+            <button
+              type="button"
+              class="btn-quick-data-tool"
+              id="btnOpenDataPrepModalS2"
+              title="Eksik değerleri ve sözel bozulmaları tespit et ve onar"
+            >
+              🩺 Veri &amp; Tip Onarma
+              <span
+                id="s2AnomalyBadge"
+                class="hidden"
+                style="
+                  background: #ef4444;
+                  color: #fff;
+                  font-size: 0.68rem;
+                  padding: 1px 6px;
+                  border-radius: 10px;
+                  font-weight: 800;
+                  margin-left: 4px;
+                "
+                >0</span
+              >
+            </button>
+            <button
+              type="button"
+              class="btn-quick-data-tool btn-tool-merge"
+              id="btnOpenMergeModalS2"
+              title="2. bir Excel/CSV dosyası yükleyip tabloları birleştirin"
+            >
+              🔗 2. Dosyayı Birleştir (Join)
+            </button>
+            <button
+              type="button"
+              class="btn-quick-data-tool"
+              id="btnOpenCalcModalS2"
+              title="Sütunlar arası formül ve yeni sütun üret"
+            >
+              🧠® Formül Sihirbazı
+            </button>
+            <button
+              type="button"
+              class="btn-quick-data-tool"
+              id="btnQuickExportParquet"
+              title="Aktif veriyi sıkıştırılmış Apache Parquet formatında indir"
+              style="
+                background: rgba(16, 185, 129, 0.15);
+                border: 1px solid rgba(16, 185, 129, 0.4);
+                color: #34d399;
+                font-weight: 600;
+              "
+            >
+              ⚡ Parquet İndir
+            </button>
+          </div>
+        </div>
+
+        <!-- Ortada Stüdyo Geçiş Butonları -->
+        <div class="studio-mode-switcher">
+          <button type="button" class="sms-btn active" id="btnModeChartsS2">
+            📊 50 Grafik Stüdyosu
+          </button>
+        </div>
+
+        <div class="wizard-steps">
+          <div class="wizard-step done">
+            <div class="ws-num">✓</div>
+            <span>Yükle</span>
+          </div>
+          <div class="wizard-arrow">›</div>
+          <div class="wizard-step active">
+            <div class="ws-num">2</div>
+            <span>Seçim</span>
+          </div>
+          <div class="wizard-arrow">›</div>
+          <div class="wizard-step">
+            <div class="ws-num">3</div>
+            <span>Görünüm</span>
+          </div>
+        </div>
+        <div class="s2-header-right">
+          <button class="btn-ghost" id="btnCancelStep2">İptal</button>
+        </div>
+      </header>
+
+      <!-- ÇOKLU EXCEL SAYFALARI (MULTI-SHEET) BARI -->
+      <div id="sheetTabsBar" class="sheet-tabs-bar hidden">
+        <span class="stb-label">📈‘ Çalışma Sayfası:</span>
+        <div id="sheetTabsList" class="sheet-tabs-list"></div>
+      </div>
+
+      <!-- CANLI FİLTRELEME BARI (HER EKRANDA KULLANILABİLİR) -->
+      <div class="global-filter-bar" id="s2FilterBar">
+        <div class="gfb-left">
+          <span class="gfb-title">🔍 Aktif Dilimleyiciler:</span>
+          <div id="s2ActiveFiltersList" class="active-filters-chips">
+            <span class="no-filter-hint"
+              >Filtre uygulanmadı (Tüm veri aktif)</span
+            >
+          </div>
+        </div>
+        <button type="button" class="btn-add-filter" id="btnOpenFilterModalS2">
+          + Filtre Ekle
+        </button>
+      </div>
+
+      <div class="s2-body-split">
+        <!-- SOL YARI (%50) -->
+        <div class="s2-pane s2-left-pane">
+          <div class="pane-header">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+              "
+            >
+              <div>
+                <h3>1. Eksenleri Sürükle Bırak Yapın</h3>
+                <p>
+                  Aşağıdaki havuzdan sütunları tutup sağdaki kutulara
+                  sürükleyin.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Veri Havuzu -->
+          <div class="s2-pool-container">
+            <div class="pool-header-row">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <h4>Veri Havuzu</h4>
+                <span id="poolCountBadge" class="pool-total-badge"
+                  >0 Sütun</span
+                >
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                <button
+                  type="button"
+                  class="btn-calc-col"
+                  id="btnOpenDataPrepModalPool"
+                  title="Eksik Verileri ve Sözel Hataları Onar"
+                  style="
+                    color: var(--cyan);
+                    border-color: rgba(56, 189, 248, 0.4);
+                    background: rgba(56, 189, 248, 0.1);
+                  "
+                >
+                  🩺 Onar
+                  <span
+                    id="poolAnomalyBadge"
+                    class="hidden"
+                    style="
+                      background: #ef4444;
+                      color: #fff;
+                      font-size: 0.65rem;
+                      padding: 1px 5px;
+                      border-radius: 10px;
+                      font-weight: 800;
+                      margin-left: 2px;
+                    "
+                    >0</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  class="btn-calc-col"
+                  id="btnOpenMergeModal"
+                  style="
+                    color: var(--green);
+                    border-color: rgba(52, 211, 153, 0.4);
+                    background: rgba(52, 211, 153, 0.1);
+                  "
+                >
+                  🔗 2. Dosyayı Birleştir
+                </button>
+                <button
+                  type="button"
+                  class="btn-calc-col"
+                  id="btnOpenCalcModal"
+                >
+                  Formül
+                </button>
+              </div>
+            </div>
+
+            <!-- Havuz Arama ve Filtreleme Barı -->
+            <div class="pool-controls-row">
+              <div class="pool-search-box">
+                <input
+                  type="text"
+                  id="poolSearchInput"
+                  placeholder="🔍 Sütun ara (örn: Şehir, Ciro, Tarih)..."
+                />
+              </div>
+              <div class="pool-filter-chips" id="poolFilterChips">
+                <button type="button" class="pfc-btn active" data-pfilter="all">
+                  Tümü (<span id="pfcAllCount">0</span>)
+                </button>
+                <button type="button" class="pfc-btn" data-pfilter="cat">
+                  T Metin (<span id="pfcCatCount">0</span>)
+                </button>
+                <button type="button" class="pfc-btn" data-pfilter="num">
+                  # Sayısal (<span id="pfcNumCount">0</span>)
+                </button>
+                <button
+                  type="button"
+                  class="pfc-btn hidden"
+                  data-pfilter="joined"
+                  id="pfcJoinedBtn"
+                >
+                  🔗 2. Dosya (<span id="pfcJoinedCount">0</span>)
+                </button>
+              </div>
+            </div>
+
+            <div id="colPool" class="col-pool-structured">
+              <!-- JS Pills injected here by groups -->
+            </div>
+          </div>
+
+          <!-- Drop Zones -->
+          <div class="s2-zones-container">
+            <div class="dd-zone-wrapper">
+              <h4>
+                X Ekseni
+                <span class="zone-hint"
+                  >📌 Kategori / Zaman: Şehir, Tarih, Ürün, Müşteri vb.</span
+                >
+              </h4>
+              <div id="xZone" class="dd-zone" data-max="1">
+                Sütunu Buraya Bırakın
+              </div>
+            </div>
+            <div class="dd-zone-wrapper">
+              <h4>
+                Y Ekseni
+                <span class="zone-hint"
+                  >📊 Sayısal Değerler: Ciro, Kâr, Adet, Puan vb.</span
+                >
+              </h4>
+              <div id="yZone" class="dd-zone" data-max="10">
+                Sütunları Buraya Bırakın
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 20px">
+            <label>Hesaplama Türü (Grup Bazlı Grafikler İçin)</label>
+            <select id="s2AggFunc">
+              <option value="sum">Toplam (Sum)</option>
+              <option value="mean">Ortalama (Mean)</option>
+              <option value="median">Medyan (Median)</option>
+              <option value="count">Adet (Count)</option>
+              <option value="min">Minimum</option>
+              <option value="max">Maksimum</option>
+            </select>
+          </div>
+          <div id="axisWarning" class="axis-warning hidden"></div>
+        </div>
+
+        <div class="resizer" id="s2-resizer"></div>
+
+        <!-- SAĞ YARI (%50) -->
+        <div class="s2-pane s2-right-pane">
+          <div
+            class="pane-header"
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <div>
+              <h3>2. Grafik Seçin</h3>
+              <p>Eksenlerinize en uygun olanlar önerilmiştir.</p>
+            </div>
+            <div class="chart-filters" id="chartFilters">
+              <button data-filter="all" class="active">Tümü</button>
+              <button data-filter="trend">Trend</button>
+              <button data-filter="comp">Kıyas</button>
+              <button data-filter="dist">Dağılım</button>
+              <button data-filter="rel">İlişki</button>
+              <button data-filter="part">Bütün</button>
+              <button data-filter="sci">3D/Matris</button>
+            </div>
+          </div>
+          <div class="s2-chart-grid" id="s2ChartGrid">
+            <!-- 50 Chart cards injected by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ AŞAMA 3: DASHBOARD / DÜZENLEME ══════════ -->
+    <div id="step3-dashboard" class="wizard-screen hidden">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button
+            class="btn-ghost"
+            id="btnBackToStep2"
+            title="Eksen Seçimine Geri Dön"
+            style="margin-right: 12px"
+          >
+            ← Geri
+          </button>
+          <a href="/" class="topbar-logo">⬡ <span>DataViz</span></a>
+        </div>
+
+        <!-- Ortada Stüdyo Geçiş Butonları -->
+        <div class="studio-mode-switcher">
+          <button type="button" class="sms-btn active" id="btnModeChartsS3">
+            📊 Grafik Stüdyosu
+          </button>
+        </div>
+
+        <div class="wizard-steps">
+          <div class="wizard-step done">
+            <div class="ws-num">✓</div>
+            <span>Yükle</span>
+          </div>
+          <div class="wizard-arrow">›</div>
+          <div class="wizard-step done">
+            <div class="ws-num">✓</div>
+            <span>Seçim</span>
+          </div>
+          <div class="wizard-arrow">›</div>
+          <div class="wizard-step active">
+            <div class="ws-num">3</div>
+            <span>Grafik & Pano</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- VERİ İŞLEMLERİ BUTONLARI -->
+          <button
+            type="button"
+            class="btn-topbar-action"
+            id="btnOpenDataPrepModalS3"
+            title="Eksik değerleri ve sözel bozulmaları incele ve temizle"
+          >
+            Veri &amp; Tip Onarma
+            <span
+              id="s3AnomalyBadge"
+              class="hidden"
+              style="
+                background: #ef4444;
+                color: #fff;
+                font-size: 0.68rem;
+                padding: 1px 6px;
+                border-radius: 10px;
+                font-weight: 800;
+                margin-left: 4px;
+              "
+              >0</span
+            >
+          </button>
+          <button
+            type="button"
+            class="btn-topbar-action"
+            id="btnOpenMergeModalS3"
+            title="2. bir dosya birleştirin"
+          >
+            🔗 2. Dosya Birleştir
+          </button>
+
+          <!-- PANOYA EKLEME BUTONU -->
+          <button
+            class="btn-pin"
+            id="btnPinToDashboard"
+            title="Bu grafiği Çoklu Gösterge Panosuna ekle"
+          >
+            <span>📌</span> Panoya Ekle
+          </button>
+          <button class="btn-ghost" id="btnNewFile" style="margin-right: 12px">
+            Yeni Dosya
+          </button>
+          <button
+            class="topbar-icon-btn"
+            id="topbarHelp"
+            title="Kısayollar (?)"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- CANLI FİLTRELEME BARI (ADIM 3) -->
+      <div class="global-filter-bar" id="s3FilterBar">
+        <div class="gfb-left">
+          <span class="gfb-title">🔍 Dilimleyiciler:</span>
+          <div id="s3ActiveFiltersList" class="active-filters-chips">
+            <span class="no-filter-hint"
+              >Filtre uygulanmadı (Tüm veri aktif)</span
+            >
+          </div>
+        </div>
+        <button type="button" class="btn-add-filter" id="btnOpenFilterModalS3">
+          + Filtre Ekle
+        </button>
+      </div>
+
+      <div class="app-body">
+        <!-- MAIN AREA -->
+        <main class="main-area">
+          <div class="tab-bar" id="mainTabsBar">
+            <button class="tab-btn active" data-tab="chart">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="2" />
+                <path d="M7 12v5M12 7v10M17 10v7" />
+              </svg>
+              <span id="currentChartTypeName">Grafik</span>
+            </button>
+            <button class="tab-btn" data-tab="stats">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+              İstatistik & Analiz
+            </button>
+
+            <!-- KORELASYON & REGRESYON STÜDYOSU SEKME BUTONU -->
+            <button class="tab-btn" data-tab="regression" id="tabBtnRegression">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M3 3v18h18" />
+                <path d="M19 9l-5 5-4-4-3 3" />
+                <circle cx="7" cy="13" r="1.5" />
+                <circle cx="10" cy="10" r="1.5" />
+                <circle cx="14" cy="14" r="1.5" />
+                <circle cx="19" cy="9" r="1.5" />
+              </svg>
+              🔬 Korelasyon & Regresyon
+            </button>
+
+            <!-- ÇOKLU PANO (DASHBOARD) SEKME -->
+            <button
+              class="tab-btn tab-btn-dashboard"
+              data-tab="dashboard"
+              style="color: var(--orange)"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+              Çoklu Pano
+              <span id="dashBadgeCount" class="dash-count-badge">0</span>
+            </button>
+          </div>
+
+          <!-- GRAFİK SEKME İÇERİĞİ -->
+          <div class="tab-pane active" id="tabChart">
+            <div
+              class="chart-wrapper"
+              id="chartAreaContainer"
+              style="position: relative"
+            >
+              <!-- Canlı İstatistik ve Regresyon Rozeti (Overlay) -->
+              <div
+                id="chartStatsBadge"
+                class="hidden"
+                style="
+                  position: absolute;
+                  top: 14px;
+                  right: 18px;
+                  z-index: 20;
+                  background: rgba(15, 23, 42, 0.88);
+                  backdrop-filter: blur(8px);
+                  border: 1px solid rgba(255, 255, 255, 0.15);
+                  border-radius: 8px;
+                  padding: 7px 12px;
+                  font-size: 0.8rem;
+                  color: #f8fafc;
+                  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                "
+              >
+                <span
+                  id="csbEquation"
+                  style="
+                    color: #fbbf24;
+                    font-family: monospace;
+                    font-weight: 600;
+                  "
+                  >y = mx + c</span
+                >
+                <span style="color: rgba(255, 255, 255, 0.2)">|</span>
+                <span
+                  >R² =
+                  <strong id="csbR2" style="color: #34d399">-</strong></span
+                >
+                <span style="color: rgba(255, 255, 255, 0.2)">|</span>
+                <span
+                  ><span id="csbCorrName">r</span> =
+                  <strong id="csbCorr" style="color: #60a5fa">-</strong></span
+                >
+              </div>
+
+              <div id="chartArea" style="width: 100%; height: 100%"></div>
+            </div>
+          </div>
+
+          <!-- İSTATİSTİK & AI SEKME İÇERİĞİ -->
+          <div
+            class="tab-pane hidden"
+            id="tabStats"
+            style="overflow-y: auto; padding: 24px"
+          >
+            <div
+              class="premium-stats-pane"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+                min-height: 100%;
+              "
+            >
+              <div
+                class="p-stats-header"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 10px;
+                "
+              >
+                <div class="p-stats-title">
+                  <h2 style="font-size: 1.6rem; font-weight: 800">
+                    İstatistik Analizi
+                  </h2>
+                  <p style="color: var(--muted); margin-top: 4px">
+                    Seçilen eksenlerdeki veri dağılımları akademik olarak
+                    yorumlar.
+                  </p>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                  "
+                >
+                  <button
+                    id="refreshStatsBtn"
+                    class="btn-premium secondary"
+                    style="padding: 8px 16px"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M21 2v6h-6" />
+                      <path
+                        d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                      />
+                      <path d="M3 22v-6h6" />
+                    </svg>
+                    Yenile
+                  </button>
+                </div>
+              </div>
+
+              <!-- Hızlı KPI Şeridi (Genel) -->
+              <div id="chartKpiStrip" class="dashboard-kpis"></div>
+
+              <!-- Ana Grid Alanı -->
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                  gap: 20px;
+                "
+              >
+                <!-- AI Box (Sol Taraf veya Üst) -->
+                <div
+                  class="ai-pane-grid-item"
+                  style="
+                    grid-column: 1 / -1;
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    padding: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                  "
+                >
+                  <div class="ai-hero" style="text-align: left">
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        margin-bottom: 12px;
+                      "
+                    >
+                      <div
+                        class="ai-icon"
+                        style="
+                          font-size: 2rem;
+                          margin: 0;
+                          filter: drop-shadow(
+                            0 4px 10px rgba(244, 114, 182, 0.3)
+                          );
+                        "
+                      >
+                        🧠 
+                      </div>
+                      <h3
+                        style="
+                          font-size: 1.3rem;
+                          font-weight: 800;
+                          color: var(--pink);
+                        "
+                      >
+                        Akademik İstatistiksel Yorumlayıcı
+                      </h3>
+                    </div>
+                    <p
+                      style="
+                        color: var(--muted);
+                        font-size: 0.95rem;
+                        line-height: 1.5;
+                      "
+                    >
+                      İleri düzey varyans ve dağılım testleri üzerinden
+                      profesyonel bir veri analisti yorumu alın.
+                    </p>
+                    <button
+                      id="btnGenerateInsight"
+                      class="btn-primary"
+                      style="margin-top: 16px; width: 100%; max-width: 250px"
+                    >
+                      Veriyi Yorumla
+                    </button>
+                  </div>
+
+                  <div
+                    id="aiResponseContainer"
+                    class="ai-response-container hidden"
+                    style="
+                      margin: 0;
+                      max-width: 100%;
+                      box-shadow: none;
+                      border-color: rgba(244, 114, 182, 0.2);
+                      background: rgba(0, 0, 0, 0.2);
+                    "
+                  >
+                    <div class="ai-response-header" style="padding: 12px 16px">
+                      <h4
+                        style="
+                          font-size: 0.95rem;
+                          margin: 0;
+                          color: var(--pink);
+                        "
+                      >
+                        Sonuç
+                      </h4>
+                    </div>
+                    <div
+                      id="aiResponseContent"
+                      class="ai-response-content"
+                      style="padding: 16px; font-size: 0.9rem"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div
+                  id="statsGrid"
+                  class="bento-stats-grid"
+                  style="display: contents"
+                >
+                  <!-- JS tarafından Doldurulacak -->
+                  <div
+                    class="bento-loading"
+                    style="
+                      grid-column: 1 / -1;
+                      background: rgba(255, 255, 255, 0.03);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                      border-radius: 12px;
+                      padding: 24px;
+                      text-align: center;
+                      color: var(--muted);
+                    "
+                  >
+                    Analiz yükleniyor... Lütfen grafiği çizin.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KORELASYON & REGRESYON STÜDYOSU SEKME İÇERİĞİ -->
+          <div
+            class="tab-pane hidden"
+            id="tabRegression"
+            style="overflow-y: auto; padding: 24px"
+          >
+            <div
+              class="regression-studio-pane"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                min-height: 100%;
+              "
+            >
+              <!-- Başlık ve Kontrol Çubuğu -->
+              <div
+                style="
+                  background: rgba(15, 23, 42, 0.7);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                  border-radius: var(--r-lg);
+                  padding: 18px 24px;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 14px;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                  "
+                >
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <span style="font-size: 1.5rem">🔬</span>
+                      <h2
+                        style="
+                          font-size: 1.4rem;
+                          font-weight: 800;
+                          color: #fff;
+                          margin: 0;
+                        "
+                      >
+                        Korelasyon &amp; Regresyon Analiz
+                      </h2>
+                    </div>
+                    <p
+                      style="
+                        color: var(--muted);
+                        font-size: 0.85rem;
+                        margin: 4px 0 0 0;
+                      "
+                    >
+                      Değişkenler arası doğrusal/polinom ilişkileri, saçılım
+                      dağılımını ve Pearson korelasyon matrisini interaktif
+                      olarak inceleyin.
+                    </p>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <button
+                      type="button"
+                      class="btn-primary"
+                      id="btnPinRegChart"
+                      style="
+                        padding: 8px 14px;
+                        font-size: 0.82rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                      "
+                    >
+                      <span>📌</span> Regresyonu Panoya Ekle
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-ghost"
+                      id="btnDownloadRegPng"
+                      style="
+                        padding: 8px 14px;
+                        font-size: 0.82rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                      "
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      PNG İndir
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Parametre Kontrolleri Barı -->
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 12px;
+                    align-items: end;
+                    background: rgba(255, 255, 255, 0.03);
+                    padding: 12px 16px;
+                    border-radius: var(--r);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                  "
+                >
+                  <div>
+                    <label
+                      style="
+                        display: block;
+                        font-size: 0.72rem;
+                        font-weight: 700;
+                        color: #94a3b8;
+                        margin-bottom: 5px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      "
+                      >Bağımsız Değişken (X)</label
+                    >
+                    <select
+                      id="regSelectX"
+                      class="form-control"
+                      style="
+                        width: 100%;
+                        background: #070b19;
+                        color: #f1f5f9;
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 8px;
+                        padding: 7px 10px;
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                      "
+                    ></select>
+                  </div>
+                  <div>
+                    <label
+                      style="
+                        display: block;
+                        font-size: 0.72rem;
+                        font-weight: 700;
+                        color: #94a3b8;
+                        margin-bottom: 5px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      "
+                      >Bağımlı Değişken (Y)</label
+                    >
+                    <select
+                      id="regSelectY"
+                      class="form-control"
+                      style="
+                        width: 100%;
+                        background: #070b19;
+                        color: #f1f5f9;
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 8px;
+                        padding: 7px 10px;
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                      "
+                    ></select>
+                  </div>
+                  <div>
+                    <label
+                      style="
+                        display: block;
+                        font-size: 0.72rem;
+                        font-weight: 700;
+                        color: #94a3b8;
+                        margin-bottom: 5px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      "
+                      >Regresyon Modeli</label
+                    >
+                    <select
+                      id="regSelectModel"
+                      class="form-control"
+                      style="
+                        width: 100%;
+                        background: #070b19;
+                        color: #f1f5f9;
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 8px;
+                        padding: 7px 10px;
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                      "
+                    >
+                      <option value="linear" selected>
+                        📏 Doğrusal (Linear: y = mx + c)
+                      </option>
+                      <option value="poly2">
+                        📐 2. Derece Polinom (y = ax² + bx + c)
+                      </option>
+                      <option value="poly3">
+                        📊 3. Derece Polinom (Kübik)
+                      </option>
+                      <option value="log">
+                        📉 Logaritmik (y = a·ln(x) + b)
+                      </option>
+                      <option value="exp">📈 Üstel (y = a·e^(bx))</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      style="
+                        display: block;
+                        font-size: 0.72rem;
+                        font-weight: 700;
+                        color: #94a3b8;
+                        margin-bottom: 5px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      "
+                      >Korelasyon Türü</label
+                    >
+                    <select
+                      id="regSelectCorrMethod"
+                      class="form-control"
+                      style="
+                        width: 100%;
+                        background: #070b19;
+                        color: #f1f5f9;
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 8px;
+                        padding: 7px 10px;
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                      "
+                    >
+                      <option value="pearson" selected>
+                        Pearson (r) — Doğrusal
+                      </option>
+                      <option value="spearman">
+                        Spearman (ρ) — Sıralı / Monotonik
+                      </option>
+                      <option value="kendall">
+                        Kendall Tau (τ) — Sıralı Uyum
+                      </option>
+                    </select>
+                  </div>
+                  <div style="display: flex; gap: 8px; align-items: center">
+                    <label
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 0.78rem;
+                        color: #cbd5e1;
+                        cursor: pointer;
+                        user-select: none;
+                      "
+                    >
+                      <input
+                        type="checkbox"
+                        id="regToggleCiBand"
+                        checked
+                        style="accent-color: #38bdf8"
+                      />
+                      %95 Güven Bandı
+                    </label>
+                    <button
+                      type="button"
+                      class="btn-primary"
+                      id="btnRunRegStudio"
+                      style="
+                        padding: 7px 14px;
+                        font-size: 0.82rem;
+                        white-space: nowrap;
+                        flex: 1;
+                      "
+                    >
+                      Hesapla
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tanısal Metrikler Bento Şeridi -->
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+                  gap: 12px;
+                "
+                id="regMetricsStrip"
+              >
+                <div
+                  style="
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(56, 189, 248, 0.25);
+                    border-radius: 12px;
+                    padding: 14px;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.72rem;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 700;
+                    "
+                  >
+                    Korelasyon (<span id="regMetricCorrLabel">r</span>)
+                  </div>
+                  <div
+                    id="regValCorr"
+                    style="
+                      font-size: 1.45rem;
+                      font-weight: 800;
+                      color: #38bdf8;
+                      margin: 4px 0;
+                    "
+                  >
+                    -
+                  </div>
+                  <div
+                    id="regValCorrInterp"
+                    style="font-size: 0.72rem; color: #7dd3fc; font-weight: 600"
+                  >
+                    Hesaplanıyor...
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(16, 185, 129, 0.25);
+                    border-radius: 12px;
+                    padding: 14px;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.72rem;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 700;
+                    "
+                  >
+                    Belirlilik Katsayısı (R²)
+                  </div>
+                  <div
+                    id="regValR2"
+                    style="
+                      font-size: 1.45rem;
+                      font-weight: 800;
+                      color: #34d399;
+                      margin: 4px 0;
+                    "
+                  >
+                    -
+                  </div>
+                  <div
+                    style="font-size: 0.72rem; color: #a7f3d0; font-weight: 600"
+                  >
+                    Varyans Açıklama Oranı
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(245, 158, 11, 0.25);
+                    border-radius: 12px;
+                    padding: 14px;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.72rem;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 700;
+                    "
+                  >
+                    Anlamlılık (P Değeri)
+                  </div>
+                  <div
+                    id="regValP"
+                    style="
+                      font-size: 1.45rem;
+                      font-weight: 800;
+                      color: #fbbf24;
+                      margin: 4px 0;
+                    "
+                  >
+                    -
+                  </div>
+                  <div
+                    id="regValPBadge"
+                    style="font-size: 0.72rem; color: #fde68a; font-weight: 600"
+                  >
+                    p &lt; 0.05
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(129, 140, 248, 0.25);
+                    border-radius: 12px;
+                    padding: 14px;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.72rem;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 700;
+                    "
+                  >
+                    Standart Hata (SE)
+                  </div>
+                  <div
+                    id="regValSe"
+                    style="
+                      font-size: 1.45rem;
+                      font-weight: 800;
+                      color: #818cf8;
+                      margin: 4px 0;
+                    "
+                  >
+                    -
+                  </div>
+                  <div
+                    style="font-size: 0.72rem; color: #c7d2fe; font-weight: 600"
+                  >
+                    Model Tahmin Sapması
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    padding: 14px;
+                    grid-column: span 2;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.72rem;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 700;
+                    "
+                  >
+                    Model Tahmin Denklemi
+                  </div>
+                  <div
+                    id="regValEquation"
+                    style="
+                      font-size: 1.05rem;
+                      font-weight: 800;
+                      color: #f59e0b;
+                      margin: 6px 0;
+                      font-family: &quot;JetBrains Mono&quot;, monospace;
+                      word-break: break-all;
+                    "
+                  >
+                    -
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--muted)">
+                    Aktif filtrelere dayalı matematiksel model
+                  </div>
+                </div>
+              </div>
+
+              <!-- Çift Grafik Izgarası (Scatter + Heatmap) -->
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1.25fr 1fr;
+                  gap: 20px;
+                  align-items: stretch;
+                "
+              >
+                <!-- SOL: Canlı Saçılım (Scatter) ve Regresyon Eğrisi -->
+                <div
+                  style="
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: var(--r-lg);
+                    padding: 18px;
+                    display: flex;
+                    flex-direction: column;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      margin-bottom: 12px;
+                    "
+                  >
+                    <div>
+                      <h3
+                        style="
+                          font-size: 1.05rem;
+                          font-weight: 800;
+                          color: #fff;
+                          margin: 0;
+                        "
+                      >
+                        Canlı Dağılım &amp; Regresyon Eğrisi
+                      </h3>
+                      <p
+                        style="
+                          font-size: 0.78rem;
+                          color: var(--muted);
+                          margin: 2px 0 0 0;
+                        "
+                      >
+                        Ham veri noktaları, regresyon modeli ve %95 güven
+                        aralığı bandı
+                      </p>
+                    </div>
+                    <span
+                      id="regScatterSampleBadge"
+                      style="
+                        background: rgba(56, 189, 248, 0.15);
+                        color: #38bdf8;
+                        border: 1px solid rgba(56, 189, 248, 0.3);
+                        padding: 2px 8px;
+                        border-radius: 12px;
+                        font-size: 0.72rem;
+                        font-weight: 700;
+                      "
+                      >Örneklem</span
+                    >
+                  </div>
+                  <div
+                    id="regScatterPlotArea"
+                    style="
+                      width: 100%;
+                      height: 440px;
+                      border-radius: 8px;
+                      overflow: hidden;
+                      background: #070b19;
+                    "
+                  ></div>
+                </div>
+
+                <!-- SAĞ: Korelasyon Matrisi (Isı Haritası) & AI Açıklama -->
+                <div style="display: flex; flex-direction: column; gap: 16px">
+                  <div
+                    style="
+                      background: rgba(15, 23, 42, 0.6);
+                      border: 1px solid rgba(255, 255, 255, 0.08);
+                      border-radius: var(--r-lg);
+                      padding: 18px;
+                      flex: 1;
+                    "
+                  >
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 12px;
+                      "
+                    >
+                      <div>
+                        <h3
+                          style="
+                            font-size: 1.05rem;
+                            font-weight: 800;
+                            color: #fff;
+                            margin: 0;
+                          "
+                        >
+                          Korelasyon Isı Haritası (Matrix)
+                        </h3>
+                        <p
+                          style="
+                            font-size: 0.78rem;
+                            color: var(--muted);
+                            margin: 2px 0 0 0;
+                          "
+                        >
+                          Hücrelere tıklayarak X ve Y eksenlerini
+                          değiştirebilirsiniz.
+                        </p>
+                      </div>
+                      <span style="font-size: 0.72rem; color: var(--muted)"
+                        >[-1.00 ile +1.00]</span
+                      >
+                    </div>
+                    <div
+                      id="regHeatmapPlotArea"
+                      style="
+                        width: 100%;
+                        height: 260px;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        background: #070b19;
+                      "
+                    ></div>
+                  </div>
+
+                  <!-- AI ve Akademik Değerlendirme Kartı -->
+                  <div
+                    style="
+                      background: rgba(129, 140, 248, 0.06);
+                      border: 1px solid rgba(129, 140, 248, 0.2);
+                      border-radius: var(--r-lg);
+                      padding: 16px;
+                    "
+                  >
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 8px;
+                      "
+                    >
+                      <span style="font-size: 1.1rem">🧠</span>
+                      <h4
+                        style="
+                          font-size: 0.88rem;
+                          font-weight: 800;
+                          color: #c7d2fe;
+                          margin: 0;
+                        "
+                      >
+                        Akademik ve Yönetici Raporu
+                      </h4>
+                    </div>
+                    <div
+                      id="regAiInsightText"
+                      style="
+                        font-size: 0.82rem;
+                        line-height: 1.55;
+                        color: #e2e8f0;
+                      "
+                    >
+                      Model hesaplandığında akademik dilde detaylı hipotez ve
+                      etki yorumu burada belirecektir.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ÇOKLU PANO (DASHBOARD CANVAS) İÇERİĞİ -->
+          <div class="tab-pane hidden" id="tabDashboard">
+            <div class="dashboard-canvas-pane">
+              <div class="dash-canvas-header">
+                <div>
+                  <h2>🎛️ Özel Gösterge Panosu (Executive Dashboard)</h2>
+                  <p>
+                    Eklediğiniz tüm grafikleri ve üst düzey KPI özetlerini tek
+                    bir çalışma alanında yönetin.
+                  </p>
+                </div>
+                <div class="dash-canvas-actions">
+                  <button
+                    class="btn-ghost"
+                    id="btnClearDashboard"
+                    title="Panodaki tüm grafikleri temizle"
+                  >
+                    Panoyu Temizle
+                  </button>
+                  <button class="btn-download" id="downloadDashboardPdfBtn">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                      />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    Tüm Panoyu PDF İndir
+                  </button>
+                </div>
+              </div>
+
+              <!-- ÜST DÜZEY KPI ÖZET KARTLARI -->
+              <div
+                id="dashboardKpiGrid"
+                class="kpi-tiles-grid"
+                style="margin-bottom: 24px"
+              ></div>
+
+              <!-- Dashboard Grid -->
+              <div id="dashboardGrid" class="dashboard-grid">
+                <!-- Boş Durum (Empty State) -->
+                <div id="dashboardEmptyState" class="dash-empty-state">
+                  <div class="des-icon">📊</div>
+                  <h3>Henüz Panoda Grafik Yok</h3>
+                  <p>
+                    Çizdiğiniz herhangi bir grafiği sağ üstteki
+                    <strong>"📌 Panoya Ekle"</strong> butonuna basarak buraya
+                    ekleyebilirsiniz. Başlıkları değiştirmek için doğrudan
+                    kartın üzerindeki başlık yazısına tıklayabilirsiniz.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- RIGHT INSPECTOR (CUSTOMIZATION) -->
+        <aside class="inspector-panel">
+          <div class="inspector-header">Özelleştirme</div>
+
+          <div class="inspector-tabs">
+            <button class="i-tab active" data-itab="colors">🎨 Stil</button>
+            <button class="i-tab" data-itab="axes">⚙️ Eksen</button>
+          </div>
+
+          <div class="inspector-body">
+            <!-- Style Tab -->
+            <div class="i-pane active" id="itab-colors">
+              <div class="form-group">
+                <label>Ana Çizgi / Nokta Rengi</label>
+                <input type="color" id="chartColor" value="#a78bfa" />
+              </div>
+              <div class="form-group">
+                <label>Arkaplan Rengi</label>
+                <input type="color" id="chartBgColor" value="#070711" />
+              </div>
+              <div class="form-group">
+                <label
+                  >Çizgi Kalınlığı / Nokta Boyutu
+                  <span id="traceSizeVal" class="label-val">3</span></label
+                >
+                <input type="range" id="traceSize" min="1" max="15" value="3" />
+              </div>
+              <div class="form-group-check" style="margin-top: 16px">
+                <input type="checkbox" id="showLegend" checked />
+                <label for="showLegend">Lejantı (Göstergeyi) Açık Tut</label>
+              </div>
+            </div>
+
+            <!-- Axes & Title Tab -->
+            <div class="i-pane hidden" id="itab-axes">
+              <div class="form-group">
+                <label>Grafik Ana Başlığı</label>
+                <input
+                  type="text"
+                  id="customChartTitle"
+                  placeholder="Örn: Bölgesel Satış Dağılımı"
+                />
+              </div>
+              <div class="form-group">
+                <label>X Ekseni Başlığı (Opsiyonel)</label>
+                <input
+                  type="text"
+                  id="customXTitle"
+                  placeholder="Örn: Yıllar"
+                />
+              </div>
+              <div class="form-group">
+                <label>Y Ekseni Başlığı (Opsiyonel)</label>
+                <input
+                  type="text"
+                  id="customYTitle"
+                  placeholder="Örn: Satış (TL)"
+                />
+              </div>
+              <div class="form-group-check" style="margin-top: 16px">
+                <input type="checkbox" id="showGrid" checked />
+                <label for="showGrid">Izgara (Grid) Çizgilerini Göster</label>
+              </div>
+            </div>
+
+            <!-- Export Tab -->
+            <div class="i-pane hidden" id="itab-export">
+              <p
+                style="
+                  font-size: 0.85rem;
+                  color: var(--muted);
+                  margin-bottom: 16px;
+                  line-height: 1.5;
+                "
+              >
+                Bu grafiği tekil olarak PNG formatında veya kurumsal bir A4
+                raporu olarak indirebilirsiniz.
+              </p>
+              <button
+                id="downloadPngBtn"
+                class="btn-ghost"
+                style="width: 100%; margin-bottom: 12px"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Tekil PNG İndir
+              </button>
+
+              <button
+                id="downloadPdfBtn"
+                class="btn-download"
+                style="width: 100%; margin-bottom: 12px"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                  />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                📄 Tekil PDF Raporu
+              </button>
+
+              <button
+                id="downloadParquetBtn"
+                class="btn-ghost"
+                style="
+                  width: 100%;
+                  border-color: rgba(16, 185, 129, 0.4);
+                  color: #34d399;
+                  font-weight: 600;
+                "
+              >
+                ⚡ Aktif Veriyi Parquet İndir
               </button>
             </div>
           </div>
 
-          <!-- ÃœST DÃœZEY KPI Ã–ZET KARTLARI -->
-          <div id="dashboardKpiGrid" class="kpi-tiles-grid" style="margin-bottom: 24px;"></div>
-
-          <!-- Dashboard Grid -->
-          <div id="dashboardGrid" class="dashboard-grid">
-            <!-- BoÅŸ Durum (Empty State) -->
-            <div id="dashboardEmptyState" class="dash-empty-state">
-              <div class="des-icon">ğŸ“Š</div>
-              <h3>HenÃ¼z Panoda Grafik Yok</h3>
-              <p>Ã‡izdiÄŸiniz herhangi bir grafiÄŸi saÄŸ Ã¼stteki <strong>"ğŸ“Œ Panoya Ekle"</strong> butonuna basarak buraya ekleyebilirsiniz. BaÅŸlÄ±klarÄ± deÄŸiÅŸtirmek iÃ§in doÄŸrudan kartÄ±n Ã¼zerindeki baÅŸlÄ±k yazÄ±sÄ±na tÄ±klayabilirsiniz.</p>
-            </div>
+          <div class="inspector-footer">
+            <button id="applyCustomsBtn" class="btn-secondary">
+              Değişiklikleri Uygula
+            </button>
           </div>
-        </div>
+        </aside>
       </div>
-
-    </main>
-
-    <!-- RIGHT INSPECTOR (CUSTOMIZATION) -->
-    <aside class="inspector-panel">
-      <div class="inspector-header">Ã–zelleÅŸtirme</div>
-      
-      <div class="inspector-tabs">
-        <button class="i-tab active" data-itab="colors">ğŸ¨ Stil</button>
-        <button class="i-tab" data-itab="axes">âš™ï¸ Eksen</button>
-      </div>
-
-      <div class="inspector-body">
-        <!-- Style Tab -->
-        <div class="i-pane active" id="itab-colors">
-          <div class="form-group">
-            <label>Ana Ã‡izgi / Nokta Rengi</label>
-            <input type="color" id="chartColor" value="#a78bfa">
-          </div>
-          <div class="form-group">
-            <label>Arkaplan Rengi</label>
-            <input type="color" id="chartBgColor" value="#070711">
-          </div>
-          <div class="form-group">
-            <label>Ã‡izgi KalÄ±nlÄ±ÄŸÄ± / Nokta Boyutu <span id="traceSizeVal" class="label-val">3</span></label>
-            <input type="range" id="traceSize" min="1" max="15" value="3">
-          </div>
-          <div class="form-group-check" style="margin-top:16px;">
-            <input type="checkbox" id="showLegend" checked>
-            <label for="showLegend">LejantÄ± (GÃ¶stergeyi) AÃ§Ä±k Tut</label>
-          </div>
-        </div>
-
-        <!-- Axes & Title Tab -->
-        <div class="i-pane hidden" id="itab-axes">
-          <div class="form-group">
-            <label>Grafik Ana BaÅŸlÄ±ÄŸÄ±</label>
-            <input type="text" id="customChartTitle" placeholder="Ã–rn: BÃ¶lgesel SatÄ±ÅŸ DaÄŸÄ±lÄ±mÄ±">
-          </div>
-          <div class="form-group">
-            <label>X Ekseni BaÅŸlÄ±ÄŸÄ± (Opsiyonel)</label>
-            <input type="text" id="customXTitle" placeholder="Ã–rn: YÄ±llar">
-          </div>
-          <div class="form-group">
-            <label>Y Ekseni BaÅŸlÄ±ÄŸÄ± (Opsiyonel)</label>
-            <input type="text" id="customYTitle" placeholder="Ã–rn: SatÄ±ÅŸ (TL)">
-          </div>
-          <div class="form-group-check" style="margin-top:16px;">
-            <input type="checkbox" id="showGrid" checked>
-            <label for="showGrid">Izgara (Grid) Ã‡izgilerini GÃ¶ster</label>
-          </div>
-        </div>
-
-        <!-- Export Tab -->
-        <div class="i-pane hidden" id="itab-export">
-          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px; line-height:1.5;">Bu grafiÄŸi tekil olarak PNG formatÄ±nda veya kurumsal bir A4 raporu olarak indirebilirsiniz.</p>
-          <button id="downloadPngBtn" class="btn-ghost" style="width:100%; margin-bottom:12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Tekil PNG Ä°ndir
-          </button>
-          
-          <button id="downloadPdfBtn" class="btn-download" style="width:100%; margin-bottom:12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            ğŸ“„ Tekil PDF Raporu
-          </button>
-
-          <button id="downloadParquetBtn" class="btn-ghost" style="width:100%; border-color:rgba(16, 185, 129, 0.4); color:#34d399; font-weight:600;">
-            âš¡ Aktif Veriyi Parquet Ä°ndir
-          </button>
-        </div>
-        
-      </div>
-      
-      <div class="inspector-footer">
-        <button id="applyCustomsBtn" class="btn-secondary">DeÄŸiÅŸiklikleri Uygula</button>
-      </div>
-
-    </aside>
-  </div>
-</div>
-
-
-  <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/modules/pdf_studio.js') }}?v=20260924_master3"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=20260924_master3"></script>
-
-<!-- â•â•â• UPLOAD GÃœVENLÄ° YEDEK MOTORU â•â•â•
-     app.js yÃ¼klenemese veya hata verse bile upload Ã§alÄ±ÅŸÄ±r (REMOVED) -->
-
-<!-- PDF EXPORT STUDIO MODAL (A4 PREVIEW) -->
-<div class="modal-overlay hidden" id="pdfStudioModal" style="z-index: 10000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; overflow-y: auto;">
-  <div style="width: 100%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 20px; background: var(--bg-2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-    <h3 style="color: white; margin: 0; display: flex; align-items: center; gap: 10px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      PDF Ã–nizleme StÃ¼dyosu
-    </h3>
-    <div style="display: flex; gap: 15px;">
-      <button class="btn-ghost" id="addTextBtnPdf" style="color: white; border-color: rgba(255,255,255,0.2);">+ Metin Ekle</button>
-      <button class="btn-primary" id="generatePdfBtn" style="background: var(--blue);">SonuÃ§landÄ±r ve Ä°ndir</button>
-      <button class="btn-ghost" id="closePdfStudioBtn" style="color: var(--red); border-color: rgba(248,113,113,0.3);">Kapat</button>
     </div>
-  </div>
-  
-  <div id="a4Container" style="background: white; color: black; aspect-ratio: 1 / 1.414; padding: 20px; overflow-y: auto; width: 100%; max-width: 800px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-    <!-- PDF Content Cloned Here -->
-  </div>
-</div>
 
-<div id="toastContainer" class="toast-container"></div>`n</body>
+    <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/regression_studio.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/pdf_studio.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260924_fix_scatter1"></script>
+
+    <!-- ══════════ UPLOAD GÜVENLİ YEDEK MOTORU ═══
+     app.js yüklenemese veya hata verse bile upload çalışır (REMOVED) -->
+
+    <!-- PDF EXPORT STUDIO MODAL (A4 PREVIEW) -->
+    <div
+      class="modal-overlay hidden"
+      id="pdfStudioModal"
+      style="
+        z-index: 10000;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 20px;
+        overflow-y: auto;
+      "
+    >
+      <div
+        style="
+          width: 100%;
+          max-width: 1000px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding: 10px 20px;
+          background: var(--bg-2);
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        "
+      >
+        <h3
+          style="
+            color: white;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--blue)"
+            stroke-width="2"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+            />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          PDF Önizleme Stüdyosu
+        </h3>
+        <div style="display: flex; gap: 15px">
+          <button
+            class="btn-ghost"
+            id="addTextBtnPdf"
+            style="color: rgb(3, 3, 3); border-color: rgba(255, 255, 255, 0.2)"
+          >
+            + Metin Ekle
+          </button>
+          <button
+            class="btn-primary"
+            id="generatePdfBtn"
+            style="background: var(--blue)"
+          >
+            Sonuçlandır ve İndir
+          </button>
+          <button
+            class="btn-ghost"
+            id="closePdfStudioBtn"
+            style="color: var(--red); border-color: rgba(248, 113, 113, 0.3)"
+          >
+            Kapat
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="a4Container"
+        style="
+          background: white;
+          color: black;
+          aspect-ratio: 1 / 1.414;
+          padding: 20px;
+          overflow-y: auto;
+          width: 100%;
+          max-width: 800px;
+          position: relative;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        "
+      >
+        <!-- PDF Content Cloned Here -->
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+  </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
