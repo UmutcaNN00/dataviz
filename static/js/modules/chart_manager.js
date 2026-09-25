@@ -335,274 +335,6 @@ function renderChartGrid(filterCat = "all") {
   evaluateCharts();
 }
 
-/* ── STEP 2 MODE SWITCHER & ADVANCED STATS ── */
-function switchStep2View(view) {
-  const chartsBtn = document.getElementById("s2TabChartsBtn");
-  const statsBtn = document.getElementById("s2TabStatsBtn");
-  const chartsView = document.getElementById("s2ViewCharts");
-  const statsView = document.getElementById("s2ViewStats");
-  if (!chartsBtn || !statsBtn || !chartsView || !statsView) return;
-
-  if (view === "stats") {
-    chartsBtn.classList.remove("active");
-    chartsBtn.style.background = "rgba(255,255,255,0.03)";
-    chartsBtn.style.borderColor = "rgba(255,255,255,0.1)";
-    chartsBtn.style.color = "var(--muted)";
-
-    statsBtn.classList.add("active");
-    statsBtn.style.background = "rgba(99,102,241,0.2)";
-    statsBtn.style.borderColor = "rgba(99,102,241,0.5)";
-    statsBtn.style.color = "#fff";
-
-    chartsView.classList.add("hidden");
-    chartsView.style.display = "none";
-    statsView.classList.remove("hidden");
-    statsView.style.display = "flex";
-
-    updateStep2Stats(window.currentRegModel || "linear");
-  } else {
-    statsBtn.classList.remove("active");
-    statsBtn.style.background = "rgba(255,255,255,0.03)";
-    statsBtn.style.borderColor = "rgba(255,255,255,0.1)";
-    statsBtn.style.color = "var(--muted)";
-
-    chartsBtn.classList.add("active");
-    chartsBtn.style.background = "rgba(99,102,241,0.2)";
-    chartsBtn.style.borderColor = "rgba(99,102,241,0.5)";
-    chartsBtn.style.color = "#fff";
-
-    statsView.classList.add("hidden");
-    statsView.style.display = "none";
-    chartsView.classList.remove("hidden");
-    chartsView.style.display = "block";
-  }
-}
-
-async function updateStep2Stats(modelType = "linear") {
-  const content = document.getElementById("s2StatsContent");
-  if (!content) return;
-
-  const hasX = !!axisConfig.x;
-  const yCols = axisConfig.y;
-  if (!hasX || !yCols.length) {
-    content.innerHTML = `
-      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 36px; text-align: center; color: var(--muted);">
-        <div style="font-size: 2.2rem; margin-bottom: 12px;">📊</div>
-        <h4 style="color: #fff; margin-bottom: 8px;">Değişken Seçimi Bekleniyor</h4>
-        <p style="max-width: 400px; margin: 0 auto; font-size: 0.9rem; line-height: 1.5;">Sol paneldeki veri havuzundan X ve Y eksenlerine değişken sürüklediğinizde otomatik olarak Regresyon, Korelasyon, ANOVA veya T-Testi hesaplamaları burada belirecektir.</p>
-      </div>`;
-    return;
-  }
-
-  const isXNum = numericColumns.includes(axisConfig.x);
-  const numYCols = yCols.filter((c) => numericColumns.includes(c));
-  const isNumericPair = isXNum && numYCols.length > 0;
-
-  content.innerHTML = `
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 250px;">
-      <div class="spinner"></div>
-      <p style="margin-top: 12px; color: var(--muted); font-size: 0.9rem;">İstatistiksel analizler ve test modelleri hesaplanıyor...</p>
-    </div>`;
-
-  try {
-    const res = await fetch("/get_stats", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        columns: numYCols.length ? numYCols : yCols,
-        y_cols: numYCols.length ? numYCols : yCols,
-        x_col: axisConfig.x,
-        filters: activeFilters,
-        reg_model: modelType,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "İstatistikler alınamadı");
-
-    window.currentAdvancedStats = data.advanced;
-    window.currentStats = data.stats;
-
-    renderStep2StatsContent(data, isNumericPair, modelType);
-  } catch (err) {
-    content.innerHTML = `<div style="color: var(--red); background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 20px;">Hata: ${err.message}</div>`;
-  }
-}
-
-function renderStep2StatsContent(data, isNumericPair, modelType = "linear") {
-  const content = document.getElementById("s2StatsContent");
-  if (!content) return;
-
-  const yCol =
-    axisConfig.y.find((c) => numericColumns.includes(c)) || axisConfig.y[0];
-  const adv = data.advanced && data.advanced[yCol] ? data.advanced[yCol] : null;
-
-  if (isNumericPair) {
-    const corr = adv?.correlation != null ? adv.correlation.toFixed(4) : "-";
-    const r2 = adv?.r_squared != null ? adv.r_squared.toFixed(4) : "-";
-    const pVal =
-      adv?.p_value != null
-        ? adv.p_value < 0.0001
-          ? "< 0.0001"
-          : adv.p_value.toFixed(4)
-        : "-";
-    const eq = adv?.regression || "y = mx + c";
-    const strength = adv?.interpretation || "İlişki Gücü Hesaplanıyor";
-
-    content.innerHTML = `
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.2rem;">🔬</span>
-              <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">Korelasyon & Regresyon Analizi</h3>
-            </div>
-            <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--muted);">Bağımsız Değişken (X): <strong>${axisConfig.x}</strong> &nbsp;|&nbsp; Bağımlı Değişken (Y): <strong>${yCol}</strong></p>
-          </div>
-          <span style="background: rgba(99,102,241,0.2); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">2 Sayısal Değişken</span>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <span style="font-size: 0.82rem; color: var(--muted); font-weight: 600;">Regresyon Tipi:</span>
-          <div style="display: flex; gap: 6px;">
-            <button type="button" class="btn-reg-select ${modelType === "linear" ? "active" : ""}" data-model="linear" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === "linear" ? "#818cf8" : "rgba(255,255,255,0.1)"}; background: ${modelType === "linear" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)"}; color: ${modelType === "linear" ? "#fff" : "var(--muted)"};">Doğrusal (Linear)</button>
-            <button type="button" class="btn-reg-select ${modelType === "poly2" ? "active" : ""}" data-model="poly2" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === "poly2" ? "#818cf8" : "rgba(255,255,255,0.1)"}; background: ${modelType === "poly2" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)"}; color: ${modelType === "poly2" ? "#fff" : "var(--muted)"};">2. Derece Polinom</button>
-            <button type="button" class="btn-reg-select ${modelType === "exp" ? "active" : ""}" data-model="exp" style="padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${modelType === "exp" ? "#818cf8" : "rgba(255,255,255,0.1)"}; background: ${modelType === "exp" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)"}; color: ${modelType === "exp" ? "#fff" : "var(--muted)"};">Üstel (Exp)</button>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Pearson Korelasyon (r)</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #60a5fa;">${corr}</div>
-            <div style="font-size: 0.7rem; color: #93c5fd; margin-top: 2px;">${strength}</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Belirlilik (R²)</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #34d399;">${r2}</div>
-            <div style="font-size: 0.7rem; color: #6ee7b7; margin-top: 2px;">Varyans Açıklama Gücü</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Anlamlılık (P Değeri)</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #f59e0b;">${pVal}</div>
-            <div style="font-size: 0.7rem; color: #fcd34d; margin-top: 2px;">p &lt; 0.05 (Güvenilir)</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Model Denklemi</div>
-            <div style="font-size: 0.88rem; font-weight: 700; color: #fbbf24; font-family: monospace; word-break: break-all;">${eq}</div>
-          </div>
-        </div>
-
-        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 10px; padding: 14px; font-size: 0.86rem; line-height: 1.6; color: #e2e8f0;">
-          <strong>💼 Yönetici Özeti:</strong> ${axisConfig.x} ve ${yCol} arasında istatistiksel olarak <strong>${strength}</strong> bir bağ tespit edilmiştir. Regresyon modeli varyansın %${(parseFloat(r2 || 0) * 100).toFixed(1)} kısmını doğrudan açıklamaktadır.
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 4px;">
-          <button type="button" id="btnLaunchRegressionChart" style="flex: 1; padding: 13px 20px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(99,102,241,0.35);">
-            <span>📈</span> Regresyon Grafiğini Çiz & Özelleştir →
-          </button>
-        </div>
-      </div>`;
-
-    content.querySelectorAll(".btn-reg-select").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const m = btn.dataset.model;
-        window.currentRegModel = m;
-        updateStep2Stats(m);
-      });
-    });
-
-    document
-      .getElementById("btnLaunchRegressionChart")
-      ?.addEventListener("click", () => {
-        if (typeof window.openRegressionStudioWithVars === "function") {
-          window.openRegressionStudioWithVars(
-            axisConfig.x,
-            yCol,
-            window.currentRegModel || "linear",
-          );
-        } else {
-          currentPlotType = "scatter";
-          goToStep3();
-        }
-      });
-  } else {
-    const testName = adv?.test_name || "Varyans Analizi (ANOVA)";
-    const fVal =
-      adv?.f_statistic != null
-        ? adv.f_statistic.toFixed(4)
-        : adv?.t_statistic != null
-          ? adv.t_statistic.toFixed(4)
-          : "-";
-    const pVal =
-      adv?.p_value != null
-        ? adv.p_value < 0.0001
-          ? "< 0.0001"
-          : adv.p_value.toFixed(4)
-        : "-";
-    const isSignif = adv?.p_value != null && adv.p_value < 0.05;
-    const bestGrp = adv?.best_group || "-";
-    const bestVal =
-      adv?.best_val != null ? adv.best_val.toLocaleString("tr-TR") : "-";
-    const worstGrp = adv?.worst_group || "-";
-    const worstVal =
-      adv?.worst_val != null ? adv.worst_val.toLocaleString("tr-TR") : "-";
-
-    content.innerHTML = `
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.2rem;">🧪</span>
-              <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">${testName}</h3>
-            </div>
-            <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--muted);">Grup Değişkeni (X): <strong>${axisConfig.x}</strong> &nbsp;|&nbsp; Sayısal Metrik (Y): <strong>${yCol}</strong></p>
-          </div>
-          <span style="background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">Grup Karşılaştırması</span>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Test İstatistiği (F/t)</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;">${fVal}</div>
-            <div style="font-size: 0.7rem; color: #7dd3fc; margin-top: 2px;">Gruplar Arası Varyans</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">Anlamlılık (P Değeri)</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: ${isSignif ? "#34d399" : "#f59e0b"};">${pVal}</div>
-            <div style="font-size: 0.7rem; color: ${isSignif ? "#6ee7b7" : "#fcd34d"}; margin-top: 2px;">${isSignif ? "Gruplar Farklı (p < 0.05)" : "Fark Önemsiz (p > 0.05)"}</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">🏆 En Yüksek Grup</div>
-            <div style="font-size: 1.05rem; font-weight: 800; color: #34d399;">${bestGrp}</div>
-            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Ortalama: ${bestVal}</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;">⚠️ En Düşük Grup</div>
-            <div style="font-size: 1.05rem; font-weight: 800; color: #f87171;">${worstGrp}</div>
-            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Ortalama: ${worstVal}</div>
-          </div>
-        </div>
-
-        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 14px; font-size: 0.86rem; line-height: 1.6; color: #e2e8f0;">
-          <strong>💼 Yönetici Özeti:</strong> ${yCol} metriği baz alındığında; en yüksek performansı <strong>${bestGrp}</strong> (${bestVal}) sergilerken, en düşük performansı ise <strong>${worstGrp}</strong> (${worstVal}) göstermektedir. ${isSignif ? "Gruplar arasındaki bu fark istatistiksel olarak anlamlıdır." : "Gruplar arasındaki fark rastlantısaldır."}
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 4px;">
-          <button type="button" id="btnLaunchComparisonChart" style="flex: 1; padding: 13px 20px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(16,185,129,0.35);">
-            <span>📊</span> Karşılaştırma Grafiğini Çiz & Özelleştir →
-          </button>
-        </div>
-      </div>`;
-
-    document
-      .getElementById("btnLaunchComparisonChart")
-      ?.addEventListener("click", () => {
-        currentPlotType = "bar";
-        goToStep3();
-      });
-  }
-}
-
 function evaluateCharts() {
   const hasX = !!axisConfig.x;
   const yCount = axisConfig.y.length;
@@ -781,20 +513,6 @@ function evaluateCharts() {
       "Uyarı: Y Ekseninde Metinsel (Kategorik) sütun seçtiniz. Sayısal grafikler otomatik adet sayımı ile gösterilebilir.";
     warning.classList.remove("hidden");
   }
-
-  // Step 2 Akıllı Yönlendirme (Auto-Switch)
-  if (hasX && yCount > 0) {
-    if (isXNum && yAllNum) {
-      // 2 veya 3 Sayısal Değişken Girildiğinde -> Otomatik olarak sağdaki İstatiksel Analiz & Testler sekmesine kay
-      switchStep2View("stats");
-    } else {
-      // 1 Sözel, 1 Sayısal Girildiğinde -> Grafik sekmesinde kal, arka planda ANOVA/T-test hazırla
-      switchStep2View("charts");
-      updateStep2Stats("linear");
-    }
-  } else {
-    switchStep2View("charts");
-  }
 }
 
 /* ── 3. STEP 3 & ACTIVE CHART REFRESH ── */
@@ -901,6 +619,27 @@ function renderCatCheckboxes(col, values) {
   });
 }
 
+function syncFilteredViews() {
+  if (currentChartData && currentPlotType) refreshActiveChart();
+  const pivotScreen = document.getElementById("screen-pivot-studio");
+  if (
+    pivotScreen &&
+    (pivotScreen.classList.contains("active") ||
+      !pivotScreen.classList.contains("hidden")) &&
+    typeof refreshPivotStudio === "function"
+  ) {
+    refreshPivotStudio();
+  }
+  const regPane = document.getElementById("tabRegression");
+  if (
+    regPane &&
+    !regPane.classList.contains("hidden") &&
+    typeof fetchAndRenderRegressionStudio === "function"
+  ) {
+    fetchAndRenderRegressionStudio();
+  }
+}
+
 function renderActiveFilterChips() {
   const targets = [
     {
@@ -911,6 +650,11 @@ function renderActiveFilterChips() {
     {
       bar: document.getElementById("s3FilterBar"),
       list: document.getElementById("s3ActiveFiltersList"),
+      isGlobalBar: true,
+    },
+    {
+      bar: document.getElementById("pivotFilterBar"),
+      list: document.getElementById("pivotActiveFiltersList"),
       isGlobalBar: true,
     },
     {
@@ -970,281 +714,13 @@ function renderActiveFilterChips() {
         activeFilters.splice(idx, 1);
         window.activeFilters = activeFilters;
         renderActiveFilterChips();
-        if (currentChartData && currentPlotType) refreshActiveChart();
+        syncFilteredViews();
       });
     });
   });
 }
 
-/* ── 5. EXECUTIVE KPI ÖZETLERİ ── */
-async function fetchKpis() {
-  try {
-    const res = await fetch("/get_kpi_summary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        x: axisConfig.x,
-        x_col: axisConfig.x,
-        y: axisConfig.y,
-        y_cols: axisConfig.y,
-        filters: activeFilters,
-      }),
-    });
-    const data = await res.json();
-    if (res.ok && data.kpis) {
-      currentKpis = data.kpis;
-      window.currentKpis = currentKpis;
-      renderKpiTiles("chartKpiStrip", currentKpis);
-      renderKpiTiles("dashboardKpiGrid", currentKpis);
-      renderKpiTiles("kpiTilesRow", currentKpis);
-    }
-  } catch (e) {
-    console.error("KPI fetch error:", e);
-  }
-}
-
-function renderKpiTiles(targetId, kpiList) {
-  const container = document.getElementById(targetId);
-  if (!container || !kpiList || kpiList.length === 0) return;
-  container.innerHTML = "";
-
-  kpiList.forEach((k) => {
-    const tile = document.createElement("div");
-    tile.className = `kpi-tile-card ${k.color || "blue"}`;
-    tile.innerHTML = `
-      <div class="kpi-tile-header">
-        <span class="kpi-tile-title">${k.title || k.label || ""}</span>
-        <span class="kpi-tile-icon">${k.icon || "📌"}</span>
-      </div>
-      <div class="kpi-tile-val">${k.value || ""}</div>
-      <div class="kpi-tile-sub">${k.sub || k.change || ""}</div>
-    `;
-    container.appendChild(tile);
-  });
-}
-
-/* ── 6. ÇOKLU PANO (DASHBOARD CANVAS) SİSTEMİ ── */
-function updateDashboardBadge() {
-  ["dashBadgeCount", "dashItemCount"].forEach((id) => {
-    const badge = document.getElementById(id);
-    if (!badge) return;
-    badge.textContent = dashboardCharts.length;
-    if (id === "dashItemCount") {
-      if (dashboardCharts.length > 0) {
-        badge.classList.remove("hidden");
-      } else {
-        badge.classList.add("hidden");
-      }
-    }
-  });
-}
-
-function addChartToDashboard(chartItem) {
-  if (!chartItem) return null;
-  const item = {
-    id:
-      chartItem.id ||
-      "dash_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    title: chartItem.title || "Grafik",
-    chartType: chartItem.chartType || chartItem.type || "scatter",
-    chartData: chartItem.chartData || null,
-    pivotData: chartItem.pivotData || null,
-    isCustomRegression: !!chartItem.isCustomRegression,
-    regData: chartItem.data || chartItem.regData || null,
-    plotlyTraces: chartItem.plotlyTraces || null,
-    plotlyLayout: chartItem.plotlyLayout || null,
-    xCol: chartItem.xCol || null,
-    yCol: chartItem.yCol || null,
-    filtersCount: activeFilters ? activeFilters.length : 0,
-  };
-  dashboardCharts.push(item);
-  window.dashboardCharts = dashboardCharts;
-  updateDashboardBadge();
-  renderDashboardGrid();
-  return item;
-}
-
-function renderDashboardGrid() {
-  const grid =
-    document.getElementById("dashboardGrid") ||
-    document.getElementById("dashboardChartsGrid");
-  if (!grid) return;
-  grid.innerHTML = "";
-
-  if (dashboardCharts.length === 0) {
-    grid.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--muted); border: 2px dashed rgba(255,255,255,0.08); border-radius: 12px;">
-        Panoda henüz kaydedilmiş grafik yok. Üst kısımdaki <strong>"📌 Panoya Ekle"</strong> butonunu kullanarak grafikleri panoya ekleyebilirsiniz.
-      </div>
-    `;
-    return;
-  }
-
-  dashboardCharts.forEach((item, idx) => {
-    const card = document.createElement("div");
-    card.className = "dash-card";
-    card.dataset.id = item.id;
-
-    if (item.chartType === "pivot") {
-      card.innerHTML = `
-        <div class="dash-card-header">
-          <div class="dash-card-title" contenteditable="true" data-idx="${idx}">${item.title}</div>
-          <div class="dash-card-actions">
-            <button class="dash-act-btn btn-dash-del" data-idx="${idx}" title="Kaldır">✕</button>
-          </div>
-        </div>
-        <div class="dash-card-plot" id="plot_${item.id}" style="overflow-x: auto; padding: 10px;"></div>
-      `;
-      grid.appendChild(card);
-      renderDashboardPivotTable(`plot_${item.id}`, item.pivotData);
-    } else if (item.isCustomRegression && (item.plotlyTraces || item.regData)) {
-      card.innerHTML = `
-        <div class="dash-card-header">
-          <div class="dash-card-title" contenteditable="true" data-idx="${idx}">${item.title}</div>
-          <div class="dash-card-actions">
-            <button class="dash-act-btn btn-dash-del" data-idx="${idx}" title="Kaldır">✕</button>
-          </div>
-        </div>
-        <div class="dash-card-plot" id="plot_${item.id}"></div>
-      `;
-      grid.appendChild(card);
-      const plotEl = document.getElementById(`plot_${item.id}`);
-      if (plotEl && window.Plotly) {
-        let traces = item.plotlyTraces;
-        let layout = item.plotlyLayout;
-        if (!traces && item.regData) {
-          const rd = item.regData;
-          traces = [
-            {
-              x: rd.x || [],
-              y: rd.y || [],
-              mode: "markers",
-              type: "scatter",
-              name: "Örneklem",
-              marker: { color: "#38bdf8", size: 4, opacity: 0.6 },
-            },
-          ];
-          if (rd.trend_x && rd.trend_y) {
-            traces.push({
-              x: rd.trend_x,
-              y: rd.trend_y,
-              mode: "lines",
-              type: "scatter",
-              name: rd.equation || "Regresyon",
-              line: { color: "#f59e0b", width: 2.5 },
-            });
-          }
-        }
-        if (!layout) {
-          layout = {
-            autosize: true,
-            paper_bgcolor: "transparent",
-            plot_bgcolor: "#070711",
-            font: { family: "Inter", color: "#94a3b8", size: 10 },
-            margin: { t: 15, r: 15, b: 35, l: 45 },
-            showlegend: false,
-            xaxis: {
-              title: { text: item.xCol || "" },
-              gridcolor: "rgba(255,255,255,0.08)",
-              zeroline: false,
-            },
-            yaxis: {
-              title: { text: item.yCol || "" },
-              gridcolor: "rgba(255,255,255,0.08)",
-              zeroline: false,
-            },
-          };
-        }
-        Plotly.newPlot(plotEl, traces, layout, {
-          responsive: true,
-          displayModeBar: false,
-          displaylogo: false,
-        });
-      }
-    } else {
-      card.innerHTML = `
-        <div class="dash-card-header">
-          <div class="dash-card-title" contenteditable="true" data-idx="${idx}">${item.title}</div>
-          <div class="dash-card-actions">
-            <button class="dash-act-btn btn-dash-del" data-idx="${idx}" title="Kaldır">✕</button>
-          </div>
-        </div>
-        <div class="dash-card-plot" id="plot_${item.id}"></div>
-      `;
-      grid.appendChild(card);
-      if (typeof drawMegaPlotly === "function") {
-        drawMegaPlotly(`plot_${item.id}`, item.chartData, item.chartType, true);
-      } else if (typeof window.drawMegaPlotly === "function") {
-        window.drawMegaPlotly(
-          `plot_${item.id}`,
-          item.chartData,
-          item.chartType,
-          true,
-        );
-      }
-    }
-  });
-
-  setupDashboardEvents();
-}
-
-function renderDashboardPivotTable(containerId, data) {
-  const container = document.getElementById(containerId);
-  if (!container || !data) return;
-
-  let html = `<table class="pivot-matrix-table" style="font-size: 0.78rem;">`;
-  html += `<thead><tr>`;
-  (data.index_names || []).forEach((name) => {
-    html += `<th class="pmt-corner">${name}</th>`;
-  });
-  (data.column_headers || []).forEach((h) => {
-    html += `<th class="pmt-col-header">${h}</th>`;
-  });
-  html += `</tr></thead><tbody>`;
-
-  (data.rows || []).forEach((r) => {
-    html += `<tr>`;
-    (r.row_labels || []).forEach((lbl) => {
-      html += `<td class="pmt-row-header">${lbl}</td>`;
-    });
-    (r.cells || []).forEach((val) => {
-      let formattedVal = val.toLocaleString("tr-TR", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      });
-      html += `<td class="pmt-val-cell">${formattedVal}</td>`;
-    });
-    html += `</tr>`;
-  });
-
-  html += `</tbody></table>`;
-  container.innerHTML = html;
-}
-
-function setupDashboardEvents() {
-  document.querySelectorAll(".btn-dash-del").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const idx = parseInt(e.currentTarget.dataset.idx);
-      dashboardCharts.splice(idx, 1);
-      window.dashboardCharts = dashboardCharts;
-      updateDashboardBadge();
-      renderDashboardGrid();
-    });
-  });
-  document
-    .querySelectorAll('.dash-card-title[contenteditable="true"]')
-    .forEach((titleEl) => {
-      titleEl.addEventListener("blur", (e) => {
-        const idx = parseInt(e.currentTarget.dataset.idx);
-        if (dashboardCharts[idx]) {
-          dashboardCharts[idx].title =
-            e.currentTarget.textContent.trim() || dashboardCharts[idx].title;
-        }
-      });
-    });
-}
-
-/* ── 7. STATS & AI (Qwen2.5) & EXPORT ── */
+/* ── 5. STATS & AI (Qwen2.5) & EXPORT ── */
 async function fetchStats(cols = null) {
   if (!cols || !cols.length) {
     cols = axisConfig.y.filter((c) => numericColumns.includes(c));
@@ -1416,13 +892,14 @@ function renderStatsCards(data) {
   return html;
 }
 
-async function exportActiveDataset(format) {
+async function exportActiveDataset(format, triggerBtnId = null) {
   const btnId =
-    format === "csv"
+    triggerBtnId ||
+    (format === "csv"
       ? "downloadCsvBtn"
       : format === "parquet"
         ? "downloadParquetBtn"
-        : "downloadExcelBtn";
+        : "downloadExcelBtn");
   const btn = document.getElementById(btnId);
   const orig = btn ? btn.innerHTML : "";
   if (btn) {
@@ -1669,6 +1146,9 @@ function initChartManagerListeners() {
 
         calcColModal?.classList.add("hidden");
         initDragDropPool(true);
+        if (typeof renderPivotPoolStructured === "function") {
+          renderPivotPoolStructured();
+        }
       } catch (err) {
         alert("Hesaplama başarısız: " + err.message);
       }
@@ -1679,14 +1159,15 @@ function initChartManagerListeners() {
     "btnOpenFilterModal",
     "btnOpenFilterModalS2",
     "btnOpenFilterModalS3",
+    "btnOpenFilterModalPivot",
   ].forEach((id) => {
     document.getElementById(id)?.addEventListener("click", openFilterModal);
   });
-  document
-    .getElementById("btnCloseFilterModal")
-    ?.addEventListener("click", () => {
+  ["btnCloseFilterModal", "btnCancelFilter"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", () => {
       document.getElementById("filterModal")?.classList.add("hidden");
     });
+  });
 
   document.getElementById("catSearchInput")?.addEventListener("input", (e) => {
     const q = e.target.value.toLowerCase().trim();
@@ -1697,6 +1178,28 @@ function initChartManagerListeners() {
       .forEach((item) => {
         const text = item.textContent.toLowerCase();
         item.style.display = !q || text.includes(q) ? "" : "none";
+      });
+  });
+
+  document.getElementById("btnSelectAllCat")?.addEventListener("click", () => {
+    document
+      .querySelectorAll("#catCheckboxesList .cat-checkbox-item")
+      .forEach((item) => {
+        if (item.style.display !== "none") {
+          const cb = item.querySelector("input[type='checkbox']");
+          if (cb) cb.checked = true;
+        }
+      });
+  });
+
+  document.getElementById("btnClearAllCat")?.addEventListener("click", () => {
+    document
+      .querySelectorAll("#catCheckboxesList .cat-checkbox-item")
+      .forEach((item) => {
+        if (item.style.display !== "none") {
+          const cb = item.querySelector("input[type='checkbox']");
+          if (cb) cb.checked = false;
+        }
       });
   });
 
@@ -1794,14 +1297,17 @@ function initChartManagerListeners() {
     window.activeFilters = activeFilters;
     document.getElementById("filterModal")?.classList.add("hidden");
     renderActiveFilterChips();
-    if (currentChartData && currentPlotType) refreshActiveChart();
+    syncFilteredViews();
   });
 
-  document.getElementById("btnResetFilters")?.addEventListener("click", () => {
-    activeFilters = [];
-    window.activeFilters = activeFilters;
-    renderActiveFilterChips();
-    if (currentChartData && currentPlotType) refreshActiveChart();
+  ["btnResetFilters", "btnResetFilter"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", () => {
+      activeFilters = [];
+      window.activeFilters = activeFilters;
+      document.getElementById("filterModal")?.classList.add("hidden");
+      renderActiveFilterChips();
+      syncFilteredViews();
+    });
   });
 
   // Aggregation Function Sync
@@ -1945,20 +1451,6 @@ function initChartManagerListeners() {
     });
   });
 
-  // Inspector change handlers
-  const handleAnalyticsChange = () => {
-    if (currentChartData && currentPlotType) refreshActiveChart();
-  };
-  document
-    .getElementById("showTrendline")
-    ?.addEventListener("change", handleAnalyticsChange);
-  document
-    .getElementById("regModelSelect")
-    ?.addEventListener("change", handleAnalyticsChange);
-  document
-    .getElementById("corrMethodSelect")
-    ?.addEventListener("change", handleAnalyticsChange);
-
   document.getElementById("applyCustomsBtn")?.addEventListener("click", () => {
     if (currentChartData && currentPlotType) {
       if (typeof drawMegaPlotly === "function") {
@@ -1984,6 +1476,11 @@ function initChartManagerListeners() {
   document
     .getElementById("downloadParquetBtn")
     ?.addEventListener("click", () => exportActiveDataset("parquet"));
+  document
+    .getElementById("btnQuickExportParquet")
+    ?.addEventListener("click", () =>
+      exportActiveDataset("parquet", "btnQuickExportParquet"),
+    );
 
   // Step 3 resize observer
   const chartAreaContainerEl = document.getElementById("chartAreaContainer");
@@ -2071,29 +1568,14 @@ window.restoreZonePlaceholder = restoreZonePlaceholder;
 window.assignPillToZone = assignPillToZone;
 window.handleDropX = handleDropX;
 window.handleDropY = handleDropY;
-
-document
-  .getElementById("s2TabChartsBtn")
-  ?.addEventListener("click", () => switchStep2View("charts"));
-document
-  .getElementById("s2TabStatsBtn")
-  ?.addEventListener("click", () => switchStep2View("stats"));
-
-window.switchStep2View = switchStep2View;
-window.updateStep2Stats = updateStep2Stats;
 window.updateAxisConfig = updateAxisConfig;
 window.renderChartGrid = renderChartGrid;
 window.evaluateCharts = evaluateCharts;
 window.refreshActiveChart = refreshActiveChart;
+window.syncFilteredViews = syncFilteredViews;
 window.openFilterModal = openFilterModal;
 window.renderCatCheckboxes = renderCatCheckboxes;
 window.renderActiveFilterChips = renderActiveFilterChips;
-window.fetchKpis = fetchKpis;
-window.renderKpiTiles = renderKpiTiles;
-window.updateDashboardBadge = updateDashboardBadge;
-window.addChartToDashboard = addChartToDashboard;
-window.renderDashboardGrid = renderDashboardGrid;
-window.setupDashboardEvents = setupDashboardEvents;
 window.fetchStats = fetchStats;
 window.renderStatsCards = renderStatsCards;
 window.exportActiveDataset = exportActiveDataset;

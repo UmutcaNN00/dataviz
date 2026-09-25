@@ -108,7 +108,9 @@ def detect_column_anomalies(df):
             continue
 
         series = sample_df[col]
-        parsed_vals = series.apply(robust_parse_numeric_string)
+        if isinstance(series.dtype, pd.CategoricalDtype):
+            series = series.astype(object)
+        parsed_vals = pd.to_numeric(series.apply(robust_parse_numeric_string), errors='coerce')
         sample_valid_numeric_count = int(parsed_vals.notna().sum())
 
         # If at least 2 numbers and >=15% parseable as numeric, but contains text anomalies
@@ -140,6 +142,25 @@ def detect_column_anomalies(df):
     return anomalies
 
 
+def _parse_series_fast(series, use_float32=False):
+    """
+    Vectorized / Category-aware numeric string parser.
+    For CategoricalDtype columns (e.g. 100M rows with dictionary encoding), parses only unique categories
+    and maps codes in C/NumPy (~1000x faster and 10x less RAM).
+    """
+    target_dtype = np.float32 if use_float32 else np.float64
+    if isinstance(series.dtype, pd.CategoricalDtype):
+        cats = pd.Series(series.cat.categories, dtype=object)
+        cat_parsed = pd.to_numeric(cats.apply(robust_parse_numeric_string), errors='coerce').to_numpy(dtype=target_dtype)
+        codes = series.cat.codes.to_numpy()
+        out = np.full(len(series), np.nan, dtype=target_dtype)
+        valid_code_mask = codes >= 0
+        out[valid_code_mask] = cat_parsed[codes[valid_code_mask]]
+        return pd.Series(out, index=series.index, dtype=target_dtype)
+    parsed = pd.to_numeric(series.apply(robust_parse_numeric_string), errors='coerce')
+    return parsed.astype(target_dtype)
+
+
 def repair_column_data(df, target_column='__all__', repair_mode='smart_heal'):
     """
     Repairs column anomalies in a DataFrame.
@@ -157,7 +178,8 @@ def repair_column_data(df, target_column='__all__', repair_mode='smart_heal'):
     if df is None or df.empty:
         return df, []
 
-    df_copy = df.copy()
+    is_massive = len(df) > 1_000_000
+    df_copy = df.copy(deep=not is_massive)
     detected_anomalies = detect_column_anomalies(df_copy)
 
     if target_column == '__all__':
@@ -170,38 +192,41 @@ def repair_column_data(df, target_column='__all__', repair_mode='smart_heal'):
     if not cols_to_repair:
         return df_copy, []
 
+    target_float = np.float32 if is_massive else float
+
     for col in cols_to_repair:
         series = df_copy[col]
-        parsed = series.apply(robust_parse_numeric_string)
+        parsed = _parse_series_fast(series, use_float32=is_massive)
 
         if repair_mode == 'drop_rows':
             valid_rows = parsed.notna()
             df_copy = df_copy[valid_rows].copy()
-            df_copy[col] = parsed[valid_rows].astype(float)
+            df_copy[col] = parsed[valid_rows].astype(target_float)
             df_copy = df_copy.reset_index(drop=True)
         elif repair_mode == 'fill_zero':
-            df_copy[col] = parsed.fillna(0.0).astype(float)
+            df_copy[col] = parsed.fillna(0.0).astype(target_float)
         elif repair_mode == 'fill_mean' or repair_mode == 'smart_heal':
             mean_val = float(parsed.mean()) if pd.notnull(parsed.mean()) else 0.0
-            df_copy[col] = parsed.fillna(mean_val).astype(float)
+            df_copy[col] = parsed.fillna(target_float(mean_val)).astype(target_float)
         elif repair_mode == 'fill_median':
             med_val = float(parsed.median()) if pd.notnull(parsed.median()) else 0.0
-            df_copy[col] = parsed.fillna(med_val).astype(float)
+            df_copy[col] = parsed.fillna(target_float(med_val)).astype(target_float)
         elif repair_mode == 'coerce_nan':
-            df_copy[col] = parsed.astype(float)
+            df_copy[col] = parsed.astype(target_float)
         else:
             mean_val = float(parsed.mean()) if pd.notnull(parsed.mean()) else 0.0
-            df_copy[col] = parsed.fillna(mean_val).astype(float)
+            df_copy[col] = parsed.fillna(target_float(mean_val)).astype(target_float)
 
     return df_copy, cols_to_repair
 
 
 def _fill_categorical_columns(df_clean, fill_label='Bilinmiyor'):
     for c in df_clean.select_dtypes(include=['object', 'category', 'string']).columns:
-        if isinstance(df_clean[c].dtype, pd.CategoricalDtype):
-            if fill_label not in df_clean[c].cat.categories:
-                df_clean[c] = df_clean[c].cat.add_categories([fill_label])
-        df_clean[c] = df_clean[c].fillna(fill_label)
+        if df_clean[c].isna().any():
+            if isinstance(df_clean[c].dtype, pd.CategoricalDtype):
+                if fill_label not in df_clean[c].cat.categories:
+                    df_clean[c] = df_clean[c].cat.add_categories([fill_label])
+            df_clean[c] = df_clean[c].fillna(fill_label)
 
 
 def clean_missing_data(df, action='drop'):
@@ -215,22 +240,32 @@ def clean_missing_data(df, action='drop'):
     if df is None or df.empty:
         return df
 
-    df_clean = df.copy()
+    is_massive = len(df) > 1_000_000
+    df_clean = df.copy(deep=not is_massive)
     if action == 'drop':
         df_clean = df_clean.dropna().reset_index(drop=True)
     elif action in ('fill_mean', 'mean'):
         num_cols = df_clean.select_dtypes(include=['number']).columns
-        means = df_clean[num_cols].mean()
-        df_clean[num_cols] = df_clean[num_cols].fillna(means).fillna(0)
+        for c in num_cols:
+            if df_clean[c].isna().any():
+                m_val = df_clean[c].mean()
+                fill_v = 0.0 if pd.isna(m_val) else m_val
+                df_clean[c] = df_clean[c].fillna(fill_v)
         _fill_categorical_columns(df_clean)
     elif action in ('fill_median', 'median'):
         num_cols = df_clean.select_dtypes(include=['number']).columns
-        medians = df_clean[num_cols].median()
-        df_clean[num_cols] = df_clean[num_cols].fillna(medians).fillna(0)
+        for c in num_cols:
+            if df_clean[c].isna().any():
+                med_val = df_clean[c].iloc[:500_000].median() if is_massive else df_clean[c].median()
+                fill_v = 0.0 if pd.isna(med_val) else med_val
+                df_clean[c] = df_clean[c].fillna(fill_v)
         _fill_categorical_columns(df_clean)
     elif action in ('fill_zero', 'zero'):
         num_cols = df_clean.select_dtypes(include=['number']).columns
-        df_clean[num_cols] = df_clean[num_cols].fillna(0)
+        for c in num_cols:
+            if df_clean[c].isna().any():
+                df_clean[c] = df_clean[c].fillna(0)
         _fill_categorical_columns(df_clean)
 
     return df_clean
+

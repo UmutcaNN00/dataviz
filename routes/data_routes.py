@@ -35,8 +35,16 @@ def check_health():
         ), 400
 
     try:
-        missing_count = int(global_df.isnull().sum().sum())
-        missing_rows = int(global_df.isnull().any(axis=1).sum())
+        total_n = len(global_df)
+        missing_count = int(sum(int(global_df[c].isna().sum()) for c in global_df.columns))
+        if missing_count == 0:
+            missing_rows = 0
+        elif total_n > 500_000:
+            sample_check = global_df.sample(n=min(50_000, total_n), random_state=42)
+            sample_missing_ratio = float(sample_check.isna().any(axis=1).mean())
+            missing_rows = max(1, int(round(sample_missing_ratio * total_n)))
+        else:
+            missing_rows = int(global_df.isnull().any(axis=1).sum())
         anomalies = detect_column_anomalies(global_df)
 
         resp = jsonify(

@@ -202,7 +202,7 @@ python test_system_connectivity.py
 
 ---
 
-## 📝 Lisans
+##  Lisans
 
 Bu proje **MIT Lisansı** altında lisanslanmıştır.
 

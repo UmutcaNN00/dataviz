@@ -1,28 +1,9 @@
 // Safe Global Fallbacks
-if (typeof window.axisConfig === "undefined")
-  window.axisConfig = { x: null, y: [] };
-if (typeof window.numericColumns === "undefined") window.numericColumns = [];
-if (typeof window.categoricalColumns === "undefined")
-  window.categoricalColumns = [];
-if (typeof window.activeFilters === "undefined") window.activeFilters = [];
-if (typeof window.PALETTE === "undefined")
-  window.PALETTE = [
-    "#38bdf8",
-    "#818cf8",
-    "#34d399",
-    "#fbbf24",
-    "#f43f5e",
-    "#a78bfa",
-    "#4ade80",
-    "#c084fc",
-    "#f97316",
-    "#22d3ee",
-  ];
-var axisConfig = window.axisConfig;
-var numericColumns = window.numericColumns;
-var categoricalColumns = window.categoricalColumns;
-var activeFilters = window.activeFilters;
-var PALETTE = window.PALETTE;
+var axisConfig = window.axisConfig || { x: null, y: [] };
+var numericColumns = window.numericColumns || [];
+var categoricalColumns = window.categoricalColumns || [];
+var activeFilters = window.activeFilters || [];
+var PALETTE = window.PALETTE || [];
 
 const CHARTS = [
   // 📈 TREND
@@ -1096,17 +1077,10 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
       const isXNum = curAxisX && numCols.includes(curAxisX);
       const firstY = curAxisY.length > 0 ? curAxisY[0] : null;
       const isYNum = firstY && numCols.includes(firstY);
-      const badgeEls = [
-        document.getElementById("chartStatsBadge"),
-        document.getElementById("chartStatsBanner"),
-        document.getElementById("canvasEquationBadge"),
-      ].filter(Boolean);
-      const showTrend =
-        document.getElementById("showTrendline")?.checked ?? type === "scatter";
-      const regModel =
-        document.getElementById("regModelSelect")?.value || "linear";
-      const corrMethod =
-        document.getElementById("corrMethodSelect")?.value || "pearson";
+      const statsBadgeEl = document.getElementById("chartStatsBadge");
+      const showTrend = type === "scatter";
+      const regModel = "linear";
+      const corrMethod = "pearson";
 
       if (isXNum && isYNum) {
         try {
@@ -1126,35 +1100,12 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
             const reg = regData.regression;
             const corr = regData.correlation;
 
-            // 1. Canlı İstatistik Sonuç Kartını ve Overlay Rozetini Güncelle
-            const corrSymbol =
-              corrMethod === "spearman"
-                ? "ρ"
-                : corrMethod === "kendall"
-                  ? "τ"
-                  : "r";
+            // 1. Canlı İstatistik Overlay Rozetini Güncelle
+            const corrSymbol = "r";
             const corrText = corr.coef != null ? corr.coef.toFixed(4) : "-";
             const r2Text =
               reg.r_squared != null ? reg.r_squared.toFixed(4) : "-";
             const eqText = reg.equation || "-";
-
-            const corrMetricNameEl = document.getElementById("corrMetricName");
-            if (corrMetricNameEl) corrMetricNameEl.textContent = corrSymbol;
-
-            const statCorrValEl = document.getElementById("statCorrVal");
-            if (statCorrValEl) statCorrValEl.textContent = corrText;
-
-            const statInterpretationEl =
-              document.getElementById("statInterpretation");
-            if (statInterpretationEl)
-              statInterpretationEl.textContent = corr.interpretation || "";
-
-            const statR2ValEl = document.getElementById("statR2Val");
-            if (statR2ValEl) statR2ValEl.textContent = r2Text;
-
-            const statEquationValEl =
-              document.getElementById("statEquationVal");
-            if (statEquationValEl) statEquationValEl.textContent = eqText;
 
             const csbEquation = document.getElementById("csbEquation");
             const csbR2 = document.getElementById("csbR2");
@@ -1165,34 +1116,7 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
             if (csbCorrName) csbCorrName.textContent = corrSymbol;
             if (csbCorr) csbCorr.textContent = corrText;
 
-            const statPValEl = document.getElementById("statPVal");
-            if (statPValEl) {
-              if (corr.p_value != null) {
-                statPValEl.textContent =
-                  corr.p_value < 0.0001 ? "< 0.0001" : corr.p_value.toFixed(4);
-              } else {
-                statPValEl.textContent = "-";
-              }
-            }
-
-            const statSigBadgeEl = document.getElementById(
-              "statSignificanceBadge",
-            );
-            if (statSigBadgeEl) {
-              if (corr.p_value != null && corr.p_value < 0.05) {
-                statSigBadgeEl.textContent = "Anlamlı (p < 0.05)";
-                statSigBadgeEl.style.background = "rgba(52, 211, 153, 0.15)";
-                statSigBadgeEl.style.color = "#34d399";
-              } else if (corr.p_value != null) {
-                statSigBadgeEl.textContent = "Anlamsız (p ≥ 0.05)";
-                statSigBadgeEl.style.background = "rgba(251, 191, 36, 0.15)";
-                statSigBadgeEl.style.color = "#fbbf24";
-              } else {
-                statSigBadgeEl.textContent = "-";
-              }
-            }
-
-            // 2. Trendline Çizgisi Ekle (Eğer Kullanıcı İstemişse)
+            // 2. Trendline Çizgisi Ekle (Scatter Grafiği İçin)
             if (showTrend && reg.trend_x && reg.trend_x.length > 0) {
               traces.push({
                 type: "scatter",
@@ -1208,31 +1132,17 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
                 hoverinfo: "x+y+name",
               });
 
-              badgeEls.forEach((b) => b.classList.remove("hidden"));
+              statsBadgeEl?.classList.remove("hidden");
             } else {
-              badgeEls.forEach((b) => b.classList.add("hidden"));
+              statsBadgeEl?.classList.add("hidden");
             }
           }
         } catch (regErr) {
           console.warn("Regresyon eğrisi yüklenirken hata:", regErr);
-          badgeEls.forEach((b) => b.classList.add("hidden"));
+          statsBadgeEl?.classList.add("hidden");
         }
       } else {
-        badgeEls.forEach((b) => b.classList.add("hidden"));
-        const statInterpretationEl =
-          document.getElementById("statInterpretation");
-        if (statInterpretationEl)
-          statInterpretationEl.textContent =
-            "Korelasyon ve regresyon için X ve Y eksenlerinin her ikisinin de sayısal olması gerekir.";
-        const statEquationValEl = document.getElementById("statEquationVal");
-        if (statEquationValEl)
-          statEquationValEl.textContent = "Sayısal değişken seçilmedi";
-        const statCorrValEl = document.getElementById("statCorrVal");
-        if (statCorrValEl) statCorrValEl.textContent = "-";
-        const statR2ValEl = document.getElementById("statR2Val");
-        if (statR2ValEl) statR2ValEl.textContent = "-";
-        const statPValEl = document.getElementById("statPVal");
-        if (statPValEl) statPValEl.textContent = "-";
+        statsBadgeEl?.classList.add("hidden");
         const csbEquation = document.getElementById("csbEquation");
         if (csbEquation) csbEquation.textContent = "-";
         const csbR2 = document.getElementById("csbR2");

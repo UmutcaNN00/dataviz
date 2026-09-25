@@ -694,6 +694,9 @@
           <button class="btn-ghost" id="btnCancelFilter" style="flex: 1">
             İptal
           </button>
+          <button class="btn-ghost" id="btnResetFilters" style="flex: 1">
+            Tümünü Sıfırla
+          </button>
           <button class="btn-primary" id="btnApplyFilter" style="flex: 1">
             Filtreyi Uygula
           </button>
@@ -2465,6 +2468,33 @@
               >
                 ⚡ Aktif Veriyi Parquet İndir
               </button>
+
+              <div style="display: flex; gap: 8px; width: 100%">
+                <button
+                  id="downloadCsvBtn"
+                  class="btn-ghost"
+                  style="
+                    flex: 1;
+                    border-color: rgba(56, 189, 248, 0.4);
+                    color: #38bdf8;
+                    font-weight: 600;
+                  "
+                >
+                  📄 CSV İndir
+                </button>
+                <button
+                  id="downloadExcelBtn"
+                  class="btn-ghost"
+                  style="
+                    flex: 1;
+                    border-color: rgba(168, 85, 247, 0.4);
+                    color: #c084fc;
+                    font-weight: 600;
+                  "
+                >
+                  📊 Excel İndir
+                </button>
+              </div>
             </div>
           </div>
 
@@ -2746,7 +2776,10 @@
           </div>
 
           <!-- Tam Ekran Tablo Alanı -->
-          <div class="pms-table-stage-wrapper" style="flex: 1; margin-top: 10px">
+          <div
+            class="pms-table-stage-wrapper"
+            style="flex: 1; margin-top: 10px"
+          >
             <div id="pmsTableContainer" class="pms-table-container">
               <div class="pivot-loading-msg">
                 ⏳ Pivot Tablosu Hesaplanıyor...
@@ -2804,6 +2837,7 @@
     <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20260924_fix_scatter1"></script>
+    <script src="{{ url_for('static', filename='js/modules/dashboard_studio.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/regression_studio.js') }}?v=20260924_fix_scatter1"></script>
     <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20260924_fix_scatter1"></script>

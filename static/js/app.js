@@ -61,6 +61,9 @@ function setUploadStatus(html, isError = false) {
 }
 
 function applyUploadedDataset(data) {
+  if (data.file_name) {
+    activeFileName = window.activeFileName = data.file_name;
+  }
   numericColumns = window.numericColumns = data.numeric_columns || [];
   categoricalColumns = window.categoricalColumns =
     data.categorical_columns || [];
@@ -534,69 +537,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// FIXING UNIMPLEMENTED BUTTONS
+// CHART EXPORT & CUSTOMIZATION HANDLERS
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Filter Modal
-  document.getElementById("btnSelectAllCat")?.addEventListener("click", () => {
-    document
-      .querySelectorAll(
-        '#catCheckboxesList input[type="checkbox"], #filterCatList input[type="checkbox"]',
-      )
-      .forEach((cb) => (cb.checked = true));
-  });
-  document.getElementById("btnClearAllCat")?.addEventListener("click", () => {
-    document
-      .querySelectorAll(
-        '#catCheckboxesList input[type="checkbox"], #filterCatList input[type="checkbox"]',
-      )
-      .forEach((cb) => (cb.checked = false));
-  });
-  document.getElementById("btnCancelFilter")?.addEventListener("click", () => {
-    document.getElementById("filterModal")?.classList.add("hidden");
-  });
-
-  // 2. Export Parquet
-  document
-    .getElementById("btnQuickExportParquet")
-    ?.addEventListener("click", async () => {
-      try {
-        if (typeof showToast === "function")
-          showToast("Parquet dosyası hazırlanıyor...", "info");
-        const filters = window.activeFilters
-          ? Object.values(window.activeFilters)
-          : [];
-        const response = await fetch("/export_data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ format: "parquet", filters }),
-        });
-        if (!response.ok) throw new Error("Dışa aktarma başarısız");
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "dataviz_export.parquet";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      } catch (e) {
-        if (typeof showToast === "function")
-          showToast("Hata: " + e.message, "error");
-        else alert("Hata: " + e.message);
-      }
-    });
-
-  // 3. Step 3 Filter Button
-  document
-    .getElementById("btnOpenFilterModalS3")
-    ?.addEventListener("click", () => {
-      if (typeof openFilterModal === "function") openFilterModal();
-      else document.getElementById("filterModal")?.classList.remove("hidden");
-    });
-
-  // 4. Download Chart Buttons (PNG & PDF)
+  // Download Chart Buttons (PNG & PDF)
   document.getElementById("downloadPngBtn")?.addEventListener("click", () => {
     const mainChart =
       document.getElementById("chartArea") ||

@@ -123,6 +123,8 @@ async function executeMerge() {
 
     dataMergeModal?.classList.add("hidden");
     if (typeof initDragDropPool === "function") initDragDropPool(true);
+    if (typeof renderPivotPoolStructured === "function")
+      renderPivotPoolStructured();
     if (
       currentChartData &&
       currentPlotType &&

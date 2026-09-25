@@ -228,6 +228,8 @@ async function callRepairColumn(columnName, mode) {
     window.globalColumns = globalColumns;
 
     if (typeof initDragDropPool === "function") initDragDropPool(true);
+    if (typeof renderPivotPoolStructured === "function")
+      renderPivotPoolStructured();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
     if (typeof evaluateCharts === "function") evaluateCharts();
 
@@ -279,6 +281,8 @@ async function callCleanData(action) {
     window.globalColumns = globalColumns;
 
     if (typeof initDragDropPool === "function") initDragDropPool(true);
+    if (typeof renderPivotPoolStructured === "function")
+      renderPivotPoolStructured();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
     if (typeof evaluateCharts === "function") evaluateCharts();
     if (
