@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Flask-3.x-black?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
   <img src="https://img.shields.io/badge/Lisans-MIT-yellow?style=for-the-badge" alt="MIT">
+  <img src="https://img.shields.io/badge/TÜBİTAK-2209--A_Projesi-e11d48?style=for-the-badge" alt="TÜBİTAK 2209-A">
 </p>
 
 </div>
@@ -73,7 +74,7 @@ DataViz, teknik veya kodlama bilgisi gerektirmeden **3 basit adımda** uçtan uc
 
 | Modül | Özellik | Ne İşe Yarar? |
 |---|---|---|
-| 🚀 **Büyük Veri Motoru** | **Polars + PyArrow & Sütun İzdüşümü** | 5 GB'a kadar dosya yükleme desteği; tüm tabloyu kopyalamadan yalnızca seçili X/Y sütunlarını işleyerek milyonlarca satırı milisaniyeler içinde görselleştirir. |
+| 🚀 **Büyük Veri Motoru** | **Polars + PyArrow Zero-Copy & Sütun İzdüşümü** | 5 GB'a kadar dosya yükleme desteği; PyArrow zero-copy ile **100M satırı ~62 saniyede** yükler. Yalnızca seçili X/Y sütunlarını işleyerek belleği optimize eder. |
 | 🩺 **Data Healer** | **Akıllı Veri ve Tip Onarıcı** | Sayısal sütunlara karışmış `₺5.200`, `1.250.000`, `120kg`, `%85`, `Yok`, `N/A` gibi bozuk ifadeleri otomatik tespit eder ve tek tıkla gerçek sayısal tipe dönüştürür. |
 | 📊 **Grafik Stüdyosu** | **50+ İnteraktif Plotly.js Grafiği** | Çubuk, Çizgi, Alan, Dağılım (Scatter), Kutu (Box), Keman (Violin), Halter (Dumbbell), Lolipop, Kadran (Gauge), Radyal Çubuk, Sunburst, Treemap, 3D Yüzey ve Finans (Mum/OHLC) grafikleri. |
 | 🔬 **Regresyon Stüdyosu** | **Korelasyon & Regresyon Analizi** | Pearson ($r$), Spearman ($\rho$) ve Kendall ($\tau$) korelasyon matrisi; Doğrusal, Polinom (2. ve 3. derece), Logaritmik ve Üstel regresyon modelleri + **%95 Güven Aralığı Bandı**. |
@@ -125,7 +126,19 @@ dataviz/
 ├── app.py                          # Flask uygulama giriş noktası ve JSON serileştirici (NaN/Inf korumalı)
 ├── requirements.txt                # Python bağımlılıkları (Flask, Polars, PyArrow, SciPy, Pandas, NumPy)
 ├── DEMO_BASLAT.bat                 # Windows için tek tıkla başlatıcı
+├── Dockerfile                      # Docker konteyner tanımı
+├── docker-compose.yml              # Docker Compose çoklu servis yapılandırması
 ├── test_system_connectivity.py     # 19 adımlı uçtan uca (E2E) entegrasyon test paketi
+├── generate_100m_dataset.py        # 100M satır × 22 sütun gerçekçi kirli Parquet veri seti üreteci
+├── generate_academic_tubitak_report.py  # 14 sayfalık TÜBİTAK 2209-A akademik PDF rapor üreteci
+├── pyrightconfig.json              # Pylance/Pyright tip denetimi yapılandırması
+├── GEMINI.md                       # AI asistan çalışma alanı kuralları
+│
+├── .agents/skills/                 # Yeniden Kullanılabilir AI Skill Tanımları
+│   ├── dataviz-architecture/       # Proje mimarisi ve konvansiyonlar
+│   ├── massive-dataset-optimization/  # 100M+ satır PyArrow/Parquet optimizasyonu
+│   ├── tubitak-2209a-report/       # TÜBİTAK 2209-A PDF rapor üretim rehberi
+│   └── vscode-ide-diagnostics/     # VS Code Pylance/Ruff diagnostik çözümleri
 │
 ├── core/                           # Çekirdek Yapılandırma ve Bellek Yönetimi
 │   ├── config.py                   # Yükleme limitleri (5 GB), izin verilen uzantılar ve dizin ayarları
@@ -154,8 +167,9 @@ dataviz/
 │       └── modules/
 │           ├── globals.js          # Paylaşılan uygulama durumu (State)
 │           ├── charts_config.js    # 50+ Plotly grafik şablonu ve drawMegaPlotly() çizim motoru
-│           ├── chart_manager.js    # Sürükle-bırak eksen havuzu, filtreler, öneri motoru ve Çoklu Pano
-│           ├── data_prep.js        # Data Healer arayüzü ve veri temizleme işlemleri
+│           ├── chart_manager.js    # Sürükle-bırak eksen havuzu, filtreler ve öneri motoru
+│           ├── dashboard_studio.js # KPI kartları, Çoklu Pano (Dashboard Grid) ve sabitlenen grafikler
+│           ├── data_prep.js        # Data Healer arayüzü, dilimleyiciler ve formül sihirbazı
 │           ├── pivot_studio.js     # Sürükle-bırak Pivot Matris Stüdyosu
 │           ├── regression_studio.js# Korelasyon matrisi ve Regresyon Stüdyosu kontrolcüsü
 │           ├── join_modal.js       # İkinci dosya önizleme ve SQL Join birleştirme modalı
@@ -194,6 +208,40 @@ python test_system_connectivity.py
 
 ---
 
+## 🏎️ Performans Benchmark: 100 Milyon Satır
+
+DataViz, PyArrow zero-copy ve kategorik sütun optimizasyonu ile devasa veri setlerini verimli biçimde işler:
+
+| Metrik | Değer |
+|--------|-------|
+| **Veri Seti** | 100.000.000 satır × 22 sütun (2.2 milyar hücre) |
+| **Parquet Boyutu** | 4.20 GB (ZSTD sıkıştırma) |
+| **Yükleme Süresi** | ~62.5 saniye |
+| **RAM Kullanımı** | ~6.35 GB |
+| **Data Healer Hızlanması** | Kategorik sütun parse: ~1000x (`apply()` yerine NumPy indexing) |
+
+> 💡 `generate_100m_dataset.py` betiği ile kendi 100M satırlık test veri setinizi üretebilirsiniz.
+
+---
+
+## 🎓 TÜBİTAK 2209-A Akademik Proje
+
+DataViz, **TÜBİTAK 2209-A Üniversite Öğrencileri Araştırma Projeleri Destekleme Programı** kapsamında geliştirilmektedir.
+
+Proje deposunda bulunan `generate_academic_tubitak_report.py` betiği ile **14 sayfalık akademik kalitede PDF rapor** otomatik olarak üretilebilir. Rapor içeriği:
+
+- 📋 Projenin Özgün Değeri ve Literatür Karşılaştırması
+- 🔬 Hipotezler (H₀ / H₁) ve SMART Hedefler
+- 🏗️ 4 Katmanlı Teknik Mimari Açıklaması
+- 📊 100M Satır Benchmark Sonuçları
+- 📅 6 İş Paketi ve 12 Aylık Gantt Şeması
+- ⚠️ Risk Analizi ve B Planı
+- 🌍 Sürdürülebilir Kalkınma Amaçları (SKA 4 ve SKA 9)
+- 💰 Kalem Bazlı Bütçe Tablosu
+- 🎤 12 Soruluk Jüri Savunma Rehberi
+
+---
+
 ## 🔒 Gizlilik & Sistem Gereksinimleri
 
 - **%100 Yerel Mimari:** Yüklediğiniz hiçbir veri seti internet üzerinden herhangi bir sunucuya gönderilmez.
@@ -202,7 +250,7 @@ python test_system_connectivity.py
 
 ---
 
-##  Lisans
+## 📜 Lisans
 
 Bu proje **MIT Lisansı** altında lisanslanmıştır.
 
