@@ -74,7 +74,6 @@ def get_stats():
 
 
 @stats_bp.route("/get_kpi_summary", methods=["POST"])
-@stats_bp.route("/get_kpis", methods=["POST"])
 def get_kpi_summary():
     """Generates high-level KPI tiles for the active filtered dataset."""
     global_df = get_df(1)
@@ -93,10 +92,8 @@ def get_kpi_summary():
         return jsonify({"error": f"KPI özeti hesaplanırken hata: {e}"}), 500
 
 
-@stats_bp.route("/generate_interpretation", methods=["POST"])
 @stats_bp.route("/generate_insight", methods=["POST"])
-@stats_bp.route("/get_ai_insight", methods=["POST"])
-def generate_interpretation():
+def generate_insight():
     """Generates academic, APA-style statistical commentary and business insights."""
     data = request.get_json(silent=True) or {}
     stats = data.get("stats", {})
@@ -118,7 +115,7 @@ def generate_interpretation():
         )
         return jsonify(result)
     except Exception as e:
-        logger.exception("generate_interpretation hatası")
+        logger.exception("generate_insight hatası")
         return jsonify({"error": f"Yorum üretilirken hata: {e}"}), 500
 
 
@@ -140,7 +137,6 @@ def get_correlation_matrix_route():
 
 
 @stats_bp.route("/get_regression_studio_data", methods=["POST"])
-@stats_bp.route("/run_regression_studio", methods=["POST"])
 def get_regression_studio_data_route():
     """
     Returns full regression curve, scatter points sample, correlation,

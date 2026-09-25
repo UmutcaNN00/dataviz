@@ -4,6 +4,8 @@
 ════════════════════════════════════════════════════════════ */
 
 var lastHealthData = null;
+var isDataPrepBusy = false;
+window.isDataPrepBusy = false;
 
 function updateAnomalyBadges(healthData) {
   const anomCount = healthData?.anomalies?.length || 0;
@@ -41,9 +43,33 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
   const fillBtn = document.getElementById("dpFillBtn");
   const fillZeroBtn = document.getElementById("dpFillZeroBtn");
 
-  if (cardsList)
-    cardsList.innerHTML =
-      '<div style="color:var(--muted); text-align:center; padding:20px; font-size:0.85rem;"><div class="spinner" style="margin-bottom:8px;"></div>Veri sağlığı ve sütun tipleri taranıyor...</div>';
+  let healthProg = null;
+  if (!preloadedData) {
+    document.getElementById("dpTabBtnAnomalies")?.click();
+    healthProg = window.DataVizProgress?.start({
+      icon: "🩺",
+      title: "Veri Sağlığı Taranıyor",
+      containerId: "dpAnomalyCardsList",
+      showHud: false,
+      stages: [
+        {
+          at: 0,
+          short: "Sütun Taraması",
+          label: "Sütun veri tipleri kontrol ediliyor...",
+        },
+        {
+          at: 50,
+          short: "Anomali Tespiti",
+          label: "Sayısal alanlardaki sözel değerler aranıyor...",
+        },
+        {
+          at: 80,
+          short: "Eksik Hücreler",
+          label: "Boş (NaN) hücre dağılımı hesaplanıyor...",
+        },
+      ],
+    });
+  }
   if (totEl && (!totEl.textContent || totEl.textContent === "0"))
     totEl.textContent = "...";
   if (
@@ -60,6 +86,7 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
       const res = await fetch("/check_health", { cache: "no-store" });
       data = await res.json();
       if (!res.ok) throw new Error(data.error || "Veri kontrol edilemedi");
+      healthProg?.complete("Tarama tamamlandı!");
     }
     lastHealthData = data;
     updateAnomalyBadges(data);
@@ -203,12 +230,48 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
 }
 
 async function callRepairColumn(columnName, mode) {
+  if (isDataPrepBusy) return;
+  isDataPrepBusy = window.isDataPrepBusy = true;
+
   const btnHealAll = document.getElementById("btnHealAllColumns");
-  const origText = btnHealAll ? btnHealAll.textContent : "";
+  const batchBar = document.getElementById("dpBatchActionBar");
+  const DEFAULT_HEAL_TEXT = "🪄 Tümünü Akıllı Onar";
+
   if (btnHealAll) {
     btnHealAll.disabled = true;
     btnHealAll.textContent = "⏳ Onarılıyor...";
   }
+  if (batchBar) {
+    batchBar.classList.add("hidden");
+  }
+
+  const colTitle =
+    columnName === "__all__"
+      ? "Tüm Uyumsuz Sütunlar"
+      : `"${columnName}" Sütunu`;
+  const prog = window.DataVizProgress?.start({
+    icon: "🪄",
+    title: `${colTitle} Onarılıyor`,
+    containerId: "dpAnomalyCardsList",
+    showHud: false,
+    stages: [
+      {
+        at: 0,
+        short: "Hücre Taraması",
+        label: "Sözel ve bozuk hücreler ayıklanıyor...",
+      },
+      {
+        at: 40,
+        short: "Tip Dönüşümü",
+        label: "Sayısal tip dönüşümü ve onarım uygulanıyor...",
+      },
+      {
+        at: 78,
+        short: "Senkronizasyon",
+        label: "Veri havuzu ve önbellek güncelleniyor...",
+      },
+    ],
+  });
 
   try {
     const res = await fetch("/repair_column_anomalies", {
@@ -218,6 +281,12 @@ async function callRepairColumn(columnName, mode) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Onarma işlemi başarısız oldu.");
+
+    // Buton metnini ve kilidini anında sıfırla ("Onarılıyor..." takılı kalmasın)
+    if (btnHealAll) {
+      btnHealAll.disabled = false;
+      btnHealAll.textContent = DEFAULT_HEAL_TEXT;
+    }
 
     numericColumns = data.numeric_columns || [];
     categoricalColumns = data.categorical_columns || [];
@@ -241,29 +310,72 @@ async function callRepairColumn(columnName, mode) {
       refreshActiveChart();
     }
 
-    await openDataPrepModal("anomalies");
+    prog?.complete(`${colTitle} başarıyla onarıldı!`);
+    await new Promise((r) => setTimeout(r, 180));
+    await openDataPrepModal("anomalies", data.health || null);
 
-    const colNameText =
-      columnName === "__all__"
-        ? "Tüm uyumsuz sütunlar"
-        : `"${columnName}" sütunu`;
-    alert(
-      `✓ ${colNameText} başarıyla sayısal tipe onarıldı!\nArtık grafiklerde ve istatistik testlerinde sayısal bir metrik olarak kullanılabilir.`,
-    );
+    const headerBanner = document.getElementById("dpAnomalyHeaderBanner");
+    if (headerBanner) {
+      const colNameText =
+        columnName === "__all__"
+          ? "Tüm uyumsuz sütunlar"
+          : `"${columnName}" sütunu`;
+      headerBanner.insertAdjacentHTML(
+        "afterbegin",
+        `<div style="background:rgba(16,185,129,0.14); border:1px solid rgba(52,211,153,0.35); border-radius:8px; padding:10px 14px; margin-bottom:10px; font-size:0.85rem; color:#6ee7b7; line-height:1.45;">
+          ✓ <strong>${colNameText}</strong> başarıyla sayısal tipe onarıldı ve veri havuzuna eklendi!
+        </div>`,
+      );
+    }
   } catch (err) {
+    prog?.stop();
+    await openDataPrepModal("anomalies", lastHealthData);
     alert("Onarma Hatası: " + err.message);
   } finally {
+    isDataPrepBusy = window.isDataPrepBusy = false;
     if (btnHealAll) {
       btnHealAll.disabled = false;
-      btnHealAll.textContent = origText;
+      btnHealAll.textContent = DEFAULT_HEAL_TEXT;
     }
   }
 }
 
 async function callCleanData(action) {
+  if (isDataPrepBusy) return;
+  isDataPrepBusy = window.isDataPrepBusy = true;
+
   const msgEl = document.getElementById("dpMessage");
-  const origMsg = msgEl ? msgEl.textContent : "";
-  if (msgEl) msgEl.textContent = "⏳ Temizleniyor...";
+  const origMsg = msgEl ? msgEl.innerHTML : "";
+  const dropBtn = document.getElementById("dpDropBtn");
+  const fillBtn = document.getElementById("dpFillBtn");
+  const fillZeroBtn = document.getElementById("dpFillZeroBtn");
+  [dropBtn, fillBtn, fillZeroBtn].forEach((b) => {
+    if (b) b.disabled = true;
+  });
+
+  const prog = window.DataVizProgress?.start({
+    icon: "🧹",
+    title: "Eksik Değerler (NaN) Temizleniyor",
+    containerId: "dpMessage",
+    showHud: false,
+    stages: [
+      {
+        at: 0,
+        short: "Eksik Tespiti",
+        label: "Boş (NaN) hücreler belirleniyor...",
+      },
+      {
+        at: 45,
+        short: "İkame / Silme",
+        label: "Seçilen temizleme yöntemi uygulanıyor...",
+      },
+      {
+        at: 80,
+        short: "Doğrulama",
+        label: "Veri tablosu yeniden doğrulanıyor...",
+      },
+    ],
+  });
   try {
     const res = await fetch("/clean_data", {
       method: "POST",
@@ -292,13 +404,18 @@ async function callCleanData(action) {
     )
       refreshActiveChart();
 
-    await openDataPrepModal("nans");
-    alert(
-      `✓ Boş değer temizleme başarıyla tamamlandı!\nGüncel Satır Sayısı: ${data.total_rows}`,
-    );
+    prog?.complete("Eksik veriler başarıyla temizlendi!");
+    await new Promise((r) => setTimeout(r, 180));
+    await openDataPrepModal("nans", data.health || null);
   } catch (err) {
+    prog?.stop();
     alert("Hata: " + err.message);
-    if (msgEl) msgEl.textContent = origMsg;
+    if (msgEl) msgEl.innerHTML = origMsg;
+  } finally {
+    isDataPrepBusy = window.isDataPrepBusy = false;
+    [dropBtn, fillBtn, fillZeroBtn].forEach((b) => {
+      if (b) b.disabled = false;
+    });
   }
 }
 

@@ -16,7 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/analysis.css') }}?v=20260922_master_ui5"
+      href="{{ url_for('static', filename='css/analysis.css') }}?v=20260925_v8"
     />
   </head>
   <body>
@@ -1422,7 +1422,8 @@
                 display: flex;
                 flex-direction: column;
                 gap: 24px;
-                min-height: 100%;
+                height: auto;
+                min-height: min-content;
               "
             >
               <div
@@ -1478,19 +1479,20 @@
               <!-- Hızlı KPI Şeridi (Genel) -->
               <div id="chartKpiStrip" class="dashboard-kpis"></div>
 
-              <!-- Ana Grid Alanı -->
+              <!-- Ana Yatay Kart Alanı -->
               <div
                 style="
-                  display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                  display: flex;
+                  flex-direction: column;
                   gap: 20px;
+                  width: 100%;
                 "
               >
-                <!-- AI Box (Sol Taraf veya Üst) -->
+                <!-- Akademik İstatistiksel Yorumlayıcı (Üst Yatay Kart) -->
                 <div
                   class="ai-pane-grid-item"
                   style="
-                    grid-column: 1 / -1;
+                    width: 100%;
                     background: rgba(255, 255, 255, 0.03);
                     border: 1px solid rgba(255, 255, 255, 0.1);
                     border-radius: 12px;
@@ -1536,6 +1538,9 @@
                         color: var(--muted);
                         font-size: 0.95rem;
                         line-height: 1.5;
+                        margin: 0;
+                        max-width: 100%;
+                        text-align: left;
                       "
                     >
                       İleri düzey varyans ve dağılım testleri üzerinden
@@ -1580,17 +1585,22 @@
                   </div>
                 </div>
 
-                <!-- Stats Grid -->
+                <!-- Stats Grid (Yatay Tam Genişlik Kartlar) -->
                 <div
                   id="statsGrid"
                   class="bento-stats-grid"
-                  style="display: contents"
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    width: 100%;
+                  "
                 >
                   <!-- JS tarafından Doldurulacak -->
                   <div
                     class="bento-loading"
                     style="
-                      grid-column: 1 / -1;
+                      width: 100%;
                       background: rgba(255, 255, 255, 0.03);
                       border: 1px solid rgba(255, 255, 255, 0.1);
                       border-radius: 12px;
@@ -2790,62 +2800,16 @@
       </div>
     </div>
 
-    <!-- ══════════ PIVOT FİLTRE MODALI ══════════ -->
-    <div id="pivotFilterModal" class="modal-overlay hidden">
-      <div class="modal-content filter-modal-content">
-        <div class="modal-header-row">
-          <div style="display: flex; align-items: center; gap: 8px">
-            <span style="font-size: 1.4rem">🔍</span>
-            <h3>Pivot Sütun Filtresi: <span id="pfmColName"></span></h3>
-          </div>
-          <button class="modal-close-btn" id="closePivotFilterModal">×</button>
-        </div>
-        <div class="filter-dynamic-area">
-          <div class="filter-search-row">
-            <input
-              type="text"
-              id="pfmSearchInput"
-              placeholder="Değer ara..."
-              class="filter-search-input"
-            />
-            <div class="filter-quick-actions">
-              <button type="button" id="pfmSelectAll" class="btn-link">
-                Tümü
-              </button>
-              <button type="button" id="pfmClearAll" class="btn-link">
-                Temizle
-              </button>
-            </div>
-          </div>
-          <div id="pfmCheckList" class="cat-checkboxes-list"></div>
-        </div>
-        <div
-          class="modal-actions"
-          style="margin-top: 20px; flex-direction: row"
-        >
-          <button class="btn-ghost" id="pfmCancelBtn" style="flex: 1">
-            İptal
-          </button>
-          <button class="btn-primary" id="pfmApplyBtn" style="flex: 1">
-            Filtreyi Uygula
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/dashboard_studio.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/regression_studio.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/modules/pdf_studio.js') }}?v=20260924_fix_scatter1"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260924_fix_scatter1"></script>
-
-    <!-- ══════════ UPLOAD GÜVENLİ YEDEK MOTORU ═══
-     app.js yüklenemese veya hata verse bile upload çalışır (REMOVED) -->
+    <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/dashboard_studio.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/regression_studio.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/modules/pdf_studio.js') }}?v=20260925_v8"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260925_v8"></script>
 
     <!-- PDF EXPORT STUDIO MODAL (A4 PREVIEW) -->
     <div

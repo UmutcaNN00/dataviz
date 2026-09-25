@@ -114,14 +114,3 @@ def set_excel_data(
         DATA_STORE[uid]["excel_file"] = excel_file
         DATA_STORE[uid]["sheet_names"] = sheet_names
         DATA_STORE[uid]["last_access"] = time.time()
-
-
-def clear_user_data(user_id: str | None = None) -> None:
-    """
-    Clears all cached datasets and Excel data for a user.
-    """
-    uid = user_id or get_user_id()
-    with _STORE_LOCK:
-        if uid in DATA_STORE:
-            del DATA_STORE[uid]
-            gc.collect()

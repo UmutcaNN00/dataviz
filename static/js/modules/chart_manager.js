@@ -211,22 +211,9 @@ function applyPoolFilterAndSearch() {
 function returnPillToPool(pill) {
   if (!pill) return;
   pill.classList.remove("in-zone");
-  let section = null;
-  if (pill.dataset.type === "cat")
-    section = document.getElementById("pills_section_cat");
-  else if (pill.dataset.type === "num")
-    section = document.getElementById("pills_section_num");
-
-  if (!section && pill.dataset.section)
-    section = document.getElementById(pill.dataset.section);
-  if (!section) {
-    const isCalc = pill.classList.contains("calc-pill");
-    const isJoin = pill.classList.contains("join-pill");
-    if (isCalc) section = document.getElementById("pills_section_calc");
-    else if (isJoin) section = document.getElementById("pills_section_joined");
-    else section = document.getElementById("pills_section_file1");
-  }
-
+  const section = pill.dataset.section
+    ? document.getElementById(pill.dataset.section)
+    : null;
   if (section) section.appendChild(pill);
   else document.getElementById("colPool")?.appendChild(pill);
 }
@@ -520,22 +507,47 @@ async function refreshActiveChart() {
   const chartArea = document.getElementById("chartArea");
   if (!chartArea) return;
 
-  // Clean any old spinner inside chartArea
   chartArea
     .querySelectorAll(".spinner, .chart-loading-spinner")
     .forEach((s) => s.remove());
 
-  // Show removable overlay loader
   const container = document.getElementById("chartAreaContainer");
   let loader = document.getElementById("megaChartLoader");
   if (!loader && container) {
     container.insertAdjacentHTML(
       "beforeend",
-      '<div id="megaChartLoader" class="chart-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:15; pointer-events:none;"><div class="spinner"></div><p style="margin-top:8px; font-size:0.85rem; color:var(--muted);">Grafik Çiziliyor...</p></div>',
+      '<div id="megaChartLoader" class="chart-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:15; width:92%; max-width:480px; pointer-events:none;"></div>',
     );
   }
 
   const targetType = currentPlotType;
+  const chartLabel =
+    document.getElementById("currentChartTypeName")?.textContent ||
+    targetType.toUpperCase();
+  const prog = window.DataVizProgress?.start({
+    icon: "📊",
+    title: `${chartLabel} Oluşturuluyor`,
+    containerId: "megaChartLoader",
+    showHud: false,
+    stages: [
+      {
+        at: 0,
+        short: "Veri Sorgusu",
+        label: "Eksen verileri ve aktif filtreler sorgulanıyor...",
+      },
+      {
+        at: 45,
+        short: "Agregasyon",
+        label: "İstatistiksel seri ve gruplama hesaplanıyor...",
+      },
+      {
+        at: 80,
+        short: "Çizim Motoru",
+        label: "Plotly grafik katmanı ekrana çiziliyor...",
+      },
+    ],
+  });
+
   const is3D = ["scatter3d", "line3d", "surface"].includes(targetType);
   const aggVal = document.getElementById("s2AggFunc")?.value || "sum";
 
@@ -557,6 +569,8 @@ async function refreshActiveChart() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Veri çekilemedi");
 
+    prog?.set(85, "Plotly grafik katmanı ekrana çiziliyor...");
+
     currentChartData = data;
     window.currentChartData = data;
 
@@ -566,7 +580,7 @@ async function refreshActiveChart() {
       await window.drawMegaPlotly("chartArea", data, targetType, false);
     }
 
-    // Purge loader completely
+    prog?.complete("Grafik başarıyla oluşturuldu!");
     const l = document.getElementById("megaChartLoader");
     if (l) l.remove();
     chartArea
@@ -578,6 +592,7 @@ async function refreshActiveChart() {
     if (!statCols.length) statCols = numericColumns.slice(0, 6);
     fetchStats(statCols);
   } catch (err) {
+    prog?.stop();
     const l = document.getElementById("megaChartLoader");
     if (l) l.remove();
     chartArea.innerHTML = `<div style="color:var(--red); padding:40px; text-align:center;">❌ Hata:<br>${err.message}</div>`;
@@ -657,11 +672,6 @@ function renderActiveFilterChips() {
       list: document.getElementById("pivotActiveFiltersList"),
       isGlobalBar: true,
     },
-    {
-      bar: document.getElementById("activeFiltersBar"),
-      list: document.getElementById("activeFiltersList"),
-      isGlobalBar: false,
-    },
   ];
 
   targets.forEach(({ bar, list, isGlobalBar }) => {
@@ -720,7 +730,7 @@ function renderActiveFilterChips() {
   });
 }
 
-/* ── 5. STATS & AI (Qwen2.5) & EXPORT ── */
+/* ── 5. İSTATİSTİK, AKADEMİK YORUMLAYICI & EXPORT ── */
 async function fetchStats(cols = null) {
   if (!cols || !cols.length) {
     cols = axisConfig.y.filter((c) => numericColumns.includes(c));
@@ -728,12 +738,35 @@ async function fetchStats(cols = null) {
   }
   if (!cols.length && !axisConfig.x) return;
 
-  const statsContainer =
-    document.getElementById("statsGrid") ||
-    document.getElementById("bentoStatsGrid");
-  if (statsContainer) {
-    statsContainer.innerHTML =
-      '<div class="spinner" style="grid-column: 1 / -1; margin: 30px auto;"></div>';
+  const statsContainer = document.getElementById("statsGrid");
+  const isStatsTabVisible = !document
+    .getElementById("tabStats")
+    ?.classList.contains("hidden");
+  let prog = null;
+  if (statsContainer && isStatsTabVisible) {
+    prog = window.DataVizProgress?.start({
+      icon: "📐",
+      title: "İstatistiksel Testler Hesaplanıyor",
+      containerId: "statsGrid",
+      showHud: false,
+      stages: [
+        {
+          at: 0,
+          short: "Betimsel Ölçüler",
+          label: "Ortalama, medyan ve standart sapma hesaplanıyor...",
+        },
+        {
+          at: 50,
+          short: "Hipotez Testleri",
+          label: "ANOVA / T-Testi ve korelasyon modelleri çalıştırılıyor...",
+        },
+        {
+          at: 85,
+          short: "Kart Oluşturma",
+          label: "İstatistik kartları hazırlanıyor...",
+        },
+      ],
+    });
   }
 
   try {
@@ -751,6 +784,7 @@ async function fetchStats(cols = null) {
     });
     const data = await res.json();
     if (res.ok) {
+      prog?.complete("İstatistikler hazır!");
       currentStats = data.stats;
       window.currentStats = data.stats;
       window.currentAdvancedStats = data.advanced;
@@ -758,9 +792,11 @@ async function fetchStats(cols = null) {
         statsContainer.innerHTML = renderStatsCards(data);
       }
     } else if (statsContainer) {
+      prog?.stop();
       statsContainer.innerHTML = `<div style="grid-column: 1 / -1; color: var(--red); padding: 20px;">İstatistik alınamadı: ${data.error}</div>`;
     }
   } catch (e) {
+    prog?.stop();
     if (statsContainer) {
       statsContainer.innerHTML = `<div style="grid-column: 1 / -1; color: var(--red); padding: 20px;">Hata: ${e.message}</div>`;
     }
@@ -769,7 +805,7 @@ async function fetchStats(cols = null) {
 
 function renderStatsCards(data) {
   if (!data || !data.stats || Object.keys(data.stats).length === 0) {
-    return '<div class="bento-loading" style="grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center; color: var(--muted);">İstatistik bulunamadı veya hesaplanamadı.</div>';
+    return '<div class="bento-loading" style="grid-column: 1 / -1; width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center; color: var(--muted);">İstatistik bulunamadı veya hesaplanamadı.</div>';
   }
 
   let html = "";
@@ -779,7 +815,19 @@ function renderStatsCards(data) {
     const adv = data.advanced && data.advanced[col] ? data.advanced[col] : null;
 
     let advHtml = "";
+    let headerTestBadge = "";
+
     if (adv) {
+      const pValRaw = adv.p_value;
+      const isSignificant =
+        pValRaw !== null && pValRaw !== undefined && Number(pValRaw) < 0.05;
+      const sigBadge =
+        pValRaw !== null && pValRaw !== undefined
+          ? isSignificant
+            ? '<span style="font-size: 0.72rem; background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); padding: 2px 8px; border-radius: 999px; font-weight: 600;">p &lt; 0.05 (Anlamlı Fark)</span>'
+            : '<span style="font-size: 0.72rem; background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); padding: 2px 8px; border-radius: 999px; font-weight: 600;">p ≥ 0.05 (Anlamlı Fark Yok)</span>'
+          : "";
+
       if (adv.type === "numeric") {
         const corrMethodName =
           adv.corr_method === "spearman"
@@ -798,53 +846,116 @@ function renderStatsCards(data) {
                   ? "Üstel"
                   : "Doğrusal";
 
+        headerTestBadge = `<span style="font-size: 0.75rem; background: rgba(167, 139, 250, 0.15); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.3); padding: 4px 10px; border-radius: 6px; font-weight: 600;">Korelasyon &amp; Regresyon (${regModelName})</span>`;
+
         advHtml = `
-          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h4 style="font-size: 0.9rem; color: #a78bfa; margin: 0;">Korelasyon & Regresyon</h4>
-              <span style="font-size: 0.72rem; background: rgba(167, 139, 250, 0.15); color: #a78bfa; padding: 2px 6px; border-radius: 4px;">${regModelName}</span>
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h4 style="font-size: 0.92rem; color: #a78bfa; margin: 0; font-weight: 700;">📈 Korelasyon &amp; Regresyon Analizi</h4>
+                ${sigBadge}
+              </div>
+              <span style="font-size: 0.75rem; background: rgba(167, 139, 250, 0.15); color: #a78bfa; padding: 3px 8px; border-radius: 4px; font-weight: 600;">Model: ${regModelName}</span>
             </div>
-            <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="b-metric">
-                <span>${corrMethodName}</span>
-                <strong style="color: #60a5fa;">${adv.correlation !== null && adv.correlation !== undefined ? Number(adv.correlation).toFixed(4) : "-"}</strong>
+            <div class="b-stat-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: stretch;">
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">${corrMethodName}</span>
+                <strong style="color: #60a5fa; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.correlation !== null && adv.correlation !== undefined ? Number(adv.correlation).toFixed(4) : "-"}</strong>
               </div>
-              <div class="b-metric">
-                <span>Belirlilik (R²)</span>
-                <strong style="color: #34d399;">${adv.r_squared !== null && adv.r_squared !== undefined ? Number(adv.r_squared).toFixed(4) : "-"}</strong>
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Belirlilik (R²)</span>
+                <strong style="color: #34d399; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.r_squared !== null && adv.r_squared !== undefined ? Number(adv.r_squared).toFixed(4) : "-"}</strong>
               </div>
-              <div class="b-metric">
-                <span>P Değeri</span>
-                <strong>${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
+                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
               </div>
-              <div class="b-metric">
-                <span>İlişki Gücü</span>
-                <strong style="font-size: 0.82rem; color: #fbbf24;">${adv.interpretation || "-"}</strong>
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">İlişki Gücü</span>
+                <strong style="font-size: 0.92rem; color: #fbbf24;">${adv.interpretation || "-"}</strong>
               </div>
-              <div class="b-metric" style="grid-column: 1 / -1; background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.2); padding: 8px 10px; border-radius: 6px;">
-                <span style="color: #c4b5fd;">Model Denklemi:</span>
-                <strong style="color: #fbbf24; font-family: monospace; font-size: 0.85rem; word-break: break-all;">${adv.regression || "-"}</strong>
+              <div class="b-metric" style="grid-column: span 2; background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.22); padding: 12px 14px; border-radius: 10px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: #c4b5fd; text-transform: uppercase;">Model Denklemi</span>
+                <strong style="color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; word-break: break-all;">${adv.regression || "-"}</strong>
               </div>
             </div>
           </div>
         `;
       } else if (adv.type === "categorical_2") {
+        headerTestBadge = `<span style="font-size: 0.75rem; background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); padding: 4px 10px; border-radius: 6px; font-weight: 600;">Bağımsız Örneklem T-Testi</span>`;
+        const bestGroupHtml =
+          adv.best_group !== undefined && adv.best_group !== null
+            ? `<div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">En Yüksek Grup (Ort.)</span>
+                <strong style="color: #34d399; font-size: 0.98rem;">${adv.best_group} ${adv.best_val !== undefined && adv.best_val !== null ? `(${Number(adv.best_val).toFixed(2)})` : ""}</strong>
+              </div>`
+            : "";
+        const worstGroupHtml =
+          adv.worst_group !== undefined && adv.worst_group !== null
+            ? `<div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">En Düşük Grup (Ort.)</span>
+                <strong style="color: #f87171; font-size: 0.98rem;">${adv.worst_group} ${adv.worst_val !== undefined && adv.worst_val !== null ? `(${Number(adv.worst_val).toFixed(2)})` : ""}</strong>
+              </div>`
+            : "";
+
         advHtml = `
-          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <h4 style="font-size: 0.9rem; color: #34d399; margin-bottom: 8px;">Bağımsız Örneklem T-Testi</h4>
-            <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="b-metric"><span>T İstatistiği</span><strong>${adv.t_test_stat !== null && adv.t_test_stat !== undefined ? Number(adv.t_test_stat).toFixed(3) : "-"}</strong></div>
-              <div class="b-metric"><span>P Değeri</span><strong>${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong></div>
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h4 style="font-size: 0.92rem; color: #34d399; margin: 0; font-weight: 700;">⚖️ Bağımsız Örneklem T-Testi</h4>
+                ${sigBadge}
+              </div>
+            </div>
+            <div class="b-stat-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">T İstatistiği</span>
+                <strong style="color: #60a5fa; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.t_test_stat !== null && adv.t_test_stat !== undefined ? Number(adv.t_test_stat).toFixed(3) : "-"}</strong>
+              </div>
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
+                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong>
+              </div>
+              ${bestGroupHtml}
+              ${worstGroupHtml}
             </div>
           </div>
         `;
       } else if (adv.type === "categorical_n") {
+        headerTestBadge = `<span style="font-size: 0.75rem; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); padding: 4px 10px; border-radius: 6px; font-weight: 600;">Tek Yönlü ANOVA</span>`;
+        const bestGroupHtml =
+          adv.best_group !== undefined && adv.best_group !== null
+            ? `<div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">En Yüksek Grup (Ort.)</span>
+                <strong style="color: #34d399; font-size: 0.98rem;">${adv.best_group} ${adv.best_val !== undefined && adv.best_val !== null ? `(${Number(adv.best_val).toFixed(2)})` : ""}</strong>
+              </div>`
+            : "";
+        const worstGroupHtml =
+          adv.worst_group !== undefined && adv.worst_group !== null
+            ? `<div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">En Düşük Grup (Ort.)</span>
+                <strong style="color: #f87171; font-size: 0.98rem;">${adv.worst_group} ${adv.worst_val !== undefined && adv.worst_val !== null ? `(${Number(adv.worst_val).toFixed(2)})` : ""}</strong>
+              </div>`
+            : "";
+
         advHtml = `
-          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <h4 style="font-size: 0.9rem; color: #fbbf24; margin-bottom: 8px;">Tek Yönlü ANOVA</h4>
-            <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="b-metric"><span>F İstatistiği</span><strong>${adv.anova_f !== null && adv.anova_f !== undefined ? Number(adv.anova_f).toFixed(3) : "-"}</strong></div>
-              <div class="b-metric"><span>P Değeri</span><strong>${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong></div>
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h4 style="font-size: 0.92rem; color: #fbbf24; margin: 0; font-weight: 700;">📊 Tek Yönlü ANOVA</h4>
+                ${sigBadge}
+              </div>
+            </div>
+            <div class="b-stat-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">F İstatistiği</span>
+                <strong style="color: #fbbf24; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.anova_f !== null && adv.anova_f !== undefined ? Number(adv.anova_f).toFixed(3) : "-"}</strong>
+              </div>
+              <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
+                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong>
+              </div>
+              ${bestGroupHtml}
+              ${worstGroupHtml}
             </div>
           </div>
         `;
@@ -852,36 +963,42 @@ function renderStatsCards(data) {
     }
 
     html += `
-      <div class="stat-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
-        <div class="b-stat-header" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-          <div class="b-stat-name" style="font-weight: 700; font-size: 1.1rem; color: var(--text);">${col}</div>
-          <div class="b-stat-badge" style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">Sayısal</div>
+      <div class="stat-card" style="grid-column: 1 / -1; width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
+        <div class="b-stat-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="b-stat-name" style="font-weight: 800; font-size: 1.15rem; color: var(--text);">${col}</div>
+            <div class="b-stat-badge" style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px; font-weight: 600;">Sayısal</div>
+            ${m.count !== undefined && m.count !== null ? `<div style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); padding: 4px 10px; border-radius: 6px; font-weight: 600;">Gözlem (N): ${m.count}</div>` : ""}
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${headerTestBadge}
+          </div>
         </div>
 
-        <div class="b-stat-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="b-metric primary" style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="b-stat-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+          <div class="b-metric primary" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Ortalama</span>
-            <strong style="color: #60a5fa; font-size: 1.1rem;">${m.mean !== null && m.mean !== undefined ? Number(m.mean).toFixed(2) : "-"}</strong>
+            <strong style="color: #60a5fa; font-size: 1.15rem; font-family: 'JetBrains Mono', monospace;">${m.mean !== null && m.mean !== undefined ? Number(m.mean).toFixed(2) : "-"}</strong>
           </div>
-          <div class="b-metric" style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Medyan</span>
-            <strong style="font-size: 1.1rem;">${m.median !== null && m.median !== undefined ? Number(m.median).toFixed(2) : "-"}</strong>
+            <strong style="font-size: 1.15rem; font-family: 'JetBrains Mono', monospace;">${m.median !== null && m.median !== undefined ? Number(m.median).toFixed(2) : "-"}</strong>
           </div>
-          <div class="b-metric danger" style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="b-metric danger" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Min</span>
-            <strong style="color: #f87171; font-size: 1.1rem;">${m.min !== null && m.min !== undefined ? Number(m.min).toFixed(2) : "-"}</strong>
+            <strong style="color: #f87171; font-size: 1.15rem; font-family: 'JetBrains Mono', monospace;">${m.min !== null && m.min !== undefined ? Number(m.min).toFixed(2) : "-"}</strong>
           </div>
-          <div class="b-metric success" style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="b-metric success" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Max</span>
-            <strong style="color: #34d399; font-size: 1.1rem;">${m.max !== null && m.max !== undefined ? Number(m.max).toFixed(2) : "-"}</strong>
+            <strong style="color: #34d399; font-size: 1.15rem; font-family: 'JetBrains Mono', monospace;">${m.max !== null && m.max !== undefined ? Number(m.max).toFixed(2) : "-"}</strong>
           </div>
-          <div class="b-metric" style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Std. Sapma</span>
-            <strong style="font-size: 1.1rem;">${m.std !== null && m.std !== undefined ? Number(m.std).toFixed(2) : "-"}</strong>
+            <strong style="font-size: 1.15rem; font-family: 'JetBrains Mono', monospace;">${m.std !== null && m.std !== undefined ? Number(m.std).toFixed(2) : "-"}</strong>
           </div>
-          <div class="b-metric" style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Eksik Veri</span>
-            <strong style="font-size: 1.1rem;">${m.missing !== null && m.missing !== undefined ? m.missing : "-"}</strong>
+            <strong style="font-size: 1.15rem; font-family: 'JetBrains Mono', monospace; color: ${m.missing > 0 ? "#fbbf24" : "var(--text)"};">${m.missing !== null && m.missing !== undefined ? m.missing : "-"}</strong>
           </div>
         </div>
 
@@ -1310,15 +1427,8 @@ function initChartManagerListeners() {
     });
   });
 
-  // Aggregation Function Sync
-  document.getElementById("s2AggFunc")?.addEventListener("change", (e) => {
-    const aggEl = document.getElementById("aggFunc");
-    if (aggEl) aggEl.value = e.target.value;
-    if (currentChartData && currentPlotType) refreshActiveChart();
-  });
-  document.getElementById("aggFunc")?.addEventListener("change", (e) => {
-    const s2AggEl = document.getElementById("s2AggFunc");
-    if (s2AggEl) s2AggEl.value = e.target.value;
+  // Aggregation Function Change
+  document.getElementById("s2AggFunc")?.addEventListener("change", () => {
     if (currentChartData && currentPlotType) refreshActiveChart();
   });
 
@@ -1365,91 +1475,6 @@ function initChartManagerListeners() {
         renderDashboardGrid();
       }
     });
-
-  // Ask AI Insight
-  document.getElementById("btnAskAi")?.addEventListener("click", async () => {
-    const box = document.getElementById("aiInsightBox");
-    const textEl = document.getElementById("aiInsightText");
-    const btn = document.getElementById("btnAskAi");
-    if (!box || !textEl) return;
-
-    box.classList.remove("hidden");
-    textEl.innerHTML =
-      "🤖 Qwen2.5 yapay zeka modeli verinizi analiz ediyor, lütfen bekleyin...";
-    if (btn) btn.disabled = true;
-
-    try {
-      const res = await fetch("/get_ai_insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chart_type: currentPlotType,
-          x: axisConfig.x,
-          y: axisConfig.y,
-          stats: currentStats?.stats || null,
-          filters: activeFilters,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.insight) {
-        currentAiInsight = data.insight;
-        window.currentAiInsight = currentAiInsight;
-        textEl.innerHTML = data.insight.replace(/\n/g, "<br>");
-      } else {
-        textEl.innerHTML = `<span style="color:var(--red);">Yapay zeka yorumu oluşturulamadı: ${data.error}</span>`;
-      }
-    } catch (e) {
-      textEl.innerHTML = `<span style="color:var(--red);">Hata: ${e.message}</span>`;
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  });
-
-  // Single chart PDF Export
-  document
-    .getElementById("downloadSinglePdfBtn")
-    ?.addEventListener("click", async () => {
-      const chartDiv = document.getElementById("chartArea");
-      if (!chartDiv) return;
-
-      try {
-        const imgData = await Plotly.toImage(chartDiv, {
-          format: "png",
-          width: 1000,
-          height: 600,
-        });
-        const win = window.open("");
-        win.document.write(`
-        <html>
-          <head><title>DataViz Grafik Çıktısı</title></head>
-          <body style="margin:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0f172a; color:white; font-family:sans-serif;">
-            <h2 style="margin-top:20px;">${currentPlotType.toUpperCase()} Grafiği</h2>
-            <img src="${imgData}" style="max-width:90%; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.5);"/>
-            <p style="color:#94a3b8; font-size:12px; margin-top:10px;">DataViz ile üretilmiştir.</p>
-            <script>window.onload = function() { window.print(); }<\/script>
-          </body>
-        </html>
-      `);
-        win.document.close();
-      } catch (e) {
-        alert("Grafik dışa aktarılamadı: " + e.message);
-      }
-    });
-
-  // Inspector tabs
-  document.querySelectorAll("#inspectorTabs .tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document
-        .querySelectorAll("#inspectorTabs .tab-btn")
-        .forEach((b) => b.classList.remove("active"));
-      document
-        .querySelectorAll(".tab-content")
-        .forEach((c) => c.classList.remove("active"));
-      btn.classList.add("active");
-      const target = btn.dataset.tab;
-      document.getElementById(`tab-${target}`)?.classList.add("active");
-    });
-  });
 
   document.getElementById("applyCustomsBtn")?.addEventListener("click", () => {
     if (currentChartData && currentPlotType) {
@@ -1503,7 +1528,7 @@ function initChartManagerListeners() {
     fetchStats(statCols);
   });
 
-  // AI Interpretation Generator
+  // Statistical & Academic Interpretation Generator
   document
     .getElementById("btnGenerateInsight")
     ?.addEventListener("click", async () => {
@@ -1513,7 +1538,7 @@ function initChartManagerListeners() {
       if (!btn || !container || !content) return;
 
       btn.disabled = true;
-      btn.innerHTML = "🔄 AI Yorumluyor...";
+      btn.innerHTML = "🔄 Analiz Ediliyor...";
       container.classList.add("hidden");
 
       try {
@@ -1531,16 +1556,37 @@ function initChartManagerListeners() {
           }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "AI yorumu alınamadı");
+        if (!res.ok)
+          throw new Error(data.error || "İstatistiksel yorum alınamadı");
 
-        let text = data.insight || "";
-        text = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-        text = text.replace(/\n\*/g, "<br/>•");
-        text = text.replace(/\n/g, "<br/>");
+        const rawText = data.insight || "";
+        const lines = rawText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0 && l !== "---" && !l.startsWith("#"));
 
-        currentAiInsight = text;
-        window.currentAiInsight = text;
-        content.innerHTML = text;
+        let html =
+          '<div style="display: flex; flex-direction: column; gap: 10px;">';
+        lines.forEach((line) => {
+          const formattedLine = line
+            .replace(/^- /, "")
+            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*(.*?)\*/g, "<em>$1</em>")
+            .replace(
+              /`(.*?)`/g,
+              "<code style=\"background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;\">$1</code>",
+            );
+          html += `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-left: 3px solid var(--pink); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; line-height: 1.55; color: #f1f5f9;">
+              ${formattedLine}
+            </div>
+          `;
+        });
+        html += "</div>";
+
+        currentAiInsight = html;
+        window.currentAiInsight = html;
+        content.innerHTML = html;
         container.classList.remove("hidden");
       } catch (err) {
         content.innerHTML = `<div style="color:var(--red);">${err.message}</div>`;

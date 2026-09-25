@@ -73,7 +73,6 @@ async function openPdfPreviewStudio() {
     const divId = `plot_${item.id}`;
     const gd =
       document.getElementById(divId) ||
-      document.getElementById("regScatterPlot") ||
       document.getElementById("regScatterPlotArea");
 
     const chartBlock = document.createElement("div");

@@ -1,16 +1,15 @@
 """
-Upload Routes Blueprint - File Ingestion, Sheet Switching, and Sheet Previews
+Upload Routes Blueprint - File Ingestion and Sheet Switching
 Supports CSV, Excel (.xlsx, .xls), and Apache Parquet formats.
 """
 
 import logging
 
-import numpy as np
 import pandas as pd
 from flask import Blueprint, jsonify, request
 
 # isort: split
-from core.store import get_df, get_excel_data, set_df, set_excel_data
+from core.store import get_excel_data, set_df, set_excel_data
 from services.file_service import (
     clean_dataframe,
     read_csv_safely,
@@ -107,9 +106,8 @@ def upload():
         return jsonify({"error": f"Dosya işlenirken bir hata oluştu: {e}"}), 400
 
 
-@upload_bp.route("/select_sheet", methods=["POST"])
 @upload_bp.route("/switch_sheet", methods=["POST"])
-def select_sheet():
+def switch_sheet():
     """Switches the active DataFrame to a selected Excel sheet."""
     excel_file, sheet_names = get_excel_data()
 
@@ -165,54 +163,3 @@ def select_sheet():
     except Exception as e:
         logger.exception("Sayfa değiştirme hatası")
         return jsonify({"error": f"Sayfa değiştirilirken bir hata oluştu: {e}"}), 400
-
-
-@upload_bp.route("/get_sheet_preview", methods=["GET"])
-def get_sheet_preview():
-    """Returns preview records and schema metadata for a specified or active sheet."""
-    excel_file, sheet_names = get_excel_data()
-    sheet_name = request.args.get("sheet_name")
-    try:
-        limit = max(1, min(int(request.args.get("limit", 10)), 500))
-    except (ValueError, TypeError):
-        limit = 10
-
-    target_df = None
-    resolved_sheet_name = sheet_name
-
-    if excel_file:
-        if sheet_name and sheet_name in sheet_names:
-            target_df = (
-                excel_file.get(sheet_name)
-                if isinstance(excel_file, dict)
-                else excel_file.parse(sheet_name)
-            )
-        elif sheet_names:
-            resolved_sheet_name = sheet_names[0]
-            target_df = (
-                excel_file.get(resolved_sheet_name)
-                if isinstance(excel_file, dict)
-                else excel_file.parse(resolved_sheet_name)
-            )
-
-    if target_df is None:
-        target_df = get_df(1)
-        resolved_sheet_name = resolved_sheet_name or "active_dataset"
-
-    if target_df is None or target_df.empty:
-        return jsonify({"error": "Önizleme yapılacak sayfa veya veri bulunamadı."}), 400
-
-    head_df = target_df.head(limit).replace([np.inf, -np.inf], np.nan)
-    preview_df = head_df.astype(object).where(pd.notnull(head_df), None)
-    preview_rows = preview_df.to_dict(orient="records")
-
-    return jsonify(
-        {
-            "success": True,
-            "sheet_name": resolved_sheet_name,
-            "total_rows": len(target_df),
-            "total_cols": len(target_df.columns),
-            "columns": target_df.columns.tolist(),
-            "preview": preview_rows,
-        }
-    )

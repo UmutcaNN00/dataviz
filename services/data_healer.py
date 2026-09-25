@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def robust_parse_numeric_string(v: Any) -> float | None:
     """
     Parses textual representations of numbers, currencies, percentages, and written numbers into float.
-    Returns None if value cannot be parsed or represents missing/null data ('yok', 'n/a', etc.).
+    Returns None if value cannot be parsed or represents missing/null data ('yok', 'boş', 'n/a', etc.).
     """
     if v is None or pd.isna(v):
         return None
@@ -28,6 +28,10 @@ def robust_parse_numeric_string(v: Any) -> float | None:
     s = str(v).strip().lower()
     if s in [
         "yok",
+        "boş",
+        "bos",
+        "eksik",
+        "belirsiz",
         "n/a",
         "nan",
         "null",
@@ -55,10 +59,10 @@ def robust_parse_numeric_string(v: Any) -> float | None:
     ):
         return None
 
-    # Strip currency symbols, percentages, and common unit suffixes (even when attached to digits like '100tl' or '50kg')
+    # Strip currency symbols, percentages, and common unit suffixes (including lt, ml, l, ton, paket, etc.)
     s = re.sub(r"[₺$€£%]", "", s)
     s = re.sub(
-        r"(?:^|(?<=[\d\s.,]))(tl|try|usd|eur|adet|kg|gr|km|m|cm|ay|yil|yıl|gün|gun|saat|dakika|dk)\b",
+        r"(?:^|(?<=[\d\s.,]))(tl|try|usd|eur|adet|kg|gr|mg|ton|lt|ml|l|km|m|cm|mm|ay|yil|yıl|gün|gun|saat|dakika|dk|sn|saniye|puan|kisi|kişi|paket|koli|kutu|birim)\b",
         "",
         s,
     )
@@ -120,7 +124,7 @@ def detect_column_anomalies(df: pd.DataFrame | None) -> list[dict[str, Any]]:
     is_sampled = total_rows > ANOMALY_SAMPLE_THRESHOLD
     if is_sampled:
         sample_size = min(ANOMALY_SAMPLE_SIZE, total_rows)
-        sample_df = df.sample(n=sample_size, random_state=42)
+        sample_df = df.iloc[:sample_size]
     else:
         sample_df = df
         sample_size = total_rows
@@ -179,11 +183,15 @@ def detect_column_anomalies(df: pd.DataFrame | None) -> list[dict[str, Any]]:
     return anomalies
 
 
-def _parse_series_fast(series: pd.Series, use_float32: bool = False) -> pd.Series:
+def _parse_series_fast(
+    series: pd.Series,
+    use_float32: bool = False,
+    fill_mode: str | None = None,
+) -> pd.Series:
     """
-    Vectorized / Category-aware numeric string parser.
-    For CategoricalDtype columns (e.g. 100M rows with dictionary encoding), parses only unique categories
-    and maps codes in C/NumPy (~1000x faster and 10x less RAM).
+    Vectorized / Category-aware numeric string parser and optional in-place filler.
+    For CategoricalDtype columns (e.g. 100M rows with dictionary encoding), parses only unique categories,
+    computes the fill value on unique categories/sample, and maps codes in C/NumPy in a single pass.
     """
     target_dtype = np.float32 if use_float32 else np.float64
     if isinstance(series.dtype, pd.CategoricalDtype):
@@ -191,13 +199,57 @@ def _parse_series_fast(series: pd.Series, use_float32: bool = False) -> pd.Serie
         cat_parsed = pd.to_numeric(
             cats.apply(robust_parse_numeric_string), errors="coerce"
         ).to_numpy(dtype=target_dtype)
+
+        fill_val = np.nan
+        if fill_mode in ("fill_zero",):
+            fill_val = target_dtype(0.0)
+        elif fill_mode in ("fill_mean", "smart_heal"):
+            valid_cats = cat_parsed[np.isfinite(cat_parsed)]
+            fill_val = (
+                target_dtype(np.mean(valid_cats))
+                if len(valid_cats) > 0
+                else target_dtype(0.0)
+            )
+        elif fill_mode in ("fill_median",):
+            valid_cats = cat_parsed[np.isfinite(cat_parsed)]
+            fill_val = (
+                target_dtype(np.median(valid_cats))
+                if len(valid_cats) > 0
+                else target_dtype(0.0)
+            )
+
+        if not np.isnan(fill_val):
+            cat_parsed = np.where(np.isfinite(cat_parsed), cat_parsed, fill_val)
+
         codes = series.cat.codes.to_numpy()
-        out = np.full(len(series), np.nan, dtype=target_dtype)
-        valid_code_mask = codes >= 0
-        out[valid_code_mask] = cat_parsed[codes[valid_code_mask]]
+        if not np.isnan(fill_val):
+            # Append fill_val at the end of lookup table so code -1 (missing) maps directly to fill_val
+            lookup = np.empty(len(cat_parsed) + 1, dtype=target_dtype)
+            lookup[:-1] = cat_parsed
+            lookup[-1] = fill_val
+            safe_codes = np.where(codes >= 0, codes, len(cat_parsed))
+            out = lookup[safe_codes]
+        else:
+            out = np.full(len(series), np.nan, dtype=target_dtype)
+            valid_code_mask = codes >= 0
+            out[valid_code_mask] = cat_parsed[codes[valid_code_mask]]
+
         return pd.Series(out, index=series.index, dtype=target_dtype)
-    parsed = pd.to_numeric(series.apply(robust_parse_numeric_string), errors="coerce")
-    return parsed.astype(target_dtype)
+
+    parsed = pd.to_numeric(
+        series.apply(robust_parse_numeric_string), errors="coerce"
+    ).astype(target_dtype)
+    if fill_mode == "fill_zero":
+        return parsed.fillna(target_dtype(0.0))
+    if fill_mode in ("fill_mean", "smart_heal"):
+        m_val = parsed.mean()
+        return parsed.fillna(target_dtype(float(m_val) if pd.notnull(m_val) else 0.0))
+    if fill_mode == "fill_median":
+        med_val = parsed.median()
+        return parsed.fillna(
+            target_dtype(float(med_val) if pd.notnull(med_val) else 0.0)
+        )
+    return parsed
 
 
 def repair_column_data(
@@ -225,9 +277,9 @@ def repair_column_data(
 
     is_massive = len(df) > 1_000_000
     df_copy = df.copy(deep=not is_massive)
-    detected_anomalies = detect_column_anomalies(df_copy)
 
     if target_column == "__all__":
+        detected_anomalies = detect_column_anomalies(df_copy)
         cols_to_repair = [str(a["column"]) for a in detected_anomalies]
     elif target_column in df_copy.columns:
         cols_to_repair = [target_column]
@@ -241,41 +293,47 @@ def repair_column_data(
 
     for col in cols_to_repair:
         series = df_copy[col]
-        parsed = _parse_series_fast(series, use_float32=is_massive)
-
         if repair_mode == "drop_rows":
+            parsed = _parse_series_fast(series, use_float32=is_massive, fill_mode=None)
             valid_rows = parsed.notna()
-            df_copy = df_copy[valid_rows].copy()
+            df_copy = df_copy[valid_rows].copy(deep=not is_massive)
             df_copy[col] = parsed[valid_rows].astype(target_float)
             df_copy = df_copy.reset_index(drop=True)
-        elif repair_mode == "fill_zero":
-            df_copy[col] = parsed.fillna(0.0).astype(target_float)
-        elif repair_mode == "fill_mean" or repair_mode == "smart_heal":
-            mean_val = float(parsed.mean()) if pd.notnull(parsed.mean()) else 0.0
-            df_copy[col] = parsed.fillna(target_float(mean_val)).astype(target_float)
-        elif repair_mode == "fill_median":
-            med_val = float(parsed.median()) if pd.notnull(parsed.median()) else 0.0
-            df_copy[col] = parsed.fillna(target_float(med_val)).astype(target_float)
         elif repair_mode == "coerce_nan":
-            df_copy[col] = parsed.astype(target_float)
+            df_copy[col] = _parse_series_fast(
+                series, use_float32=is_massive, fill_mode=None
+            )
         else:
-            mean_val = float(parsed.mean()) if pd.notnull(parsed.mean()) else 0.0
-            df_copy[col] = parsed.fillna(target_float(mean_val)).astype(target_float)
+            effective_mode = (
+                repair_mode
+                if repair_mode
+                in ("fill_zero", "fill_mean", "smart_heal", "fill_median")
+                else "smart_heal"
+            )
+            df_copy[col] = _parse_series_fast(
+                series, use_float32=is_massive, fill_mode=effective_mode
+            )
 
     return df_copy, cols_to_repair
 
 
 def _fill_categorical_columns(
-    df_clean: pd.DataFrame, fill_label: str = "Bilinmiyor"
+    df_clean: pd.DataFrame, fill_label: str = "Bilinmiyor", is_massive: bool = False
 ) -> None:
     for c in df_clean.select_dtypes(include=["object", "category", "string"]).columns:
-        if df_clean[c].isna().any():
+        col_s = df_clean[c]
+        has_na = (
+            bool(col_s.iloc[:100_000].isna().any() or col_s.isna().any())
+            if not is_massive
+            else bool(col_s.isna().any())
+        )
+        if has_na:
             if (
-                isinstance(df_clean[c].dtype, pd.CategoricalDtype)
-                and fill_label not in df_clean[c].cat.categories
+                isinstance(col_s.dtype, pd.CategoricalDtype)
+                and fill_label not in col_s.cat.categories
             ):
-                df_clean[c] = df_clean[c].cat.add_categories([fill_label])
-            df_clean[c] = df_clean[c].fillna(fill_label)
+                col_s = col_s.cat.add_categories([fill_label])
+            df_clean[c] = col_s.fillna(fill_label)
 
 
 def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.DataFrame:
@@ -298,28 +356,35 @@ def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.Data
     elif action in ("fill_mean", "mean"):
         num_cols = df_clean.select_dtypes(include=["number"]).columns
         for c in num_cols:
-            if df_clean[c].isna().any():
-                m_val = df_clean[c].mean()
-                fill_v = 0.0 if pd.isna(m_val) else m_val
-                df_clean[c] = df_clean[c].fillna(fill_v)
-        _fill_categorical_columns(df_clean)
+            col_s = df_clean[c]
+            if col_s.isna().any():
+                m_val = col_s.iloc[:250_000].mean() if is_massive else col_s.mean()
+                fill_v = 0.0 if pd.isna(m_val) else float(m_val)
+                df_clean[c] = col_s.fillna(
+                    np.float32(fill_v) if col_s.dtype == np.float32 else fill_v
+                )
+        _fill_categorical_columns(df_clean, is_massive=is_massive)
     elif action in ("fill_median", "median"):
         num_cols = df_clean.select_dtypes(include=["number"]).columns
         for c in num_cols:
-            if df_clean[c].isna().any():
+            col_s = df_clean[c]
+            if col_s.isna().any():
                 med_val = (
-                    df_clean[c].iloc[:500_000].median()
-                    if is_massive
-                    else df_clean[c].median()
+                    col_s.iloc[:250_000].median() if is_massive else col_s.median()
                 )
-                fill_v = 0.0 if pd.isna(med_val) else med_val
-                df_clean[c] = df_clean[c].fillna(fill_v)
-        _fill_categorical_columns(df_clean)
+                fill_v = 0.0 if pd.isna(med_val) else float(med_val)
+                df_clean[c] = col_s.fillna(
+                    np.float32(fill_v) if col_s.dtype == np.float32 else fill_v
+                )
+        _fill_categorical_columns(df_clean, is_massive=is_massive)
     elif action in ("fill_zero", "zero"):
         num_cols = df_clean.select_dtypes(include=["number"]).columns
         for c in num_cols:
-            if df_clean[c].isna().any():
-                df_clean[c] = df_clean[c].fillna(0)
-        _fill_categorical_columns(df_clean)
+            col_s = df_clean[c]
+            if col_s.isna().any():
+                df_clean[c] = col_s.fillna(
+                    np.float32(0.0) if col_s.dtype == np.float32 else 0
+                )
+        _fill_categorical_columns(df_clean, is_massive=is_massive)
 
     return df_clean

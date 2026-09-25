@@ -103,9 +103,9 @@ def run_tests():
         res.status_code == 200 and d.get("new_column") == "KDVli_Satis",
     )
 
-    # 7. Create Calculated Column (Backend format: operator, new_column_name, col2)
+    # 7. Add Calculated Column (Two-Column Operation: col1 - col2)
     res = client.post(
-        "/create_calculated_column",
+        "/add_calculated_column",
         json={
             "col1": "Satış_Tutarı",
             "operator": "-",
@@ -115,7 +115,7 @@ def run_tests():
     )
     d = j(res)
     assert_test(
-        "Hesaplanan Sütun - Backend Formatı (POST /create_calculated_column)",
+        "Hesaplanan Sütun - İki Sütunlu İşlem (POST /add_calculated_column)",
         res.status_code == 200 and d.get("new_column") == "Brut_Kar",
     )
 
@@ -181,31 +181,29 @@ def run_tests():
         res.status_code == 200 and "stats" in d,
     )
 
-    # 13. AI Insight - /get_ai_insight (Frontend endpoint)
-    res = client.post(
-        "/get_ai_insight",
+    # 13. Correlation Matrix & Regression Studio Data
+    res_corr = client.post("/get_correlation_matrix", json={"method": "pearson"})
+    d_corr = j(res_corr)
+    res_reg = client.post(
+        "/get_regression_studio_data",
         json={
-            "chart_type": "bar",
-            "x": "Kategori",
-            "y": ["Satış_Tutarı"],
-            "stats": {
-                "Satış_Tutarı": {
-                    "mean": 25000,
-                    "median": 24000,
-                    "min": 1000,
-                    "max": 50000,
-                    "std": 12000,
-                }
-            },
+            "x_col": "Satış_Tutarı",
+            "y_col": "Kar",
+            "model_type": "linear",
+            "corr_method": "pearson",
         },
     )
-    d = j(res)
+    d_reg = j(res_reg)
     assert_test(
-        "AI Yorumlayıcı Frontend Uç Noktası (POST /get_ai_insight)",
-        res.status_code == 200 and "insight" in d,
+        "Korelasyon Matrisi & Regresyon Stüdyosu (POST /get_correlation_matrix & /get_regression_studio_data)",
+        res_corr.status_code == 200
+        and "matrix" in d_corr
+        and res_reg.status_code == 200
+        and d_reg.get("success") is True
+        and "key_findings" in (d_reg.get("insight") or {}),
     )
 
-    # 14. AI Insight - /generate_insight (Backend endpoint)
+    # 14. Academic Statistical Interpreter - /generate_insight
     res = client.post(
         "/generate_insight",
         json={
@@ -225,8 +223,8 @@ def run_tests():
     )
     d = j(res)
     assert_test(
-        "AI Yorumlayıcı Backend Uç Noktası (POST /generate_insight)",
-        res.status_code == 200 and "insight" in d,
+        "Akademik İstatistiksel Yorumlayıcı (POST /generate_insight)",
+        res.status_code == 200 and "insight" in d and "key_findings" in d,
     )
 
     # 15. Pivot Studio Matrix

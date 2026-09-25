@@ -1,5 +1,24 @@
 # Güncelleme Notları (Changelog)
 
+## [v3.1.0] - Aşamalı Canlı Yükleme Barı, Yatay İstatistik Kartları ve Tek Geçişli Data Healer (25.09.2026)
+
+### 🚀 Yeni Özellikler ve Arayüz İyileştirmeleri
+
+- **Aşamalı Canlı Yükleme & İşlem Çubuğu (`DataVizProgress` — `globals.js`, `app.js`, `data_prep.js`):**
+  - Veri yükleme (`XMLHttpRequest` canlı upload takibi + PyArrow ayrıştırma), veri sağlığı taraması, sütun onarımı, grafik çizimi, regresyon ve pivot hesaplamaları için tek örnekli (*Single-Instance*) aşamalı ilerleme çubuğu eklendi.
+  - Canlı yüzde (`%`), aktif aşama rozetleri (`1. Sunucuya Aktarım`, `2. Tablo Ayrıştırma`, `3. Tip & Anomali Analizi`) ve geçen süre sayacı (`sn`) eklendi.
+
+- **Tam Genişlikli Yatay İstatistik Kartları & Sadeleştirilmiş Yorumlayıcı (`chart_manager.js`, `ai_service.py`, `regression_studio.js`):**
+  - `İstatistik & Analiz` sekmesindeki dikey kartlar tam genişlikli yatay şerit mimarisine dönüştürüldü.
+  - Akademik İstatistiksel Yorumlayıcı ve Regresyon Model Özeti, karmaşık metin blokları yerine 3 maddelik net ve doğrudan anlaşılır özet yapısına kavuşturuldu.
+
+- **100M Satır Tek Geçişli Kategorik Data Healer (`data_healer.py`, `data_routes.py`):**
+  - `CategoricalDtype` sütunlarda `smart_heal`, `fill_mean`, `fill_zero` ve `fill_median` işlemleri doğrudan benzersiz kategoriler üzerinde hesaplanıp tek geçişli `float32` NumPy lookup ile uygulanacak şekilde optimize edildi (10M satır onarımı ~0.09 sn).
+  - Hacim ve ağırlık birimleri (`lt`, `ml`, `ton`, `paket`, `koli`) ile Türkçe boşluk ifadeleri (`Boş`, `Eksik`, `Belirsiz`) ayrıştırıcıya eklendi.
+  - Kullanılmayan HuggingFace / LLM kalıntıları ve ölü kodlar temizlendi.
+
+---
+
 ## [v3.0.0] - 100M+ Büyük Veri Motoru, Korelasyon & Regresyon Stüdyosu ve Modüler Mimari (25.09.2026)
 
 Bu ana sürümde büyük veri işleme motoru 100 milyon satır ölçeğine yükseltilmiş, bilimsel Korelasyon & Regresyon Stüdyosu eklenmiş ve istemci/sunucu mimarisi tam modüler yapıya kavuşturulmuştur.
@@ -44,11 +63,11 @@ Bu sürümde arka planda çalışan analiz motorunu ve grafik öneri sistemini t
   - İçine harf ya da para birimi sembolü (`₺5,200`, `NaN`, `Yok`) karışmış sayısal kolonların otomatik düzeltilmesi ve analizi çökertmemesi için arka plan bağlantıları (`app.js` üzerinden) sağlandı.
 
 - **Formül Sihirbazı & Slicers (Dilimleyiciler):**
-  - Butonlar arası bağlantı kopuklukları (`btnSelectAllCat`, `btnClearAllCat`, vb.) giderildi. 
+  - Butonlar arası bağlantı kopuklukları (`btnSelectAllCat`, `btnClearAllCat`, vb.) giderildi.
   - Hızlı veri dışa aktarma (Export) butonları için gerekli Event Listener'lar aktif hale getirildi.
 
 ### ♻️ Geri Alınan / Düzeltilen Kısımlar
 
 - **Karşılama Sayfası (Landing Page) Orijinalliği:**
-  - Test amaçlı eklenen yoğun animasyonlu ve yapısı değiştirilmiş sayfa tasarımları (Concept 1, 2, 3) projeden izole edildi. 
+  - Test amaçlı eklenen yoğun animasyonlu ve yapısı değiştirilmiş sayfa tasarımları (Concept 1, 2, 3) projeden izole edildi.
   - Github'daki **orijinal karşılama sayfası (`landing.html` ve `landing.css`)** geri yüklenerek `/analysis` stüdyosuna olan tüm entegrasyonlar kusursuz hale getirildi.

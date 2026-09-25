@@ -23,7 +23,6 @@ async function fetchKpis() {
       window.currentKpis = currentKpis;
       renderKpiTiles("chartKpiStrip", currentKpis);
       renderKpiTiles("dashboardKpiGrid", currentKpis);
-      renderKpiTiles("kpiTilesRow", currentKpis);
     }
   } catch (e) {
     console.error("KPI fetch error:", e);
@@ -92,9 +91,7 @@ function addChartToDashboard(chartItem) {
 }
 
 function renderDashboardGrid() {
-  const grid =
-    document.getElementById("dashboardGrid") ||
-    document.getElementById("dashboardChartsGrid");
+  const grid = document.getElementById("dashboardGrid");
   if (!grid) return;
   grid.innerHTML = "";
 

@@ -43,9 +43,8 @@ def get_pivot_data():
         return jsonify({"error": f"Pivot tablosu hesaplanırken hata oluştu: {e}"}), 500
 
 
-@export_bp.route("/export_pivot", methods=["POST"])
 @export_bp.route("/export_pivot_excel", methods=["POST"])
-def export_pivot():
+def export_pivot_excel():
     """Exports the generated pivot table matrix to an formatted Excel (.xlsx) file."""
     global_df = get_df(1)
     if global_df is None:

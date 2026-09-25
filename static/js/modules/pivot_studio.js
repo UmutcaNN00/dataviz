@@ -313,8 +313,29 @@ async function refreshPivotStudio() {
     return;
   }
 
-  container.innerHTML =
-    '<div class="pivot-loading-msg">⏳ Pivot Tablosu Hesaplanıyor...</div>';
+  const prog = window.DataVizProgress?.start({
+    icon: "🧮",
+    title: "Pivot Matrisi Hesaplanıyor",
+    containerId: "pmsTableContainer",
+    showHud: false,
+    stages: [
+      {
+        at: 0,
+        short: "Gruplama",
+        label: "Satır ve sütun kırılımları gruplanıyor...",
+      },
+      {
+        at: 50,
+        short: "Agregasyon",
+        label: "Hücre değerleri ve genel toplamlar hesaplanıyor...",
+      },
+      {
+        at: 85,
+        short: "Isı Haritası",
+        label: "Koşullu biçimlendirme uygulanıyor...",
+      },
+    ],
+  });
   pivotConfig.agg_func =
     document.getElementById("pivotAggSelect")?.value || "sum";
 
@@ -334,6 +355,7 @@ async function refreshPivotStudio() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Pivot verisi alınamadı");
 
+    prog?.complete("Pivot tablosu hazır!");
     currentPivotData = data;
     renderPivotMatrixStage(data);
 
@@ -341,6 +363,7 @@ async function refreshPivotStudio() {
       badge.textContent = `${data.rows.length} Satır x ${data.column_headers.length} Sütun (${data.total_data_rows.toLocaleString("tr-TR")} Kayıt)`;
     }
   } catch (err) {
+    prog?.stop();
     container.innerHTML = `<div class="pivot-loading-msg" style="color:var(--red);">❌ ${err.message}</div>`;
     if (badge) badge.textContent = "Hata";
   }

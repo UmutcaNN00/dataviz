@@ -39,23 +39,33 @@ function proceedToStep2() {
 
 async function goToStep3(chartId, chartName) {
   currentPlotType = window.currentPlotType = chartId;
-  const titleEl =
-    document.getElementById("currentChartTypeName") ||
-    document.getElementById("activeChartTitle");
+  const titleEl = document.getElementById("currentChartTypeName");
   if (titleEl && chartName) titleEl.textContent = chartName;
   showScreen(3);
   if (typeof refreshActiveChart === "function") await refreshActiveChart();
 }
 
 // ── DATASET INGESTION & HEALTH HELPERS ──
+function setUploadZoneVisibility(visible) {
+  const dz = document.getElementById("mainDropZone");
+  const actions = document.querySelector("#step1-upload .upload-actions");
+  if (dz) dz.style.display = visible ? "" : "none";
+  if (actions) actions.style.display = visible ? "" : "none";
+}
+
 function setUploadStatus(html, isError = false) {
   const el = document.getElementById("mainUploadStatus");
   if (!el) return;
   if (!html) {
+    el.classList.add("hidden");
     el.style.display = "none";
+    el.innerHTML = "";
     return;
   }
   el.className = `status-msg ${isError ? "error" : "loading"}`;
+  el.style.padding = "";
+  el.style.background = "";
+  el.style.border = "";
   el.innerHTML = html;
   el.style.display = "block";
 }
@@ -87,6 +97,7 @@ function applyUploadedDataset(data) {
   if (pv) pv.textContent = activeFileName;
 
   setUploadStatus(null);
+  setUploadZoneVisibility(true);
   proceedToStep2();
   checkDataHealthAsync();
 }
@@ -96,8 +107,16 @@ async function checkDataHealthAsync() {
     const res = await fetch("/check_health", { cache: "no-store" });
     const health = await res.json();
     if (typeof updateAnomalyBadges === "function") updateAnomalyBadges(health);
-    if (health?.has_issues && typeof openDataPrepModal === "function")
+    const modal = document.getElementById("dataPrepModal");
+    const isModalOpen = modal && !modal.classList.contains("hidden");
+    if (
+      health?.has_issues &&
+      typeof openDataPrepModal === "function" &&
+      !window.isDataPrepBusy &&
+      !isModalOpen
+    ) {
       openDataPrepModal(null, health);
+    }
   } catch (err) {
     console.warn("Veri kontrol uyarısı:", err);
   }
@@ -108,14 +127,41 @@ async function handleLoadSampleData() {
   if (isUploading) return;
   isUploading = true;
   activeFileName = window.activeFileName = "Akademik_Ornek_Veri_Seti.xlsx";
-  setUploadStatus("⏳ Hazır örnek veri seti yükleniyor...");
+  setUploadZoneVisibility(false);
+
+  const prog = window.DataVizProgress?.start({
+    icon: "📂",
+    title: "Örnek Veri Seti Yükleniyor",
+    containerId: "mainUploadStatus",
+    showHud: false,
+    stages: [
+      {
+        at: 0,
+        short: "Dosya Okuma",
+        label: "Hazır örnek veri seti belleğe aktarılıyor...",
+      },
+      {
+        at: 45,
+        short: "Ayrıştırma",
+        label: "Satır ve sütun tipleri ayrıştırılıyor...",
+      },
+      {
+        at: 80,
+        short: "Sağlık Kontrolü",
+        label: "Veri kalitesi ve eksen havuzu hazırlanıyor...",
+      },
+    ],
+  });
 
   try {
     const res = await fetch("/load_sample", { method: "POST" });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Örnek veri yüklenemedi");
-    applyUploadedDataset(data);
+    prog?.complete("Örnek veri seti başarıyla yüklendi!");
+    setTimeout(() => applyUploadedDataset(data), 240);
   } catch (err) {
+    prog?.stop();
+    setUploadZoneVisibility(true);
     alert("Örnek veri yüklenemedi: " + err.message);
     setUploadStatus(null);
   } finally {
@@ -127,19 +173,112 @@ async function handleFileUpload(file) {
   if (!file || isUploading) return;
   isUploading = true;
   activeFileName = window.activeFileName = file.name;
-  setUploadStatus(
-    `⏳ <strong>${file.name}</strong> yükleniyor ve analiz ediliyor...`,
-  );
+  setUploadZoneVisibility(false);
+
+  const prog = window.DataVizProgress?.start({
+    icon: "🚀",
+    title: `${file.name} Yükleniyor`,
+    containerId: "mainUploadStatus",
+    showHud: false,
+    autoAdvance: false,
+    initialPct: 6,
+    stages: [
+      {
+        at: 0,
+        short: "Sunucuya Aktarım",
+        label: "Dosya sunucuya gönderiliyor...",
+      },
+      {
+        at: 45,
+        short: "Tablo Ayrıştırma",
+        label: "Veri motoru tabloyu ayrıştırıyor...",
+      },
+      {
+        at: 78,
+        short: "Tip & Anomali Analizi",
+        label: "Sütun tipleri ve veri sağlığı taranıyor...",
+      },
+    ],
+  });
 
   const fd = new FormData();
   fd.append("file", file);
 
+  let parseTimer = null;
+  const startParsePhase = () => {
+    if (parseTimer) return;
+    let cur = 48;
+    prog?.set(cur, "Veri motoru tabloyu ayrıştırıyor...");
+    parseTimer = setInterval(() => {
+      if (cur < 88) {
+        cur += Math.max(0.45, (90 - cur) * 0.06);
+        prog?.set(
+          cur,
+          cur < 78
+            ? "Veri motoru tabloyu ayrıştırıyor..."
+            : "Sütun tipleri ve veri sağlığı taranıyor...",
+        );
+      } else {
+        prog?.set(cur, "Sütun tipleri ve veri sağlığı taranıyor...");
+      }
+    }, 220);
+  };
+
   try {
-    const res = await fetch("/upload", { method: "POST", body: fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Dosya yüklenemedi");
-    applyUploadedDataset(data);
+    const data = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/upload", true);
+
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable && evt.total > 0) {
+          const uploadRatio = evt.loaded / evt.total;
+          const mappedPct = Math.min(
+            45,
+            Math.max(6, Math.round(uploadRatio * 45)),
+          );
+          prog?.set(
+            mappedPct,
+            `Dosya sunucuya aktarılıyor (%${Math.round(uploadRatio * 100)})...`,
+          );
+          if (uploadRatio >= 0.98) {
+            startParsePhase();
+          }
+        }
+      };
+
+      xhr.upload.onload = () => {
+        startParsePhase();
+      };
+
+      xhr.onload = () => {
+        if (parseTimer) clearInterval(parseTimer);
+        let parsed = {};
+        try {
+          parsed = JSON.parse(xhr.responseText || "{}");
+        } catch (e) {
+          return reject(new Error("Sunucu yanıtı okunamadı."));
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(parsed);
+        } else {
+          reject(new Error(parsed.error || "Dosya yüklenemedi"));
+        }
+      };
+
+      xhr.onerror = () => {
+        if (parseTimer) clearInterval(parseTimer);
+        reject(new Error("Ağ bağlantısı sırasında hata oluştu."));
+      };
+
+      xhr.send(fd);
+    });
+
+    prog?.complete("Veri seti hazır! Analiz ekranına geçiliyor...");
+    setTimeout(() => applyUploadedDataset(data), 240);
   } catch (err) {
+    if (parseTimer) clearInterval(parseTimer);
+    prog?.stop();
+    setUploadZoneVisibility(true);
     const errMsg = err.message || "Dosya okunamadı veya biçim desteklenmiyor.";
     setUploadStatus(
       `⚠️ <strong>Dosya Yükleme Hatası:</strong> ${errMsg}`,
@@ -181,6 +320,24 @@ function renderSheetTabs(sheets, activeSheet) {
 }
 
 async function switchSheet(sheetName) {
+  const prog = window.DataVizProgress?.start({
+    icon: "📑",
+    title: `"${sheetName}" Sayfasına Geçiliyor`,
+    showHud: true,
+    stages: [
+      {
+        at: 0,
+        short: "Sayfa Okuma",
+        label: "Excel çalışma sayfası okunuyor...",
+      },
+      {
+        at: 50,
+        short: "Sütun Analizi",
+        label: "Sütun tipleri güncelleniyor...",
+      },
+      { at: 85, short: "Arayüz", label: "Veri havuzu yenileniyor..." },
+    ],
+  });
   try {
     const res = await fetch("/switch_sheet", {
       method: "POST",
@@ -213,8 +370,10 @@ async function switchSheet(sheetName) {
     renderSheetTabs(sheetNames, sheetName);
     if (typeof initDragDropPool === "function") initDragDropPool();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
+    prog?.complete(`"${sheetName}" sayfası yüklendi!`);
     if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
   } catch (err) {
+    prog?.stop();
     alert("Sayfa değiştirme hatası: " + err.message);
   }
 }
@@ -351,8 +510,6 @@ document.addEventListener("DOMContentLoaded", () => {
           Plotly.Plots.resize("regScatterPlotArea");
           Plotly.Plots.resize("regHeatmapPlotArea");
         } catch (e) {}
-      } else if (tabName === "ai") {
-        document.getElementById("tabAi")?.classList.remove("hidden");
       } else if (tabName === "dashboard") {
         document.getElementById("tabDashboard")?.classList.remove("hidden");
         if (typeof renderDashboardGrid === "function") renderDashboardGrid();
@@ -542,9 +699,7 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
   // Download Chart Buttons (PNG & PDF)
   document.getElementById("downloadPngBtn")?.addEventListener("click", () => {
-    const mainChart =
-      document.getElementById("chartArea") ||
-      document.getElementById("mainChartContainer");
+    const mainChart = document.getElementById("chartArea");
     if (mainChart && mainChart.data) {
       Plotly.downloadImage(mainChart, {
         format: "png",
@@ -559,9 +714,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("downloadPdfBtn")
     ?.addEventListener("click", async () => {
-      const mainChart =
-        document.getElementById("chartArea") ||
-        document.getElementById("mainChartContainer");
+      const mainChart = document.getElementById("chartArea");
       if (mainChart && mainChart.data) {
         if (typeof showToast === "function")
           showToast("PDF raporu hazırlanıyor...", "info");

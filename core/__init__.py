@@ -18,7 +18,6 @@ from core.config import (
 )
 from core.store import (
     DATA_STORE,
-    clear_user_data,
     get_df,
     get_excel_data,
     get_user_id,
@@ -39,7 +38,6 @@ __all__ = [
     "SECRET_KEY",
     "UPLOAD_FOLDER",
     "Config",
-    "clear_user_data",
     "get_df",
     "get_excel_data",
     "get_user_id",

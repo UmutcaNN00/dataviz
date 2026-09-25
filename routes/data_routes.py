@@ -28,6 +28,50 @@ logger = logging.getLogger(__name__)
 data_bp = Blueprint("data", __name__)
 
 
+def _compute_health_dict(df: pd.DataFrame) -> dict[str, Any]:
+    """Computes dataset health metrics with fast sampling for massive datasets (>500k rows)."""
+    total_n = len(df)
+    if total_n == 0:
+        return {
+            "success": True,
+            "has_issues": False,
+            "missing_cells": 0,
+            "missing_rows": 0,
+            "total_rows": 0,
+            "anomalies": [],
+            "has_anomalies": False,
+        }
+
+    if total_n > 500_000:
+        sample_size = min(50_000, total_n)
+        sample_check = df.iloc[:sample_size]
+        sample_missing_cells = int(
+            sum(int(sample_check[c].isna().sum()) for c in sample_check.columns)
+        )
+        if sample_missing_cells == 0:
+            missing_count = 0
+            missing_rows = 0
+        else:
+            scale = total_n / sample_size
+            missing_count = max(1, round(sample_missing_cells * scale))
+            sample_missing_ratio = float(sample_check.isna().any(axis=1).mean())
+            missing_rows = max(1, round(sample_missing_ratio * total_n))
+    else:
+        missing_count = int(sum(int(df[c].isna().sum()) for c in df.columns))
+        missing_rows = 0 if missing_count == 0 else int(df.isnull().any(axis=1).sum())
+
+    anomalies = detect_column_anomalies(df)
+    return {
+        "success": True,
+        "has_issues": missing_rows > 0 or len(anomalies) > 0,
+        "missing_cells": missing_count,
+        "missing_rows": missing_rows,
+        "total_rows": total_n,
+        "anomalies": anomalies,
+        "has_anomalies": len(anomalies) > 0,
+    }
+
+
 @data_bp.route("/check_health", methods=["GET"])
 def check_health():
     """Inspects dataset health: missing values, NaN count, and column type anomalies."""
@@ -38,31 +82,8 @@ def check_health():
         ), 400
 
     try:
-        total_n = len(global_df)
-        missing_count = int(
-            sum(int(global_df[c].isna().sum()) for c in global_df.columns)
-        )
-        if missing_count == 0:
-            missing_rows = 0
-        elif total_n > 500_000:
-            sample_check = global_df.sample(n=min(50_000, total_n), random_state=42)
-            sample_missing_ratio = float(sample_check.isna().any(axis=1).mean())
-            missing_rows = max(1, round(sample_missing_ratio * total_n))
-        else:
-            missing_rows = int(global_df.isnull().any(axis=1).sum())
-        anomalies = detect_column_anomalies(global_df)
-
-        resp = jsonify(
-            {
-                "success": True,
-                "has_issues": missing_rows > 0 or len(anomalies) > 0,
-                "missing_cells": missing_count,
-                "missing_rows": missing_rows,
-                "total_rows": len(global_df),
-                "anomalies": anomalies,
-                "has_anomalies": len(anomalies) > 0,
-            }
-        )
+        health_data = _compute_health_dict(global_df)
+        resp = jsonify(health_data)
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         return resp
     except Exception as e:
@@ -93,7 +114,7 @@ def repair_column_anomalies():
         categorical_cols = repaired_df.select_dtypes(
             include=["object", "category", "bool", "string"]
         ).columns.tolist()
-        remaining = detect_column_anomalies(repaired_df)
+        health_data = _compute_health_dict(repaired_df)
 
         return jsonify(
             {
@@ -103,7 +124,8 @@ def repair_column_anomalies():
                 "total_rows": len(repaired_df),
                 "numeric_columns": numeric_cols,
                 "categorical_columns": categorical_cols,
-                "remaining_anomalies": remaining,
+                "remaining_anomalies": health_data["anomalies"],
+                "health": health_data,
             }
         )
     except Exception as e:  # noqa: BLE001
@@ -128,6 +150,7 @@ def clean_data():
         categorical_cols = cleaned_df.select_dtypes(
             include=["object", "category", "bool", "string"]
         ).columns.tolist()
+        health_data = _compute_health_dict(cleaned_df)
 
         return jsonify(
             {
@@ -135,6 +158,7 @@ def clean_data():
                 "total_rows": len(cleaned_df),
                 "numeric_columns": numeric_cols,
                 "categorical_columns": categorical_cols,
+                "health": health_data,
             }
         )
     except Exception as e:
@@ -226,9 +250,8 @@ def preview_second_file():
         return jsonify({"error": str(e)}), 500
 
 
-@data_bp.route("/join_datasets", methods=["POST"])
 @data_bp.route("/merge_datasets", methods=["POST"])
-def join_datasets():
+def merge_datasets():
     """Merges the active dataset with a second dataset using specified keys and join type."""
     global_df = get_df(1)
     if global_df is None:
@@ -341,9 +364,8 @@ def join_datasets():
         return jsonify({"error": f"Birleştirme hatası: {e}"}), 500
 
 
-@data_bp.route("/create_calculated_column", methods=["POST"])
 @data_bp.route("/add_calculated_column", methods=["POST"])
-def create_calculated_column():
+def add_calculated_column():
     """Generates a calculated column based on arithmetic operations between columns/scalars."""
     global_df = get_df(1)
     if global_df is None:

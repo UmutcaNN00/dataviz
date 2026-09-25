@@ -134,12 +134,30 @@
       document.getElementById("regSelectCorrMethod")?.value || "pearson";
     const filters = window.activeFilters || [];
 
-    // Loading indicator
     const scatterArea = document.getElementById("regScatterPlotArea");
-    if (scatterArea) {
-      scatterArea.innerHTML =
-        '<div style="display:flex; height:100%; align-items:center; justify-content:center; color:var(--muted);"><div class="spinner" style="margin-right:12px;"></div> Model hesaplanıyor...</div>';
-    }
+    const prog = window.DataVizProgress?.start({
+      icon: "📈",
+      title: `${xCol} & ${yCol} Regresyon Modeli`,
+      containerId: "regScatterPlotArea",
+      showHud: false,
+      stages: [
+        {
+          at: 0,
+          short: "Örneklem",
+          label: "Geçerli sayısal gözlem çiftleri hazırlanıyor...",
+        },
+        {
+          at: 45,
+          short: "Eğri & Güven Bandı",
+          label: "Regresyon eğrisi ve %95 güven aralığı hesaplanıyor...",
+        },
+        {
+          at: 80,
+          short: "Korelasyon Matrisi",
+          label: "Çapraz korelasyon ısı haritası çiziliyor...",
+        },
+      ],
+    });
 
     try {
       // Parallel fetch for regression curve & correlation matrix
@@ -181,11 +199,13 @@
       }
 
       if (regRes.ok && regData.success) {
+        prog?.complete("Model ve matris hazır!");
         regCurrentData = regData;
         updateRegDiagnosticBadges(regData);
         renderRegressionScatterPlot(regData);
         renderRegAiInsight(regData);
       } else {
+        prog?.stop();
         if (scatterArea) {
           scatterArea.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:var(--red); padding:20px; text-align:center;">Hata: ${regData.error || "Regresyon modeli hesaplanamadı."}</div>`;
         }
@@ -196,6 +216,7 @@
         renderCorrelationHeatmap(matData);
       }
     } catch (err) {
+      prog?.stop();
       console.error("fetchAndRenderRegressionStudio hatası:", err);
       if (scatterArea) {
         scatterArea.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:var(--red); padding:20px; text-align:center;">Bağlantı hatası: ${err.message}</div>`;
@@ -502,36 +523,52 @@
     if (!box) return;
 
     const insight = data.insight || {};
-    const corr = data.correlation || {};
-    const reg = data.regression || {};
-    const insightText =
+    const findings = Array.isArray(insight.key_findings)
+      ? insight.key_findings
+      : [];
+
+    if (findings.length > 0) {
+      let html =
+        '<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">';
+      findings.forEach((kf) => {
+        html += `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 9px 12px; font-size: 0.83rem; color: #e2e8f0; line-height: 1.5;">
+            ${kf}
+          </div>
+        `;
+      });
+      html += "</div>";
+      box.innerHTML = html;
+      return;
+    }
+
+    const rawText =
       typeof insight === "string"
         ? insight
         : insight.insight || insight.text || "İstatistiksel model oluşturuldu.";
+    const lines = rawText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && l !== "---" && !l.startsWith("#"));
 
-    let html = `<p style="margin: 0 0 10px 0; font-size: 0.85rem; line-height: 1.55;">${insightText}</p>`;
-
-    if (insight.key_findings && insight.key_findings.length > 0) {
-      html +=
-        '<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">';
-      insight.key_findings.forEach((kf) => {
-        html += `<li style="font-size: 0.8rem; color: #cbd5e1;">${kf}</li>`;
-      });
-      html += "</ul>";
-    } else {
-      const strength = corr.interpretation || "belirli";
-      const r2Pct = ((reg.r_squared || 0) * 100).toFixed(1);
+    let html =
+      '<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">';
+    lines.forEach((line) => {
+      const cleanLine = line
+        .replace(/^- /, "")
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g, "<em>$1</em>")
+        .replace(
+          /`(.*?)`/g,
+          '<code style="background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px;">$1</code>',
+        );
       html += `
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px; margin-top: 6px;">
-          <div style="color: #38bdf8; font-weight: 700; margin-bottom: 2px;">📈 Yönetici Özeti:</div>
-          <div style="color: #cbd5e1; font-size: 0.78rem;">
-            <strong>${data.x_col}</strong> ile <strong>${data.y_col}</strong> değişkenleri arasında <strong>${strength}</strong> bir ilişki gözlenmiştir.
-            Kurulan regresyon modeli <strong>${reg.equation}</strong> bağımlı değişkendeki varyansın <strong>%${r2Pct}</strong>'lik kısmını başarıyla açıklamaktadır.
-          </div>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 9px 12px; font-size: 0.83rem; color: #e2e8f0; line-height: 1.5;">
+          ${cleanLine}
         </div>
       `;
-    }
-
+    });
+    html += "</div>";
     box.innerHTML = html;
   }
 
@@ -544,9 +581,7 @@
     const reg = regCurrentData.regression || {};
     const corr = regCurrentData.correlation || {};
     const title = `${regCurrentData.x_col} & ${regCurrentData.y_col} Regresyon Analizi`;
-    const plotDiv =
-      document.getElementById("regScatterPlotArea") ||
-      document.getElementById("regScatterPlot");
+    const plotDiv = document.getElementById("regScatterPlotArea");
     const clonedTraces =
       plotDiv && plotDiv.data ? JSON.parse(JSON.stringify(plotDiv.data)) : null;
     const clonedLayout =

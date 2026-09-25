@@ -257,7 +257,6 @@ def get_chart_data():
 
 
 @chart_bp.route("/get_column_unique_values", methods=["GET", "POST"])
-@chart_bp.route("/get_column_details", methods=["GET", "POST"])
 def get_column_unique_values():
     """Retrieves unique categories or numerical ranges for dynamic slicers and filters."""
     global_df = get_df(1)
