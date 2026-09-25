@@ -10,7 +10,6 @@ import logging
 import pandas as pd
 import numpy as np
 import polars as pl
-import pyarrow
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +361,9 @@ def read_parquet_safely(file_input):
             f"Parquet dosyası PyArrow Zero-Copy motoru ile okundu: {len(df)} satır, {len(df.columns)} sütun"
         )
     except Exception as e_pa:
-        logger.warning(f"PyArrow doğrudan parquet okuma fallback (Polars deneniyor): {e_pa}")
+        logger.warning(
+            f"PyArrow doğrudan parquet okuma fallback (Polars deneniyor): {e_pa}"
+        )
         try:
             if hasattr(source, "seek"):
                 source.seek(0)
@@ -377,4 +378,3 @@ def read_parquet_safely(file_input):
 
     df.columns = _deduplicate_columns(df.columns)
     return df
-

@@ -20,7 +20,7 @@ def get_hf_pipeline():
     global _hf_pipeline
     if _hf_pipeline is None:
         try:
-            from transformers import pipeline
+            from transformers import pipeline  # type: ignore
             logger.info("Yapay Zeka (Qwen2.5) modeli yükleniyor...")
             _hf_pipeline = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct")
         except Exception as e:

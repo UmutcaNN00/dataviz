@@ -36,7 +36,9 @@ def check_health():
 
     try:
         total_n = len(global_df)
-        missing_count = int(sum(int(global_df[c].isna().sum()) for c in global_df.columns))
+        missing_count = int(
+            sum(int(global_df[c].isna().sum()) for c in global_df.columns)
+        )
         if missing_count == 0:
             missing_rows = 0
         elif total_n > 500_000:
@@ -150,7 +152,7 @@ def preview_second_file():
         return jsonify({"error": "Dosya seçilmedi"}), 400
 
     try:
-        filename2 = file2.filename.lower()
+        filename2 = (file2.filename or "").lower()
         if filename2.endswith(".parquet"):
             df2 = read_parquet_safely(file2)
         elif filename2.endswith(".csv"):
@@ -234,7 +236,7 @@ def join_datasets():
     df2 = None
     if "file2" in request.files and request.files["file2"].filename != "":
         file2 = request.files["file2"]
-        filename2 = file2.filename.lower()
+        filename2 = (file2.filename or "").lower()
         try:
             if filename2.endswith(".parquet"):
                 df2 = read_parquet_safely(file2)
