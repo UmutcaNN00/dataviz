@@ -18,7 +18,6 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Flask-3.x-black?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
   <img src="https://img.shields.io/badge/Lisans-MIT-yellow?style=for-the-badge" alt="MIT">
-  <img src="https://img.shields.io/badge/TÜBİTAK-2209--A_Projesi-e11d48?style=for-the-badge" alt="TÜBİTAK 2209-A">
 </p>
 
 </div>
@@ -90,7 +89,7 @@ DataViz, teknik veya kodlama bilgisi gerektirmeden **3 basit adımda** uçtan uc
 
 ### Seçenek 1: Windows'ta Tek Tıkla Başlatma (Önerilen)
 
-Proje ana dizinindeki [`UYGULAMAYI_BASLAT.bat`](UYGULAMAYI_BASLAT.bat) veya `dataviz/` içindeki [`DEMO_BASLAT.bat`](DEMO_BASLAT.bat) dosyasına çift tıklayın. Sunucu otomatik olarak başlayacak ve tarayıcınızda `http://127.0.0.1:5000` adresini açacaktır.
+Proje ana dizinindeki [`DEMO_BASLAT.bat`](DEMO_BASLAT.bat) dosyasına çift tıklayın. Sunucu otomatik olarak başlayacak ve tarayıcınızda `http://127.0.0.1:5000` adresini açacaktır.
 
 ### Seçenek 2: Terminal / Manuel Kurulum
 
@@ -127,18 +126,9 @@ dataviz/
 ├── requirements.txt                # Python bağımlılıkları (Flask, Polars, PyArrow, SciPy, Pandas, NumPy)
 ├── DEMO_BASLAT.bat                 # Windows için tek tıkla başlatıcı
 ├── Dockerfile                      # Docker konteyner tanımı
-├── docker-compose.yml              # Docker Compose çoklu servis yapılandırması
+├── docker-compose.yml              # Docker Compose servis yapılandırması
 ├── test_system_connectivity.py     # 19 adımlı uçtan uca (E2E) entegrasyon test paketi
 ├── generate_100m_dataset.py        # 100M satır × 22 sütun gerçekçi kirli Parquet veri seti üreteci
-├── generate_academic_tubitak_report.py  # 14 sayfalık TÜBİTAK 2209-A akademik PDF rapor üreteci
-├── pyrightconfig.json              # Pylance/Pyright tip denetimi yapılandırması
-├── GEMINI.md                       # AI asistan çalışma alanı kuralları
-│
-├── .agents/skills/                 # Yeniden Kullanılabilir AI Skill Tanımları
-│   ├── dataviz-architecture/       # Proje mimarisi ve konvansiyonlar
-│   ├── massive-dataset-optimization/  # 100M+ satır PyArrow/Parquet optimizasyonu
-│   ├── tubitak-2209a-report/       # TÜBİTAK 2209-A PDF rapor üretim rehberi
-│   └── vscode-ide-diagnostics/     # VS Code Pylance/Ruff diagnostik çözümleri
 │
 ├── core/                           # Çekirdek Yapılandırma ve Bellek Yönetimi
 │   ├── config.py                   # Yükleme limitleri (5 GB), izin verilen uzantılar ve dizin ayarları
@@ -221,24 +211,6 @@ DataViz, PyArrow zero-copy ve kategorik sütun optimizasyonu ile devasa veri set
 | **Data Healer Hızlanması** | Kategorik sütun parse: ~1000x (`apply()` yerine NumPy indexing) |
 
 > 💡 `generate_100m_dataset.py` betiği ile kendi 100M satırlık test veri setinizi üretebilirsiniz.
-
----
-
-## 🎓 TÜBİTAK 2209-A Akademik Proje
-
-DataViz, **TÜBİTAK 2209-A Üniversite Öğrencileri Araştırma Projeleri Destekleme Programı** kapsamında geliştirilmektedir.
-
-Proje deposunda bulunan `generate_academic_tubitak_report.py` betiği ile **14 sayfalık akademik kalitede PDF rapor** otomatik olarak üretilebilir. Rapor içeriği:
-
-- 📋 Projenin Özgün Değeri ve Literatür Karşılaştırması
-- 🔬 Hipotezler (H₀ / H₁) ve SMART Hedefler
-- 🏗️ 4 Katmanlı Teknik Mimari Açıklaması
-- 📊 100M Satır Benchmark Sonuçları
-- 📅 6 İş Paketi ve 12 Aylık Gantt Şeması
-- ⚠️ Risk Analizi ve B Planı
-- 🌍 Sürdürülebilir Kalkınma Amaçları (SKA 4 ve SKA 9)
-- 💰 Kalem Bazlı Bütçe Tablosu
-- 🎤 12 Soruluk Jüri Savunma Rehberi
 
 ---
 

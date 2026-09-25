@@ -7,9 +7,13 @@ venv/
 uploads/
 *.log
 .agents/
+GEMINI.md
+pyrightconfig.json
+.vscode/
 *.xlsx
 *.xls
 *.csv
 *.parquet
+*.pdf
 scratch/
 .ruff_cache/
