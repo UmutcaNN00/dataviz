@@ -3,17 +3,18 @@ DataViz - Core Application Server
 Lightweight application factory registering modular Flask Blueprints.
 """
 
-from datetime import date, datetime
 import importlib
 import json
 import logging
 import math
+from datetime import date, datetime
 
-from flask import Flask
-from flask.json.provider import DefaultJSONProvider
 import numpy as np
 import pandas as pd
+from flask import Flask
+from flask.json.provider import DefaultJSONProvider
 
+# isort: split
 from core.config import DEBUG, PORT, Config
 from routes import register_blueprints
 

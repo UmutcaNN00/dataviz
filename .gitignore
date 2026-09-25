@@ -12,3 +12,4 @@ uploads/
 *.csv
 *.parquet
 scratch/
+.ruff_cache/

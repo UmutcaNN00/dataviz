@@ -3,21 +3,24 @@ Data Routes Blueprint - Data Health, Anomaly Healing, Cleaning, Dataset Joins, a
 """
 
 import logging
+import re
+from typing import Any, cast
+
 import numpy as np
 import pandas as pd
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
+# isort: split
 from core.store import get_df, set_df
+from services.data_healer import (
+    clean_missing_data,
+    detect_column_anomalies,
+    repair_column_data,
+)
 from services.file_service import (
-    clean_dataframe,
     read_csv_safely,
     read_excel_safely,
     read_parquet_safely,
-)
-from services.data_healer import (
-    detect_column_anomalies,
-    repair_column_data,
-    clean_missing_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,7 +47,7 @@ def check_health():
         elif total_n > 500_000:
             sample_check = global_df.sample(n=min(50_000, total_n), random_state=42)
             sample_missing_ratio = float(sample_check.isna().any(axis=1).mean())
-            missing_rows = max(1, int(round(sample_missing_ratio * total_n)))
+            missing_rows = max(1, round(sample_missing_ratio * total_n))
         else:
             missing_rows = int(global_df.isnull().any(axis=1).sum())
         anomalies = detect_column_anomalies(global_df)
@@ -63,9 +66,9 @@ def check_health():
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         return resp
     except Exception as e:
-        logger.exception(f"check_health hatası: {e}")
+        logger.exception("check_health hatası")
         return jsonify(
-            {"error": f"Veri sağlığı kontrol edilirken bir hata oluştu: {str(e)}"}
+            {"error": f"Veri sağlığı kontrol edilirken bir hata oluştu: {e}"}
         ), 500
 
 
@@ -103,9 +106,9 @@ def repair_column_anomalies():
                 "remaining_anomalies": remaining,
             }
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Sütun onarma hatası: {e}")
-        return jsonify({"error": f"Onarma işlemi sırasında hata: {str(e)}"}), 500
+        return jsonify({"error": f"Onarma işlemi sırasında hata: {e}"}), 500
 
 
 @data_bp.route("/clean_data", methods=["POST"])
@@ -135,7 +138,7 @@ def clean_data():
             }
         )
     except Exception as e:
-        logger.exception(f"clean_data hatası: {e}")
+        logger.exception("clean_data hatası")
         return jsonify({"error": str(e)}), 500
 
 
@@ -148,7 +151,7 @@ def preview_second_file():
     if "file2" not in request.files:
         return jsonify({"error": "2. dosya bulunamadı"}), 400
     file2 = request.files["file2"]
-    if file2.filename == "":
+    if not file2.filename:
         return jsonify({"error": "Dosya seçilmedi"}), 400
 
     try:
@@ -169,8 +172,8 @@ def preview_second_file():
         df2.columns = [str(c).replace("\ufeff", "").strip() for c in df2.columns]
         set_df(df2, 2)
 
-        cols1 = global_df.columns.tolist()
-        cols2 = df2.columns.tolist()
+        cols1 = [str(c) for c in global_df.columns.tolist()]
+        cols2 = [str(c) for c in df2.columns.tolist()]
 
         auto_key1 = None
         auto_key2 = None
@@ -187,8 +190,6 @@ def preview_second_file():
 
         # 2. Semantic keyword group match (only pair columns belonging to the SAME keyword group)
         if not auto_key1:
-            import re
-
             keyword_groups = [
                 ("id", "no", "numara", "kod", "key", "tc"),
                 ("sehir", "şehir", "il"),
@@ -221,7 +222,7 @@ def preview_second_file():
             }
         )
     except Exception as e:
-        logger.exception(f"preview_second_file hatası: {e}")
+        logger.exception("preview_second_file hatası")
         return jsonify({"error": str(e)}), 500
 
 
@@ -234,9 +235,9 @@ def join_datasets():
         return jsonify({"error": "Önce 1. dosyayı yükleyin"}), 400
 
     df2 = None
-    if "file2" in request.files and request.files["file2"].filename != "":
+    if "file2" in request.files and request.files["file2"].filename:
         file2 = request.files["file2"]
-        filename2 = file2.filename.lower()
+        filename2 = (file2.filename or "").lower()
         try:
             if filename2.endswith(".parquet"):
                 df2 = read_parquet_safely(file2)
@@ -251,8 +252,8 @@ def join_datasets():
                     }
                 ), 400
             set_df(df2, 2)
-        except Exception as e:
-            return jsonify({"error": f"2. dosya okunamadı: {str(e)}"}), 400
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"2. dosya okunamadı: {e}"}), 400
     else:
         df2 = get_df(2)
 
@@ -286,7 +287,7 @@ def join_datasets():
         global_df_temp = global_df.copy()
         df2_temp = df2.copy()
 
-        def normalize_merge_series(series, prefix):
+        def normalize_merge_series(series: pd.Series, prefix: str) -> np.ndarray:
             s_str = series.astype(str).str.strip()
             # Remove trailing .0 from float-formatted integer keys without IEEE-754 precision loss on long IDs
             s_str = s_str.str.replace(r"^(-?\d+)\.0+$", r"\1", regex=True)
@@ -305,7 +306,7 @@ def join_datasets():
             global_df_temp,
             df2_temp,
             on="_merge_key_",
-            how=join_type,
+            how=cast(Any, join_type),
             suffixes=("", "_2"),
         )
         merged.drop(columns=["_merge_key_"], inplace=True)
@@ -336,8 +337,8 @@ def join_datasets():
             }
         )
     except Exception as e:
-        logger.exception(f"join_datasets hatası: {e}")
-        return jsonify({"error": f"Birleştirme hatası: {str(e)}"}), 500
+        logger.exception("join_datasets hatası")
+        return jsonify({"error": f"Birleştirme hatası: {e}"}), 500
 
 
 @data_bp.route("/create_calculated_column", methods=["POST"])
@@ -406,5 +407,5 @@ def create_calculated_column():
             }
         )
     except Exception as e:
-        logger.exception(f"create_calculated_column hatası: {e}")
-        return jsonify({"error": f"Hesaplama hatası: {str(e)}"}), 500
+        logger.exception("create_calculated_column hatası")
+        return jsonify({"error": f"Hesaplama hatası: {e}"}), 500

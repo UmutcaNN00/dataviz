@@ -2,12 +2,14 @@
 Main Routes Blueprint - Landing Page, Studio, Health, and Sample Data
 """
 
-import os
 import logging
+import os
+
 import numpy as np
 import pandas as pd
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, jsonify, render_template
 
+# isort: split
 from core.config import BASE_DIR
 from core.store import get_df, set_df, set_excel_data
 from services.file_service import clean_dataframe, read_csv_safely, read_excel_safely
@@ -112,6 +114,8 @@ def load_sample():
             set_excel_data(None, [])
 
         df = get_df(1)
+        if df is None:
+            return jsonify({"error": "Örnek veri oluşturulamadı."}), 500
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
             include=["object", "category", "bool", "string"]
@@ -130,6 +134,6 @@ def load_sample():
                 "categorical_columns": categorical_cols,
             }
         )
-    except Exception as e:
-        logger.exception(f"Örnek veri yükleme hatası: {e}")
+    except Exception:
+        logger.exception("Örnek veri yükleme hatası")
         return jsonify({"error": "Örnek veri yüklenirken bir hata oluştu."}), 500

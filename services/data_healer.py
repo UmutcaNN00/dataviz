@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+# isort: split
 from core.config import ANOMALY_SAMPLE_SIZE, ANOMALY_SAMPLE_THRESHOLD
 
 logger = logging.getLogger(__name__)
@@ -109,13 +110,7 @@ def detect_column_anomalies(df: pd.DataFrame | None) -> list[dict[str, Any]]:
     underlying numeric data (type mismatch / anomalies).
     Uses smart sampling (>15,000 rows) for sub-second anomaly detection on massive datasets.
     """
-    if df is None:
-        return []
-    if hasattr(df, "empty") and df.empty:
-        return []
-    if hasattr(df, "is_empty") and getattr(df, "is_empty")():
-        return []
-    if len(df) == 0:
+    if df is None or df.empty or len(df) == 0:
         return []
 
     anomalies: list[dict[str, Any]] = []
@@ -283,9 +278,7 @@ def _fill_categorical_columns(
             df_clean[c] = df_clean[c].fillna(fill_label)
 
 
-def clean_missing_data(
-    df: pd.DataFrame | None, action: str = "drop"
-) -> pd.DataFrame:
+def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.DataFrame:
     """
     Cleans missing data across DataFrame based on action:
     - 'drop': drops rows with any missing values

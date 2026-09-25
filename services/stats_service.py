@@ -5,8 +5,9 @@ hypothesis testing (T-Test, ANOVA), KPI generation, filtering, and pivot matrice
 """
 
 import logging
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from scipy import stats as sp_stats
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ def safe_float(val, default=None):
             return default
         f = float(val)
         return f if np.isfinite(f) else default
-    except Exception:
+    except Exception:  # noqa: BLE001
         return default
 
 
@@ -98,7 +99,7 @@ def compute_robust_correlation(x_vals, y_vals, method="pearson"):
             "p_value": None,
             "method": method,
             "interpretation": "Yetersiz veya sabit varyanslı veri",
-            "sample_size": int(len(x_clean)),
+            "sample_size": len(x_clean),
         }
 
     try:
@@ -120,7 +121,7 @@ def compute_robust_correlation(x_vals, y_vals, method="pearson"):
                 res.statistic if hasattr(res, "statistic") else res[0], 0.0
             )
             p_val = safe_float(res.pvalue if hasattr(res, "pvalue") else res[1], None)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(f"Korelasyon hesaplama hatası ({method}): {e}")
         coef, p_val = 0.0, None
 
@@ -142,7 +143,7 @@ def compute_robust_correlation(x_vals, y_vals, method="pearson"):
         "p_value": p_val,
         "method": method,
         "interpretation": strength,
-        "sample_size": int(len(x_clean)),
+        "sample_size": len(x_clean),
     }
 
 
@@ -279,9 +280,9 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
             y_curve = slope * x_curve + intercept
             y_fit_used = slope * x_clean + intercept
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(f"Regresyon hesaplama hatası ({model_type}): {e}")
-        eq_str = f"Hesaplama hatası: {str(e)}"
+        eq_str = f"Hesaplama hatası: {e}"
 
     # 95% Confidence Interval band calculation
     ci_lower = []
@@ -302,7 +303,7 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
                 t_val = float(sp_stats.t.ppf(0.975, dof))
                 ci_upper = [round(float(v), 4) for v in (y_curve + t_val * se_line)]
                 ci_lower = [round(float(v), 4) for v in (y_curve - t_val * se_line)]
-    except Exception as e_ci:
+    except Exception as e_ci:  # noqa: BLE001
         logger.debug(f"CI calculation error: {e_ci}")
 
     finite_mask = np.isfinite(x_curve) & np.isfinite(y_curve)
@@ -375,11 +376,11 @@ def compute_correlation_matrix(active_df, num_cols=None, method="pearson"):
         return {
             "columns": selected_cols,
             "matrix": matrix,
-            "sample_size": int(len(clean_sub)),
+            "sample_size": len(clean_sub),
             "method": method,
         }
     except Exception as e:
-        logger.exception(f"compute_correlation_matrix error: {e}")
+        logger.exception("compute_correlation_matrix error")
         return {"columns": selected_cols, "matrix": [], "error": str(e)}
 
 
@@ -466,7 +467,7 @@ def compute_advanced_stats(
                         adv_info["best_val"] = float(grouped_mean.max())
                         adv_info["worst_group"] = str(grouped_mean.idxmin())
                         adv_info["worst_val"] = float(grouped_mean.min())
-                except Exception as e_grp:
+                except Exception as e_grp:  # noqa: BLE001
                     logger.debug(f"Group aggregation error: {e_grp}")
 
                 if len(groups) == 2:
@@ -490,7 +491,7 @@ def compute_advanced_stats(
                             "group_means": grp_means,
                             "groups": list(grp_means.keys()),
                         }
-                    except Exception as e_ttest:
+                    except Exception as e_ttest:  # noqa: BLE001
                         logger.debug(f"T-Test error: {e_ttest}")
                 elif len(groups) > 2:
                     try:
@@ -502,7 +503,7 @@ def compute_advanced_stats(
                             "f_stat": safe_float(f_stat, None),
                             "p_value": safe_float(p_val, None),
                         }
-                    except Exception as e_anova:
+                    except Exception as e_anova:  # noqa: BLE001
                         logger.debug(f"ANOVA error: {e_anova}")
                 else:
                     adv_info["type"] = "categorical_single"

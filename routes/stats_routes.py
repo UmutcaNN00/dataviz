@@ -3,21 +3,23 @@ Stats Routes Blueprint - Statistical Calculations, Executive KPI Tiles, and Acad
 """
 
 import logging
+
 import numpy as np
 import pandas as pd
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
+# isort: split
 from core.store import get_df
+from services.ai_service import generate_academic_insight
 from services.stats_service import (
     apply_filters,
-    compute_column_statistics,
     compute_advanced_stats,
-    generate_kpi_summary,
+    compute_column_statistics,
     compute_correlation_matrix,
-    compute_robust_regression,
     compute_robust_correlation,
+    compute_robust_regression,
+    generate_kpi_summary,
 )
-from services.ai_service import generate_academic_insight
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +69,8 @@ def get_stats():
             {"stats": stats, "advanced": advanced, "total_active_rows": len(active_df)}
         )
     except Exception as e:
-        logger.exception(f"get_stats hatası: {e}")
-        return jsonify({"error": f"İstatistik hesaplanırken hata: {str(e)}"}), 500
+        logger.exception("get_stats hatası")
+        return jsonify({"error": f"İstatistik hesaplanırken hata: {e}"}), 500
 
 
 @stats_bp.route("/get_kpi_summary", methods=["POST"])
@@ -87,8 +89,8 @@ def get_kpi_summary():
         kpis_data = generate_kpi_summary(active_df, total_original_rows=len(global_df))
         return jsonify(kpis_data)
     except Exception as e:
-        logger.exception(f"get_kpi_summary hatası: {e}")
-        return jsonify({"error": f"KPI özeti hesaplanırken hata: {str(e)}"}), 500
+        logger.exception("get_kpi_summary hatası")
+        return jsonify({"error": f"KPI özeti hesaplanırken hata: {e}"}), 500
 
 
 @stats_bp.route("/generate_interpretation", methods=["POST"])
@@ -116,8 +118,8 @@ def generate_interpretation():
         )
         return jsonify(result)
     except Exception as e:
-        logger.exception(f"generate_interpretation hatası: {e}")
-        return jsonify({"error": f"Yorum üretilirken hata: {str(e)}"}), 500
+        logger.exception("generate_interpretation hatası")
+        return jsonify({"error": f"Yorum üretilirken hata: {e}"}), 500
 
 
 @stats_bp.route("/get_correlation_matrix", methods=["POST"])
@@ -246,7 +248,7 @@ def get_regression_studio_data_route():
                 x_col=x_col,
                 y_cols=[y_col],
             )
-        except Exception as e_in:
+        except Exception as e_in:  # noqa: BLE001
             logger.debug(f"Insight generation error: {e_in}")
             fallback_txt = f"{x_col} ve {y_col} arasında {corr_method.upper()} korelasyonu {corr_result.get('coef', 0):.4f} olarak saptanmıştır."
             insight = {
@@ -273,7 +275,5 @@ def get_regression_studio_data_route():
             }
         )
     except Exception as e:
-        logger.exception(f"get_regression_studio_data hatası: {e}")
-        return jsonify(
-            {"error": f"Regresyon stüdyosu hesaplanırken hata: {str(e)}"}
-        ), 500
+        logger.exception("get_regression_studio_data hatası")
+        return jsonify({"error": f"Regresyon stüdyosu hesaplanırken hata: {e}"}), 500

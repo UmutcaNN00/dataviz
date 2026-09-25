@@ -213,7 +213,9 @@ def read_csv_safely(file_input: Any) -> pd.DataFrame:
     detected_delim: str | None = None
     if sample_lines:
         header_line = sample_lines[0]
-        counts: dict[str, int] = {d: header_line.count(d) for d in (";", ",", "\t", "|")}
+        counts: dict[str, int] = {
+            d: header_line.count(d) for d in (";", ",", "\t", "|")
+        }
         if any(c > 0 for c in counts.values()):
             try:
                 sniffer = csv.Sniffer()
@@ -298,16 +300,16 @@ def read_excel_safely(
         sheets_dict: dict[Any, pd.DataFrame] = pd.read_excel(
             io.BytesIO(file_bytes), sheet_name=None
         )
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         err_msg = str(e)
         logger.error(f"Excel okuma hatası: {err_msg}")
         if "xlrd" in err_msg.lower():
             raise ValueError(
                 "Eski Excel (.xls) dosyalarını okumak için 'xlrd' kütüphanesi gereklidir. Lütfen dosyanızı .xlsx formatına dönüştürüp yükleyin."
-            )
+            ) from e
         if "zip" in err_msg.lower() or "corrupt" in err_msg.lower():
-            raise ValueError("Excel dosyası bozuk veya geçersiz bir formatta.")
-        raise ValueError(f"Excel dosyası açılamadı: {err_msg}")
+            raise ValueError("Excel dosyası bozuk veya geçersiz bir formatta.") from e
+        raise ValueError(f"Excel dosyası açılamadı: {err_msg}") from e
 
     if not sheets_dict:
         raise ValueError("Excel dosyasında herhangi bir çalışma sayfası bulunamadı.")
@@ -357,9 +359,7 @@ def read_parquet_safely(file_input: Any) -> pd.DataFrame:
             if not file_bytes:
                 raise pd.errors.EmptyDataError("Parquet dosyası tamamen boş.")
             source = io.BytesIO(
-                file_bytes
-                if isinstance(file_bytes, bytes)
-                else bytes(file_bytes)
+                file_bytes if isinstance(file_bytes, bytes) else bytes(file_bytes)
             )
         elif isinstance(file_input, bytes):
             if not file_input:
@@ -388,8 +388,8 @@ def read_parquet_safely(file_input: Any) -> pd.DataFrame:
             logger.info(
                 f"Parquet dosyası Polars ile okundu: {len(df)} satır, {len(df.columns)} sütun"
             )
-        except Exception as e_pl:  # noqa: BLE001
-            raise ValueError(f"Parquet dosyası açılamadı: {e_pl}")
+        except Exception as e_pl:
+            raise ValueError(f"Parquet dosyası açılamadı: {e_pl}") from e_pl
 
     df.columns = pd.Index(_deduplicate_columns(df.columns))
     return df

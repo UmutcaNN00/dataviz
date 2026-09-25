@@ -4,11 +4,13 @@ Supports CSV, Excel (.xlsx, .xls), and Apache Parquet formats.
 """
 
 import logging
+
 import numpy as np
 import pandas as pd
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
-from core.store import set_df, get_df, get_excel_data, set_excel_data
+# isort: split
+from core.store import get_df, get_excel_data, set_df, set_excel_data
 from services.file_service import (
     clean_dataframe,
     read_csv_safely,
@@ -29,7 +31,7 @@ def upload():
             {"error": "İstekte dosya bulunamadı. Lütfen bir dosya seçin."}
         ), 400
     file = request.files["file"]
-    if file.filename == "":
+    if not file.filename:
         return jsonify({"error": "Herhangi bir dosya seçilmedi."}), 400
 
     filename = file.filename.lower()
@@ -101,8 +103,8 @@ def upload():
         logger.error(f"Doğrulama hatası ({file.filename}): {e}")
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        logger.exception(f"Dosya yükleme hatası ({file.filename}): {e}")
-        return jsonify({"error": f"Dosya işlenirken bir hata oluştu: {str(e)}"}), 400
+        logger.exception(f"Dosya yükleme hatası ({file.filename})")
+        return jsonify({"error": f"Dosya işlenirken bir hata oluştu: {e}"}), 400
 
 
 @upload_bp.route("/select_sheet", methods=["POST"])
@@ -161,10 +163,8 @@ def select_sheet():
             }
         )
     except Exception as e:
-        logger.exception(f"Sayfa değiştirme hatası: {e}")
-        return jsonify(
-            {"error": f"Sayfa değiştirilirken bir hata oluştu: {str(e)}"}
-        ), 400
+        logger.exception("Sayfa değiştirme hatası")
+        return jsonify({"error": f"Sayfa değiştirilirken bir hata oluştu: {e}"}), 400
 
 
 @upload_bp.route("/get_sheet_preview", methods=["GET"])

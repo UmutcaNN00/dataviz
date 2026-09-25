@@ -3,18 +3,20 @@ Chart Routes Blueprint - Chart Data Aggregation, Column Value Discovery, and Reg
 """
 
 import logging
+
 import numpy as np
 import pandas as pd
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
+# isort: split
 from core.config import CHART_SAMPLE_SIZE
 from core.store import get_df
 from services.data_healer import robust_parse_numeric_string
 from services.stats_service import (
-    safe_float,
     apply_filters,
     compute_robust_correlation,
     compute_robust_regression,
+    safe_float,
 )
 
 logger = logging.getLogger(__name__)
@@ -104,8 +106,8 @@ def get_chart_data():
                     )
                 if converted.notna().sum() > 0:
                     active_df[y] = converted.astype(float)
-            except Exception:
-                pass
+            except Exception as e_conv:  # noqa: BLE001
+                logger.debug(f"Numeric conversion skipped for {y}: {e_conv}")
         if y in active_df.columns and pd.api.types.is_numeric_dtype(active_df[y]):
             active_df[y] = active_df[y].replace([np.inf, -np.inf], np.nan)
 
@@ -244,13 +246,13 @@ def get_chart_data():
                                     .fillna(0)
                                 )
                                 agg_dict[y] = [int(v) for v in cnt_s.tolist()]
-                            except Exception:
+                            except Exception:  # noqa: BLE001
                                 agg_dict[y] = [0] * len(grouped_df)
                     response_data["agg"] = agg_dict
 
         return jsonify(response_data)
     except Exception as e:
-        logger.exception(f"get_chart_data hatası: {e}")
+        logger.exception("get_chart_data hatası")
         return jsonify({"error": str(e)}), 500
 
 
@@ -366,5 +368,5 @@ def get_regression_curve():
             }
         )
     except Exception as e:
-        logger.exception(f"get_regression_curve hatası: {e}")
-        return jsonify({"error": f"Regresyon eğrisi hesaplanamadı: {str(e)}"}), 500
+        logger.exception("get_regression_curve hatası")
+        return jsonify({"error": f"Regresyon eğrisi hesaplanamadı: {e}"}), 500

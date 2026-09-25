@@ -3,10 +3,10 @@ AI Service - Academic Statistical Interpreter
 Integrates Qwen2.5 / transformers pipeline with instant local rule-based academic fallback.
 """
 
-from collections.abc import Callable
 import importlib
 import json
 import logging
+from collections.abc import Callable
 from typing import Any
 
 logger = logging.getLogger(__name__)
