@@ -32,7 +32,7 @@ def upload():
     if file.filename == "":
         return jsonify({"error": "Herhangi bir dosya seçilmedi."}), 400
 
-    filename = (file.filename or "").lower()
+    filename = file.filename.lower()
     logger.info(f"Dosya yükleme isteği alındı: {file.filename}")
 
     try:

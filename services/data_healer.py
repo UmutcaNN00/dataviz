@@ -2,16 +2,19 @@
 Data Healer Service - Smart anomaly detection, numeric string parsing, and automatic data healing.
 """
 
-import re
 import logging
-import pandas as pd
+import re
+from typing import Any
+
 import numpy as np
-from core.config import ANOMALY_SAMPLE_THRESHOLD, ANOMALY_SAMPLE_SIZE
+import pandas as pd
+
+from core.config import ANOMALY_SAMPLE_SIZE, ANOMALY_SAMPLE_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
 
-def robust_parse_numeric_string(v):
+def robust_parse_numeric_string(v: Any) -> float | None:
     """
     Parses textual representations of numbers, currencies, percentages, and written numbers into float.
     Returns None if value cannot be parsed or represents missing/null data ('yok', 'n/a', etc.).
@@ -96,11 +99,11 @@ def robust_parse_numeric_string(v):
     try:
         f = float(s)
         return f if np.isfinite(f) else None
-    except Exception:
+    except ValueError:
         return None
 
 
-def detect_column_anomalies(df):
+def detect_column_anomalies(df: pd.DataFrame | None) -> list[dict[str, Any]]:
     """
     Scans columns in a DataFrame; detects columns that appear to be textual but contain
     underlying numeric data (type mismatch / anomalies).
@@ -110,12 +113,12 @@ def detect_column_anomalies(df):
         return []
     if hasattr(df, "empty") and df.empty:
         return []
-    if hasattr(df, "is_empty") and df.is_empty():
+    if hasattr(df, "is_empty") and getattr(df, "is_empty")():
         return []
     if len(df) == 0:
         return []
 
-    anomalies = []
+    anomalies: list[dict[str, Any]] = []
     total_rows = len(df)
 
     # For datasets >ANOMALY_SAMPLE_THRESHOLD rows, sample ANOMALY_SAMPLE_SIZE rows for instant detection
@@ -181,7 +184,7 @@ def detect_column_anomalies(df):
     return anomalies
 
 
-def _parse_series_fast(series, use_float32=False):
+def _parse_series_fast(series: pd.Series, use_float32: bool = False) -> pd.Series:
     """
     Vectorized / Category-aware numeric string parser.
     For CategoricalDtype columns (e.g. 100M rows with dictionary encoding), parses only unique categories
@@ -202,7 +205,11 @@ def _parse_series_fast(series, use_float32=False):
     return parsed.astype(target_dtype)
 
 
-def repair_column_data(df, target_column="__all__", repair_mode="smart_heal"):
+def repair_column_data(
+    df: pd.DataFrame | None,
+    target_column: str = "__all__",
+    repair_mode: str = "smart_heal",
+) -> tuple[pd.DataFrame, list[str]]:
     """
     Repairs column anomalies in a DataFrame.
 
@@ -216,7 +223,9 @@ def repair_column_data(df, target_column="__all__", repair_mode="smart_heal"):
     Returns:
         tuple (repaired_df, list_of_repaired_columns)
     """
-    if df is None or df.empty:
+    if df is None:
+        return pd.DataFrame(), []
+    if df.empty:
         return df, []
 
     is_massive = len(df) > 1_000_000
@@ -224,7 +233,7 @@ def repair_column_data(df, target_column="__all__", repair_mode="smart_heal"):
     detected_anomalies = detect_column_anomalies(df_copy)
 
     if target_column == "__all__":
-        cols_to_repair = [a["column"] for a in detected_anomalies]
+        cols_to_repair = [str(a["column"]) for a in detected_anomalies]
     elif target_column in df_copy.columns:
         cols_to_repair = [target_column]
     else:
@@ -261,16 +270,22 @@ def repair_column_data(df, target_column="__all__", repair_mode="smart_heal"):
     return df_copy, cols_to_repair
 
 
-def _fill_categorical_columns(df_clean, fill_label="Bilinmiyor"):
+def _fill_categorical_columns(
+    df_clean: pd.DataFrame, fill_label: str = "Bilinmiyor"
+) -> None:
     for c in df_clean.select_dtypes(include=["object", "category", "string"]).columns:
         if df_clean[c].isna().any():
-            if isinstance(df_clean[c].dtype, pd.CategoricalDtype):
-                if fill_label not in df_clean[c].cat.categories:
-                    df_clean[c] = df_clean[c].cat.add_categories([fill_label])
+            if (
+                isinstance(df_clean[c].dtype, pd.CategoricalDtype)
+                and fill_label not in df_clean[c].cat.categories
+            ):
+                df_clean[c] = df_clean[c].cat.add_categories([fill_label])
             df_clean[c] = df_clean[c].fillna(fill_label)
 
 
-def clean_missing_data(df, action="drop"):
+def clean_missing_data(
+    df: pd.DataFrame | None, action: str = "drop"
+) -> pd.DataFrame:
     """
     Cleans missing data across DataFrame based on action:
     - 'drop': drops rows with any missing values
@@ -278,7 +293,9 @@ def clean_missing_data(df, action="drop"):
     - 'fill_median' / 'median': fills numerical missing values with median, categorical with 'Bilinmiyor'
     - 'fill_zero' / 'zero': fills numerical missing values with 0, categorical with 'Bilinmiyor'
     """
-    if df is None or df.empty:
+    if df is None:
+        return pd.DataFrame()
+    if df.empty:
         return df
 
     is_massive = len(df) > 1_000_000
