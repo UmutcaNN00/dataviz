@@ -679,19 +679,34 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
     if isinstance(values, str):
         values = [values] if values else []
 
-    valid_rows = [r for r in (rows or []) if r in active_df.columns]
-    valid_cols = [c for c in (cols or []) if c in active_df.columns]
-    valid_values = [
-        v
-        for v in (values or [])
-        if v in active_df.columns and pd.api.types.is_numeric_dtype(active_df[v])
-    ]
+    valid_rows = list(
+        dict.fromkeys(r for r in (rows or []) if r in active_df.columns)
+    )
+    valid_cols = list(
+        dict.fromkeys(
+            c
+            for c in (cols or [])
+            if c in active_df.columns and c not in valid_rows
+        )
+    )
+    valid_values = list(
+        dict.fromkeys(
+            v
+            for v in (values or [])
+            if v in active_df.columns
+            and pd.api.types.is_numeric_dtype(active_df[v])
+            and v not in valid_rows
+            and v not in valid_cols
+        )
+    )
 
     if len(valid_rows) == 0 and len(valid_cols) == 0:
         raise ValueError("En az bir Satır veya Sütun boyutu seçmelisiniz.")
 
     if not valid_values:
-        raise ValueError("Lütfen hesaplanacak en az bir sayısal Değer (Metrik) seçin.")
+        raise ValueError(
+            "Lütfen satır/sütun boyutlarından farklı en az bir sayısal Değer (Metrik) seçin."
+        )
 
     agg_map = {
         "sum": "sum",
@@ -703,8 +718,9 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
     }
     chosen_agg = agg_map.get(agg_func, "sum")
 
+    proj_cols = list(dict.fromkeys(valid_rows + valid_cols + valid_values))
     pt = pd.pivot_table(
-        active_df,
+        active_df[proj_cols],
         index=valid_rows if valid_rows else None,
         columns=valid_cols if valid_cols else None,
         values=valid_values,
@@ -712,6 +728,7 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
         fill_value=0,
         margins=True,
         margins_name="Genel Toplam",
+        observed=True,
     )
 
     if isinstance(pt.columns, pd.MultiIndex):

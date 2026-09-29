@@ -4,6 +4,7 @@
 ════════════════════════════════════════════════════════════ */
 
 var isUploading = false;
+var lastScreenBeforeTrust = 2;
 
 // ── SCREEN TRANSITIONS COORDINATOR ──
 function showScreen(num) {
@@ -12,13 +13,23 @@ function showScreen(num) {
     "step2-config",
     "step3-dashboard",
     "screen-pivot-studio",
+    "screen-trust-studio",
   ];
   const screens = ids.map((id) => document.getElementById(id));
   screens.forEach(
     (s) => s && (s.classList.add("hidden"), s.classList.remove("active")),
   );
 
-  const activeIdx = num === "pivot" || num === 4 ? 3 : num - 1;
+  let activeIdx = 0;
+  if (num === "pivot" || num === 4) {
+    activeIdx = 3;
+  } else if (num === "trust" || num === 5) {
+    activeIdx = 4;
+  } else {
+    activeIdx = num - 1;
+    lastScreenBeforeTrust = num;
+  }
+
   const target = screens[activeIdx];
   if (target) {
     target.classList.remove("hidden");
@@ -27,7 +38,6 @@ function showScreen(num) {
 
   if ((num === 4 || num === "pivot") && typeof initPivotStudio === "function") {
     initPivotStudio();
-    if (typeof refreshPivotStudio === "function") refreshPivotStudio();
   }
 }
 
@@ -86,6 +96,11 @@ function applyUploadedDataset(data) {
   activeFilters = window.activeFilters = [];
   dashboardCharts = window.dashboardCharts = [];
   sheetNames = window.sheetNames = data.sheet_names || [];
+  if (window.pivotConfig) {
+    window.pivotConfig.rows = [];
+    window.pivotConfig.cols = [];
+    window.pivotConfig.values = [];
+  }
 
   if (typeof updateDashboardBadge === "function") updateDashboardBadge();
   if (typeof renderActiveFilterChips === "function") renderActiveFilterChips();
@@ -95,6 +110,8 @@ function applyUploadedDataset(data) {
   if (s2) s2.textContent = activeFileName;
   const pv = document.getElementById("pivotFileName");
   if (pv) pv.textContent = activeFileName;
+  const tr = document.getElementById("trustFileName");
+  if (tr) tr.textContent = activeFileName;
 
   setUploadStatus(null);
   setUploadZoneVisibility(true);
@@ -357,6 +374,13 @@ async function switchSheet(sheetName) {
     calculatedColumns = window.calculatedColumns = [];
     joinedColumns = window.joinedColumns = [];
     activeFilters = window.activeFilters = [];
+    currentChartData = window.currentChartData = null;
+    currentStats = window.currentStats = {};
+    if (window.pivotConfig) {
+      window.pivotConfig.rows = [];
+      window.pivotConfig.cols = [];
+      window.pivotConfig.values = [];
+    }
 
     const s2 = document.getElementById("s2FileName");
     if (s2 && activeFileName)
@@ -364,12 +388,33 @@ async function switchSheet(sheetName) {
     const pv = document.getElementById("pivotFileName");
     if (pv && activeFileName)
       pv.textContent = `${activeFileName} (${sheetName})`;
+    const tr = document.getElementById("trustFileName");
+    if (tr && activeFileName)
+      tr.textContent = `${activeFileName} (${sheetName})`;
 
     if (typeof renderActiveFilterChips === "function")
       renderActiveFilterChips();
     renderSheetTabs(sheetNames, sheetName);
     if (typeof initDragDropPool === "function") initDragDropPool();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
+    if (typeof window.populateRegColumnSelects === "function")
+      window.populateRegColumnSelects();
+    const pivotScreen = document.getElementById("screen-pivot-studio");
+    if (
+      pivotScreen &&
+      !pivotScreen.classList.contains("hidden") &&
+      typeof initPivotStudio === "function"
+    ) {
+      initPivotStudio();
+    }
+    const trustScreen = document.getElementById("screen-trust-studio");
+    if (
+      trustScreen &&
+      !trustScreen.classList.contains("hidden") &&
+      typeof fetchAndRenderTrustReport === "function"
+    ) {
+      fetchAndRenderTrustReport();
+    }
     prog?.complete(`"${sheetName}" sayfası yüklendi!`);
     if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
   } catch (err) {
@@ -785,105 +830,681 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+/// --- SQL Bağlantı ve AI Güven Skoru Modülleri ---
+document.addEventListener("DOMContentLoaded", () => {
+  // SQL Modal Elements
+  const btnOpenSqlModal = document.getElementById("btnOpenSqlModal");
+  const sqlConnectModal = document.getElementById("sqlConnectModal");
+  const btnCloseSqlModal = document.getElementById("btnCloseSqlModal");
+  const btnCancelSqlModal = document.getElementById("btnCancelSqlModal");
+  const btnExecuteSql = document.getElementById("btnExecuteSql");
+  const sqlUriInput = document.getElementById("sqlUriInput");
+  const sqlQueryInput = document.getElementById("sqlQueryInput");
 
-
-// --- SQL Bağlantı ve AI Güven Skoru Modülleri ---
-
-// SQL Modal Elements
-const btnOpenSqlModal = document.getElementById('btnOpenSqlModal');
-const sqlConnectModal = document.getElementById('sqlConnectModal');
-const btnCloseSqlModal = document.getElementById('btnCloseSqlModal');
-const btnCancelSqlModal = document.getElementById('btnCancelSqlModal');
-const btnExecuteSql = document.getElementById('btnExecuteSql');
-const sqlUriInput = document.getElementById('sqlUriInput');
-const sqlQueryInput = document.getElementById('sqlQueryInput');
-
-if(btnOpenSqlModal) {
-    btnOpenSqlModal.addEventListener('click', () => {
-        sqlConnectModal.classList.remove('hidden');
+  if (btnOpenSqlModal && sqlConnectModal) {
+    btnOpenSqlModal.addEventListener("click", () => {
+      sqlConnectModal.classList.remove("hidden");
     });
-}
-if(btnCloseSqlModal) btnCloseSqlModal.addEventListener('click', () => sqlConnectModal.classList.add('hidden'));
-if(btnCancelSqlModal) btnCancelSqlModal.addEventListener('click', () => sqlConnectModal.classList.add('hidden'));
+  }
+  if (btnCloseSqlModal && sqlConnectModal) {
+    btnCloseSqlModal.addEventListener("click", () =>
+      sqlConnectModal.classList.add("hidden"),
+    );
+  }
+  if (btnCancelSqlModal && sqlConnectModal) {
+    btnCancelSqlModal.addEventListener("click", () =>
+      sqlConnectModal.classList.add("hidden"),
+    );
+  }
 
-if(btnExecuteSql) {
-    btnExecuteSql.addEventListener('click', async () => {
-        const db_uri = sqlUriInput.value.trim();
-        const query = sqlQueryInput.value.trim();
-        if(!db_uri || !query) {
-            Swal.fire({ icon: 'warning', title: 'Hata', text: 'Lütfen Veritabanı URI ve SQL Sorgusunu girin.', background: 'var(--bg-2)', color: 'var(--text)'});
-            return;
-        }
-        
-        const originalBtnText = btnExecuteSql.innerHTML;
-        btnExecuteSql.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Çekiliyor...';
-        btnExecuteSql.disabled = true;
-        
-        try {
-            const res = await fetch('/fetch_sql', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ db_uri, query })
-            });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.error || 'SQL bağlantı hatası.');
-            
-            window.numericColumns = data.numeric_columns || [];
-            window.categoricalColumns = data.categorical_columns || [];
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Başarılı!',
-                text: ${data.total_rows} satır,  sütun çekildi.,
-                background: 'var(--bg-2)', color: 'var(--text)', timer: 2000, showConfirmButton: false
-            });
-            
-            sqlConnectModal.classList.add('hidden');
-            if (typeof proceedToStep2 === 'function') proceedToStep2();
-            
-        } catch(err) {
-            Swal.fire({ icon: 'error', title: 'Hata', text: err.message, background: 'var(--bg-2)', color: 'var(--text)'});
-        } finally {
-            btnExecuteSql.innerHTML = originalBtnText;
-            btnExecuteSql.disabled = false;
-        }
-    });
-}
+  if (btnExecuteSql) {
+    btnExecuteSql.addEventListener("click", async () => {
+      const db_uri = sqlUriInput ? sqlUriInput.value.trim() : "";
+      const query = sqlQueryInput ? sqlQueryInput.value.trim() : "";
+      if (!db_uri || !query) {
+        showToast(
+          "Lütfen Veritabanı Bağlantı URI ve SQL Sorgusunu girin.",
+          "warning",
+          "Eksik Bilgi",
+        );
+        return;
+      }
 
-// AI Güven Skoru Butonu
-const btnCalculateRiskScore = document.getElementById('btnCalculateRiskScore');
-if(btnCalculateRiskScore) {
-    btnCalculateRiskScore.addEventListener('click', async () => {
-        Swal.fire({
-            title: 'AI Modeli Eğitiliyor...',
-            text: 'Verideki tüm sayısal sütunlar Isolation Forest algoritması ile taranıyor. Lütfen bekleyin...',
-            allowOutsideClick: false,
-            background: 'var(--bg-2)', color: 'var(--text)',
-            didOpen: () => { Swal.showLoading(); }
+      const originalBtnText = btnExecuteSql.innerHTML;
+      btnExecuteSql.innerHTML = "⏳ Çekiliyor...";
+      btnExecuteSql.disabled = true;
+
+      const prog = window.DataVizProgress?.start({
+        icon: "🗄️",
+        title: "SQL Veritabanından Veri Çekiliyor",
+        showHud: true,
+        stages: [
+          {
+            at: 0,
+            short: "Bağlantı",
+            label: "Veritabanı sunucusuna bağlanılıyor...",
+          },
+          {
+            at: 45,
+            short: "Sorgu",
+            label: "SQL sorgusu çalıştırılıyor ve satırlar okunuyor...",
+          },
+          {
+            at: 80,
+            short: "Aktarım",
+            label: "Sütun tipleri analiz stüdyosuna aktarılıyor...",
+          },
+        ],
+      });
+
+      try {
+        const res = await fetch("/fetch_sql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ db_uri, query }),
         });
-        
-        try {
-            const res = await fetch('/calculate_risk_score', { method: 'POST' });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.error || 'Skor hesaplama hatası.');
-            
-            window.numericColumns = data.numeric_columns || [];
-            window.categoricalColumns = data.categorical_columns || [];
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Yapay Zeka Analizi Tamamlandı',
-                text: 'Guven_Skoru_AI adlı yeni bir sütun eklendi! (0 = Çok Riskli/Anormal, 100 = Çok Güvenli/Normal)',
-                background: 'var(--bg-2)', color: 'var(--text)'
-            });
-            
-            // Eğer varsa chart filter çiplerini vs güncelleyelim
-            if (typeof updateFilterChipsUI === 'function') updateFilterChipsUI();
-            
-        } catch(err) {
-            Swal.fire({ icon: 'error', title: 'Hata', text: err.message, background: 'var(--bg-2)', color: 'var(--text)'});
-        }
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "SQL bağlantı hatası.");
+
+        prog?.complete("SQL verisi başarıyla yüklendi!");
+        sqlConnectModal?.classList.add("hidden");
+        activeFileName = window.activeFileName = "SQL_Sorgu_Sonucu";
+        applyUploadedDataset(data);
+        showToast(
+          `${data.total_rows} satır ve ${data.total_cols} sütun başarıyla çekildi.`,
+          "success",
+          "SQL Bağlantısı Başarılı",
+        );
+      } catch (err) {
+        prog?.stop();
+        showToast(err.message, "error", "SQL Bağlantı Hatası");
+      } finally {
+        btnExecuteSql.innerHTML = originalBtnText;
+        btnExecuteSql.disabled = false;
+      }
     });
-}
+  }
+
+  // ── AI VERİ GÜVEN SKORU STÜDYOSU (TAM EKRAN) ──
+  function getScoreTheme(score) {
+    const s = Number(score) || 0;
+    if (s >= 85) {
+      return {
+        color: "#34d399",
+        border: "#10b981",
+        bg: "rgba(16, 185, 129, 0.14)",
+        label: "Yüksek Güven",
+      };
+    }
+    if (s >= 65) {
+      return {
+        color: "#fbbf24",
+        border: "#f59e0b",
+        bg: "rgba(245, 158, 11, 0.14)",
+        label: "Orta Güven (Onarım Önerilir)",
+      };
+    }
+    return {
+      color: "#f87171",
+      border: "#ef4444",
+      bg: "rgba(239, 68, 68, 0.15)",
+      label: "Riskli Veri (Temizlik Şart)",
+    };
+  }
+
+  function renderTrustStudio(data) {
+    if (!data || !data.raw_report || !data.cleaned_report) return;
+    const raw = data.raw_report;
+    const clean = data.cleaned_report;
+    const current = data.current_report || (data.is_cleaned ? clean : raw);
+    const isCleaned = Boolean(data.is_cleaned);
+    const hasCleaningHistory = Boolean(data.has_cleaning_history || isCleaned);
+    const delta = Number(data.score_delta || 0);
+
+    // Üst durum rozeti
+    const globalChip = document.getElementById("trustGlobalStatusChip");
+    if (globalChip) {
+      if (isCleaned) {
+        globalChip.textContent = "✓ Veri Seti Temizlendi ve Onarıldı";
+        globalChip.style.background = "rgba(16, 185, 129, 0.18)";
+        globalChip.style.color = "#34d399";
+        globalChip.style.borderColor = "rgba(16, 185, 129, 0.45)";
+      } else if (hasCleaningHistory) {
+        globalChip.textContent =
+          "🔧 Kısmi Temizleme Uygulandı — Kalan Sorunlar Mevcut";
+        globalChip.style.background = "rgba(56, 189, 248, 0.18)";
+        globalChip.style.color = "#38bdf8";
+        globalChip.style.borderColor = "rgba(56, 189, 248, 0.45)";
+      } else if (
+        raw.missing_cells > 0 ||
+        raw.invalid_cells > 0 ||
+        raw.duplicate_rows > 0
+      ) {
+        globalChip.textContent =
+          "⚠️ Ham Veri Setinde Kalite Sorunları Tespit Edildi";
+        globalChip.style.background = "rgba(245, 158, 11, 0.18)";
+        globalChip.style.color = "#fbbf24";
+        globalChip.style.borderColor = "rgba(245, 158, 11, 0.45)";
+      } else {
+        globalChip.textContent = "✓ Veri Seti Doğal Olarak Temiz";
+        globalChip.style.background = "rgba(16, 185, 129, 0.18)";
+        globalChip.style.color = "#34d399";
+        globalChip.style.borderColor = "rgba(16, 185, 129, 0.45)";
+      }
+    }
+
+    // 1. SOL KART (TEMİZLENMEMİŞ / HAM VERİ SETİ)
+    const rawTheme = getScoreTheme(raw.overall_score);
+    const rawScoreEl = document.getElementById("trustRawOverallScore");
+    if (rawScoreEl) {
+      rawScoreEl.textContent = Number(raw.overall_score).toFixed(1);
+      rawScoreEl.style.color = rawTheme.color;
+    }
+    const rawCircle = document.getElementById("trustRawScoreCircle");
+    if (rawCircle) {
+      rawCircle.style.borderColor = rawTheme.border;
+      rawCircle.style.background = rawTheme.bg;
+    }
+    const rawGrade = document.getElementById("trustRawGradeBadge");
+    if (rawGrade) {
+      rawGrade.textContent = rawTheme.label;
+      rawGrade.style.color = rawTheme.color;
+      rawGrade.style.borderColor = rawTheme.border;
+      rawGrade.style.background = rawTheme.bg;
+    }
+
+    const setBar = (valId, barId, scoreVal) => {
+      const vEl = document.getElementById(valId);
+      const bEl = document.getElementById(barId);
+      const pct = Math.max(0, Math.min(100, Number(scoreVal) || 0));
+      if (vEl) vEl.textContent = `${pct.toFixed(1)}%`;
+      if (bEl) bEl.style.width = `${pct}%`;
+    };
+
+    setBar(
+      "trustRawCompletenessVal",
+      "trustRawCompletenessBar",
+      raw.completeness_score,
+    );
+    setBar("trustRawTypeVal", "trustRawTypeBar", raw.type_validity_score);
+    setBar("trustRawOutlierVal", "trustRawOutlierBar", raw.outlier_score);
+    setBar("trustRawUniqueVal", "trustRawUniqueBar", raw.uniqueness_score);
+
+    const fmtNum = (n) => Number(n || 0).toLocaleString("tr-TR");
+    const rawMissEl = document.getElementById("trustRawMissingCount");
+    if (rawMissEl) {
+      rawMissEl.textContent = `${fmtNum(raw.missing_cells)} Hücre (%${raw.missing_pct})`;
+      rawMissEl.style.color = raw.missing_cells > 0 ? "#f87171" : "#34d399";
+    }
+    const rawInvEl = document.getElementById("trustRawInvalidCount");
+    if (rawInvEl) {
+      rawInvEl.textContent = `${fmtNum(raw.invalid_cells)} Hücre (${raw.anomalous_cols_count} Sütun)`;
+      rawInvEl.style.color = raw.invalid_cells > 0 ? "#fb923c" : "#34d399";
+    }
+    const rawOutEl = document.getElementById("trustRawOutlierCount");
+    if (rawOutEl) {
+      rawOutEl.textContent = `${fmtNum(raw.outlier_cells)} Hücre (%${raw.outlier_pct})`;
+    }
+    const rawDupEl = document.getElementById("trustRawDupCount");
+    if (rawDupEl) {
+      rawDupEl.textContent = `${fmtNum(raw.duplicate_rows)} Satır (%${raw.duplicate_pct})`;
+    }
+
+    // 2. SAĞ KART (TEMİZLENMİŞ VERİ SETİ)
+    const cleanStateBadge = document.getElementById("trustCleanStateBadge");
+    const cleanSubtitle = document.getElementById("trustCleanSubtitle");
+    if (cleanStateBadge) {
+      if (isCleaned) {
+        cleanStateBadge.textContent =
+          "✅ TEMİZLENMİŞ AKTİF VERİ SETİ (UYGULANDI)";
+        cleanStateBadge.style.background = "rgba(16, 185, 129, 0.22)";
+        cleanStateBadge.style.color = "#34d399";
+      } else if (hasCleaningHistory) {
+        cleanStateBadge.textContent =
+          "🔄 KISMİ ONARIM UYGULANDI (TAM TEMİZLİK HEDEFİ)";
+        cleanStateBadge.style.background = "rgba(245, 158, 11, 0.2)";
+        cleanStateBadge.style.color = "#fbbf24";
+      } else {
+        cleanStateBadge.textContent =
+          "✨ TEMİZLENMİŞ VERİ SETİ (ONARIM SONRASI HEDEF)";
+        cleanStateBadge.style.background = "rgba(56, 189, 248, 0.18)";
+        cleanStateBadge.style.color = "#38bdf8";
+      }
+    }
+    if (cleanSubtitle) {
+      cleanSubtitle.textContent = isCleaned
+        ? "Veri setinizdeki boş hücreler ve sözel bozulmalar temizlendi. Grafikleriniz şu an bu güvenilir veriyle çiziliyor."
+        : hasCleaningHistory
+          ? `Bazı sütunlar onarıldı (Mevcut aktif skor: ${Number(current.overall_score).toFixed(1)}). Kalan tüm sorunlar giderildiğinde ulaşılacak hedef skor:`
+          : "Boş hücreler doldurulup sözel bozulmalar onarıldığında veri setinizin ulaşacağı güvenilirlik skoru:";
+    }
+
+    const cleanScoreEl = document.getElementById("trustCleanOverallScore");
+    if (cleanScoreEl) {
+      cleanScoreEl.textContent = Number(clean.overall_score).toFixed(1);
+    }
+    const deltaBadge = document.getElementById("trustScoreDeltaBadge");
+    if (deltaBadge) {
+      if (delta > 0) {
+        deltaBadge.textContent = `+${delta.toFixed(1)} Puan Artış ↑`;
+        deltaBadge.style.background = "rgba(16, 185, 129, 0.22)";
+        deltaBadge.style.color = "#34d399";
+      } else {
+        deltaBadge.textContent = "Maksimum Güven ✓";
+        deltaBadge.style.background = "rgba(56, 189, 248, 0.18)";
+        deltaBadge.style.color = "#38bdf8";
+      }
+    }
+
+    setBar(
+      "trustCleanCompletenessVal",
+      "trustCleanCompletenessBar",
+      clean.completeness_score,
+    );
+    setBar("trustCleanTypeVal", "trustCleanTypeBar", clean.type_validity_score);
+    setBar("trustCleanOutlierVal", "trustCleanOutlierBar", clean.outlier_score);
+    setBar(
+      "trustCleanUniqueVal",
+      "trustCleanUniqueBar",
+      clean.uniqueness_score,
+    );
+
+    const cleanMissEl = document.getElementById("trustCleanMissingCount");
+    if (cleanMissEl) {
+      cleanMissEl.textContent = `${fmtNum(clean.missing_cells)} Hücre (%${clean.missing_pct})`;
+    }
+    const cleanInvEl = document.getElementById("trustCleanInvalidCount");
+    if (cleanInvEl) {
+      cleanInvEl.textContent = `${fmtNum(clean.invalid_cells)} Hücre (${clean.anomalous_cols_count} Sütun)`;
+    }
+    const cleanOutEl = document.getElementById("trustCleanOutlierCount");
+    if (cleanOutEl) {
+      cleanOutEl.textContent = `${fmtNum(clean.outlier_cells)} Hücre (%${clean.outlier_pct})`;
+    }
+    const cleanDupEl = document.getElementById("trustCleanDupCount");
+    if (cleanDupEl) {
+      cleanDupEl.textContent = `${fmtNum(clean.duplicate_rows)} Satır (%${clean.duplicate_pct})`;
+    }
+
+    const hasPendingIssues =
+      current.missing_cells > 0 ||
+      current.invalid_cells > 0 ||
+      current.duplicate_rows > 0;
+    const cleanFooter = document.getElementById("trustCleanCardFooter");
+    const topHealBtn = document.getElementById("btnTrustAutoHealAll");
+    if (topHealBtn) {
+      topHealBtn.innerHTML = !hasPendingIssues
+        ? "✓ Tüm Veri Seti Temizlendi"
+        : "🪄 Tüm Sorunları Tek Tıkla Onar & Temizle";
+    }
+    if (cleanFooter) {
+      if (hasPendingIssues) {
+        const dupPart =
+          current.duplicate_rows > 0
+            ? ` ve <strong>${fmtNum(current.duplicate_rows)} mükerrer satır</strong>`
+            : "";
+        cleanFooter.innerHTML = `
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px dashed rgba(16, 185, 129, 0.45); border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="font-size: 0.82rem; color: #e2e8f0;">
+              💡 <strong>${fmtNum(current.missing_cells)} boş hücre</strong>, <strong>${fmtNum(current.invalid_cells)} hatalı/sözel hücre</strong>${dupPart} tek tıkla onarılabilir.
+            </div>
+            <button type="button" id="btnTrustCardQuickHeal" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none;">
+              ⚡ Şimdi Onar ve Skoru ${Number(clean.overall_score).toFixed(1)}'e Yükselt
+            </button>
+          </div>
+        `;
+        document
+          .getElementById("btnTrustCardQuickHeal")
+          ?.addEventListener("click", autoHealFromTrustStudio);
+      } else {
+        cleanFooter.innerHTML = `
+          <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 12px 16px; color: #34d399; font-size: 0.83rem; font-weight: 600;">
+            🎉 Veri setinizdeki tüm eksik ve hatalı veriler giderildi! Analiz ve grafikleriniz en yüksek doğrulukla çalışıyor.
+          </div>
+        `;
+      }
+    }
+
+    // 3. ALT TABLO: SÜTUN BAZLI GÜVEN KARNESİ
+    const tbody = document.getElementById("trustColumnsTableBody");
+    if (tbody) {
+      const cols = current.columns || [];
+      if (cols.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="padding: 20px; text-align: center; color: #94a3b8;">Sütun bulunamadı.</td></tr>`;
+      } else {
+        tbody.innerHTML = cols
+          .map((c) => {
+            const cTheme = getScoreTheme(c.trust_score);
+            const samplesHtml =
+              c.sample_invalid_values && c.sample_invalid_values.length > 0
+                ? `<div style="font-size: 0.72rem; color: #fb923c; margin-top: 2px;">Örn: ${c.sample_invalid_values.map((v) => `"${escapeHtmlSafe(String(v))}"`).join(", ")}</div>`
+                : "";
+            let actionHtml = `<span style="color: #34d399; font-weight: 700; font-size: 0.8rem;">✅ Güvenli</span>`;
+            if (c.has_anomaly) {
+              actionHtml = `<button type="button" class="btn-trust-col-repair" data-col="${escapeHtmlSafe(c.column)}" style="padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-weight: 700; font-size: 0.76rem; cursor: pointer;">🪄 Sütunu Onar</button>`;
+            } else if (c.missing_count > 0) {
+              actionHtml = `<button type="button" class="btn-trust-col-clean" data-col="${escapeHtmlSafe(c.column)}" style="padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; font-size: 0.76rem; cursor: pointer;">🧹 Boşları Doldur</button>`;
+            }
+            return `
+              <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                <td style="padding: 12px; font-weight: 700; color: #f8fafc;">${escapeHtmlSafe(c.column)}</td>
+                <td style="padding: 12px;">
+                  <span style="font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: ${c.has_anomaly ? "#fb923c" : c.is_numeric ? "#38bdf8" : "#cbd5e1"};">
+                    ${escapeHtmlSafe(c.dtype_label)}
+                  </span>
+                </td>
+                <td style="padding: 12px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="flex: 1; height: 7px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden;">
+                      <div style="height: 100%; width: ${Math.max(0, Math.min(100, c.trust_score))}%; background: ${cTheme.border}; border-radius: 99px;"></div>
+                    </div>
+                    <strong style="color: ${cTheme.color}; min-width: 38px; text-align: right;">${Number(c.trust_score).toFixed(1)}</strong>
+                  </div>
+                </td>
+                <td style="padding: 12px; color: ${c.missing_count > 0 ? "#f87171" : "#94a3b8"}; font-weight: ${c.missing_count > 0 ? "700" : "400"};">
+                  ${c.missing_count > 0 ? `${fmtNum(c.missing_count)} (%${c.missing_pct})` : "0 (Tam)"}
+                </td>
+                <td style="padding: 12px; color: ${c.invalid_count > 0 ? "#fb923c" : "#94a3b8"}; font-weight: ${c.invalid_count > 0 ? "700" : "400"};">
+                  ${c.invalid_count > 0 ? `${fmtNum(c.invalid_count)} (%${c.invalid_pct})` : "0 (Temiz)"}
+                  ${samplesHtml}
+                </td>
+                <td style="padding: 12px; color: ${c.outlier_count > 0 ? "#fbbf24" : "#94a3b8"};">
+                  ${c.is_numeric ? (c.outlier_count > 0 ? `${fmtNum(c.outlier_count)} (%${c.outlier_pct})` : "0 (Normal)") : "—"}
+                </td>
+                <td style="padding: 12px; text-align: right;">${actionHtml}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        tbody.querySelectorAll(".btn-trust-col-repair").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const colName = btn.getAttribute("data-col");
+            if (!colName) return;
+            btn.disabled = true;
+            btn.textContent = "⏳ Onarılıyor...";
+            try {
+              const res = await fetch("/repair_column_anomalies", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  column: colName,
+                  repair_mode: "smart_heal",
+                }),
+              });
+              const rData = await res.json();
+              if (!res.ok) throw new Error(rData.error || "Onarım hatası");
+              numericColumns = window.numericColumns =
+                rData.numeric_columns || [];
+              categoricalColumns = window.categoricalColumns =
+                rData.categorical_columns || [];
+              globalColumns = window.globalColumns = [
+                ...categoricalColumns,
+                ...numericColumns,
+              ];
+              if (typeof initDragDropPool === "function")
+                initDragDropPool(true);
+              if (typeof renderPivotPoolStructured === "function")
+                renderPivotPoolStructured();
+              if (typeof window.populateRegColumnSelects === "function")
+                window.populateRegColumnSelects();
+              if (typeof updateAnomalyBadges === "function" && rData.health)
+                updateAnomalyBadges(rData.health);
+              showToast(`"${colName}" sütunu başarıyla onarıldı!`, "success");
+              await fetchAndRenderTrustReport();
+            } catch (e) {
+              showToast(e.message, "error");
+              btn.disabled = false;
+              btn.textContent = "🪄 Sütunu Onar";
+            }
+          });
+        });
+
+        tbody.querySelectorAll(".btn-trust-col-clean").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const colName = btn.getAttribute("data-col");
+            if (!colName) return;
+            btn.disabled = true;
+            btn.textContent = "⏳ Dolduruluyor...";
+            try {
+              const res = await fetch("/clean_data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "fill_mean",
+                  column: colName,
+                }),
+              });
+              const cData = await res.json();
+              if (!res.ok) throw new Error(cData.error || "Temizleme hatası");
+              numericColumns = window.numericColumns =
+                cData.numeric_columns || [];
+              categoricalColumns = window.categoricalColumns =
+                cData.categorical_columns || [];
+              globalColumns = window.globalColumns = [
+                ...categoricalColumns,
+                ...numericColumns,
+              ];
+              if (typeof initDragDropPool === "function")
+                initDragDropPool(true);
+              if (typeof renderPivotPoolStructured === "function")
+                renderPivotPoolStructured();
+              if (typeof window.populateRegColumnSelects === "function")
+                window.populateRegColumnSelects();
+              if (typeof updateAnomalyBadges === "function" && cData.health)
+                updateAnomalyBadges(cData.health);
+              showToast(
+                `"${colName}" sütunundaki boş hücreler dolduruldu!`,
+                "success",
+              );
+              await fetchAndRenderTrustReport();
+            } catch (e) {
+              showToast(e.message, "error");
+              btn.disabled = false;
+              btn.textContent = "🧹 Boşları Doldur";
+            }
+          });
+        });
+      }
+    }
+  }
+
+  async function fetchAndRenderTrustReport() {
+    const res = await fetch("/get_trust_report");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Güven raporu alınamadı.");
+    renderTrustStudio(data);
+    return data;
+  }
+  window.fetchAndRenderTrustReport = fetchAndRenderTrustReport;
+
+  async function openTrustStudio() {
+    const s3 = document.getElementById("step3-dashboard");
+    const pv = document.getElementById("screen-pivot-studio");
+    if (s3 && !s3.classList.contains("hidden")) {
+      lastScreenBeforeTrust = 3;
+    } else if (pv && !pv.classList.contains("hidden")) {
+      lastScreenBeforeTrust = "pivot";
+    } else {
+      lastScreenBeforeTrust = 2;
+    }
+    const trFile = document.getElementById("trustFileName");
+    if (trFile) trFile.textContent = window.activeFileName || "veri.xlsx";
+
+    showScreen("trust");
+    try {
+      await fetchAndRenderTrustReport();
+    } catch (err) {
+      showToast(err.message, "error", "Güven Skoru Hatası");
+    }
+  }
+
+  async function autoHealFromTrustStudio() {
+    const btn = document.getElementById("btnTrustAutoHealAll");
+    const origHtml = btn ? btn.innerHTML : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Tüm Veri Seti Onarılıyor...";
+    }
+
+    const prog = window.DataVizProgress?.start({
+      icon: "🪄",
+      title: "Veri Seti Temizleniyor ve Güven Skoru Yükseltiliyor",
+      showHud: true,
+      stages: [
+        {
+          at: 0,
+          short: "Tip Onarımı",
+          label: "Sözel ve hatalı hücreler sayısal formata dönüştürülüyor...",
+        },
+        {
+          at: 45,
+          short: "Boş Veri",
+          label:
+            "Eksik (NaN) hücreler istatistiksel ortalamalarla dolduruluyor...",
+        },
+        {
+          at: 80,
+          short: "Skor Hesabı",
+          label: "Temizlenmiş veri seti güven karnesi güncelleniyor...",
+        },
+      ],
+    });
+
+    try {
+      const res = await fetch("/auto_heal_all_trust", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Otomatik onarım başarısız.");
+
+      numericColumns = window.numericColumns = data.numeric_columns || [];
+      categoricalColumns = window.categoricalColumns =
+        data.categorical_columns || [];
+      globalColumns = window.globalColumns = [
+        ...categoricalColumns,
+        ...numericColumns,
+      ];
+
+      if (typeof initDragDropPool === "function") initDragDropPool(true);
+      if (typeof renderPivotPoolStructured === "function")
+        renderPivotPoolStructured();
+      if (typeof window.populateRegColumnSelects === "function")
+        window.populateRegColumnSelects();
+      if (typeof renderChartGrid === "function") renderChartGrid("all");
+      if (typeof evaluateCharts === "function") evaluateCharts();
+      if (typeof updateAnomalyBadges === "function" && data.health) {
+        updateAnomalyBadges(data.health);
+      }
+
+      renderTrustStudio(data);
+      prog?.complete("Veri seti temizlendi ve güven skoru güncellendi!");
+      showToast(
+        `🎉 Veri setiniz temizlendi! Güven Skoru ${Number(data.raw_report.overall_score).toFixed(1)} puandan ${Number(data.cleaned_report.overall_score).toFixed(1)} puana yükseldi.`,
+        "success",
+        "Veri Güvenliği Yükseltildi",
+      );
+    } catch (err) {
+      prog?.stop();
+      if (btn) btn.innerHTML = origHtml;
+      showToast(err.message, "error", "Onarım Hatası");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+      }
+    }
+  }
+
+  document
+    .getElementById("btnCalculateRiskScore")
+    ?.addEventListener("click", openTrustStudio);
+  document
+    .getElementById("btnOpenTrustStudioS3")
+    ?.addEventListener("click", openTrustStudio);
+
+  document
+    .getElementById("btnTrustBackToStudio")
+    ?.addEventListener("click", async () => {
+      const targetScreen =
+        lastScreenBeforeTrust === 3 || lastScreenBeforeTrust === "pivot"
+          ? lastScreenBeforeTrust
+          : 2;
+      showScreen(targetScreen);
+      if (targetScreen === 3) {
+        if (typeof refreshActiveChart === "function") {
+          await refreshActiveChart();
+        }
+        const regPane = document.getElementById("tabRegression");
+        if (
+          regPane &&
+          !regPane.classList.contains("hidden") &&
+          typeof window.fetchAndRenderRegressionStudio === "function"
+        ) {
+          window.fetchAndRenderRegressionStudio();
+        }
+      }
+    });
+
+  document
+    .getElementById("btnTrustAutoHealAll")
+    ?.addEventListener("click", autoHealFromTrustStudio);
+
+  document
+    .getElementById("btnTrustOpenDetailedPrep")
+    ?.addEventListener("click", () => {
+      if (typeof window.openDataPrepModal === "function") {
+        window.openDataPrepModal();
+      }
+    });
+
+  ["btnCloseDataPrepModal", "dpSkipBtn"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", () => {
+      const ts = document.getElementById("screen-trust-studio");
+      if (ts && !ts.classList.contains("hidden")) {
+        fetchAndRenderTrustReport().catch(() => {});
+      }
+    });
+  });
+
+  // İsteğe bağlı: Satır bazlı Guven_Skoru_AI (Isolation Forest) sütununu veri havuzuna ekleme butonu
+  const btnAddRowRiskColumn = document.getElementById("btnAddRowRiskColumn");
+  if (btnAddRowRiskColumn) {
+    btnAddRowRiskColumn.addEventListener("click", async () => {
+      if (btnAddRowRiskColumn.disabled) return;
+      const origHtml = btnAddRowRiskColumn.innerHTML;
+      btnAddRowRiskColumn.disabled = true;
+      btnAddRowRiskColumn.innerHTML = "⏳ Hesaplanıyor...";
+
+      try {
+        const res = await fetch("/calculate_risk_score", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Skor hesaplama hatası.");
+
+        const newCol = data.new_column || "Guven_Skoru_AI";
+        numericColumns = window.numericColumns = data.numeric_columns || [];
+        categoricalColumns = window.categoricalColumns =
+          data.categorical_columns || [];
+        globalColumns = window.globalColumns = [
+          ...categoricalColumns,
+          ...numericColumns,
+        ];
+        if (!calculatedColumns.includes(newCol)) {
+          calculatedColumns.push(newCol);
+        }
+        window.calculatedColumns = calculatedColumns;
+        if (typeof initDragDropPool === "function") initDragDropPool(true);
+
+        showToast(
+          `✨ "${newCol}" sütunu üretildi ve Veri Havuzuna eklendi! (Ortalama Skor: ${data.mean_score ?? "-"})`,
+          "success",
+          "Satır Bazlı AI Skoru Eklendi",
+        );
+        btnAddRowRiskColumn.innerHTML = "✓ Guven_Skoru_AI Sütunu Eklendi";
+      } catch (err) {
+        showToast(err.message, "error", "AI Güven Skoru Hatası");
+        btnAddRowRiskColumn.innerHTML = origHtml;
+      } finally {
+        btnAddRowRiskColumn.disabled = false;
+      }
+    });
+  }
+});

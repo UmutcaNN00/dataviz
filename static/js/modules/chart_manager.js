@@ -68,6 +68,7 @@ function initDragDropPool(preserveAxes = false) {
       }
     });
   }
+  applyPoolFilterAndSearch();
 }
 
 function renderPoolSection(parentContainer, titleText, cols, sectionId) {
@@ -216,6 +217,7 @@ function returnPillToPool(pill) {
     : null;
   if (section) section.appendChild(pill);
   else document.getElementById("colPool")?.appendChild(pill);
+  applyPoolFilterAndSearch();
 }
 
 function restoreZonePlaceholder(zone) {
@@ -229,21 +231,35 @@ function restoreZonePlaceholder(zone) {
 }
 
 function assignPillToZone(colName, zoneId) {
-  const pill = document.querySelector(`.col-pill[data-col="${colName}"]`);
+  const candidates = document.querySelectorAll(
+    "#colPool .col-pill, #xZone .col-pill, #yZone .col-pill",
+  );
+  const pill = Array.from(candidates).find((p) => p.dataset.col === colName);
   if (!pill) return;
   const zone = document.getElementById(zoneId);
   if (!zone) return;
 
+  const prevParent = pill.parentElement;
+
   if (zoneId === "xZone") {
     const existing = zone.querySelector(".col-pill");
-    if (existing) returnPillToPool(existing);
+    if (existing && existing !== pill) returnPillToPool(existing);
     zone.innerHTML = "";
   }
 
   if (zone.innerText.includes("Bırakın") || zone.innerText.includes("bırakın"))
     zone.innerHTML = "";
+  pill.style.display = "inline-flex";
   zone.appendChild(pill);
   pill.classList.add("in-zone");
+  if (
+    prevParent &&
+    prevParent !== zone &&
+    (prevParent.id === "xZone" || prevParent.id === "yZone")
+  ) {
+    restoreZonePlaceholder(prevParent);
+  }
+  applyPoolFilterAndSearch();
   updateAxisConfig();
 }
 
@@ -622,20 +638,46 @@ function renderCatCheckboxes(col, values) {
   if (!catCheckboxesList) return;
   catCheckboxesList.innerHTML = "";
 
+  const existingFilter = (activeFilters || []).find((f) => f.column === col);
+  const existingSet =
+    existingFilter &&
+    Array.isArray(existingFilter.selected_values || existingFilter.values)
+      ? new Set(
+          (existingFilter.selected_values || existingFilter.values).map((v) =>
+            String(v),
+          ),
+        )
+      : null;
+
   values.forEach((val) => {
-    const safeVal = String(val).replaceAll('"', "&quot;");
+    const strVal = String(val);
+    const safeVal = strVal
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const isChecked = existingSet ? existingSet.has(strVal) : true;
     const item = document.createElement("label");
     item.className = "cat-checkbox-item";
     item.innerHTML = `
-      <input type="checkbox" value="${safeVal}" checked>
-      <span>${val}</span>
+      <input type="checkbox" value="${safeVal}" ${isChecked ? "checked" : ""}>
+      <span>${safeVal}</span>
     `;
     catCheckboxesList.appendChild(item);
   });
 }
 
 function syncFilteredViews() {
-  if (currentChartData && currentPlotType) refreshActiveChart();
+  const step3 = document.getElementById("step3-dashboard");
+  const isStep3Visible =
+    step3 &&
+    (step3.classList.contains("active") || !step3.classList.contains("hidden"));
+  if (currentChartData && currentPlotType) {
+    refreshActiveChart();
+  } else if (isStep3Visible) {
+    if (typeof fetchKpis === "function") fetchKpis();
+    if (typeof fetchStats === "function") fetchStats();
+  }
   const pivotScreen = document.getElementById("screen-pivot-studio");
   if (
     pivotScreen &&
@@ -1177,6 +1219,9 @@ function initChartManagerListeners() {
         if (calcCol2Select)
           calcCol2Select.innerHTML += `<option value="${c}">${c}</option>`;
       });
+      if (calcCol2Select && numericColumns.length >= 2) {
+        calcCol2Select.value = numericColumns[1];
+      }
       if (calcNewColName) calcNewColName.value = "";
       calcColModal?.classList.remove("hidden");
     });
@@ -1266,6 +1311,9 @@ function initChartManagerListeners() {
         if (typeof renderPivotPoolStructured === "function") {
           renderPivotPoolStructured();
         }
+        if (typeof window.populateRegColumnSelects === "function") {
+          window.populateRegColumnSelects();
+        }
       } catch (err) {
         alert("Hesaplama başarısız: " + err.message);
       }
@@ -1345,14 +1393,23 @@ function initChartManagerListeners() {
         );
         const data = await res.json();
         if (data.min != null && data.max != null) {
+          const existingFilter = (activeFilters || []).find(
+            (f) => f.column === col,
+          );
           const minIn = document.getElementById("numFilterMin");
           const maxIn = document.getElementById("numFilterMax");
           if (minIn) {
-            minIn.value = data.min;
+            minIn.value =
+              existingFilter && existingFilter.min != null
+                ? existingFilter.min
+                : data.min;
             minIn.placeholder = `Min: ${data.min}`;
           }
           if (maxIn) {
-            maxIn.value = data.max;
+            maxIn.value =
+              existingFilter && existingFilter.max != null
+                ? existingFilter.max
+                : data.max;
             maxIn.placeholder = `Max: ${data.max}`;
           }
         }
@@ -1382,8 +1439,13 @@ function initChartManagerListeners() {
     if (isNum) {
       const minRaw = parseFloat(document.getElementById("numFilterMin")?.value);
       const maxRaw = parseFloat(document.getElementById("numFilterMax")?.value);
-      const minVal = isNaN(minRaw) ? null : minRaw;
-      const maxVal = isNaN(maxRaw) ? null : maxRaw;
+      let minVal = isNaN(minRaw) ? null : minRaw;
+      let maxVal = isNaN(maxRaw) ? null : maxRaw;
+      if (minVal !== null && maxVal !== null && minVal > maxVal) {
+        const tmp = minVal;
+        minVal = maxVal;
+        maxVal = tmp;
+      }
       if (minVal !== null || maxVal !== null) {
         activeFilters = activeFilters.filter((f) => f.column !== col);
         activeFilters.push({

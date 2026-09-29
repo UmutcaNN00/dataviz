@@ -337,7 +337,7 @@ def read_excel_safely(
                 "Excel dosyasındaki tüm sayfalar boş veya geçerli veri içermiyor."
             )
 
-    return active_df, cleaned_sheets, valid_sheet_names, active_sheet_name
+    return active_df.copy(), cleaned_sheets, valid_sheet_names, active_sheet_name
 
 
 def read_parquet_safely(file_input: Any) -> pd.DataFrame:

@@ -282,6 +282,160 @@ def run_tests():
         "Pivot Excel Dışa Aktarma (POST /export_pivot_excel)", res.status_code == 200
     )
 
+    # 19. Overlapping Pivot Rows/Cols Safety
+    res_piv_overlap = client.post(
+        "/get_pivot_data",
+        json={
+            "rows": ["Kategori", "Kategori"],
+            "cols": ["Kategori", "Bölge"],
+            "values": ["Satış_Tutarı", "Satış_Tutarı"],
+            "agg_func": "sum",
+        },
+    )
+    res_exp_overlap = client.post(
+        "/export_pivot_excel",
+        json={
+            "rows": ["Kategori"],
+            "cols": ["Kategori"],
+            "values": ["Satış_Tutarı"],
+            "agg_func": "sum",
+        },
+    )
+    assert_test(
+        "Çakışan Satır/Sütun Pivot Güvenliği (/get_pivot_data & /export_pivot_excel)",
+        res_piv_overlap.status_code == 200 and res_exp_overlap.status_code == 200,
+    )
+
+    # 20. Single-Column Targeted Cleaning & Trust Studio Partial vs Full State
+    import io
+
+    csv_bytes = (
+        "Isim,Puan,Maas\nAli,80,10000\nVeli,,12000\nAyse,90,\nFatma,85,11000\n"
+    ).encode("utf-8")
+    res_up = client.post(
+        "/upload",
+        data={"file": (io.BytesIO(csv_bytes), "test_partial.csv")},
+        content_type="multipart/form-data",
+    )
+    res_clean_col = client.post(
+        "/clean_data",
+        json={"action": "fill_mean", "column": "Puan"},
+    )
+    d_clean_col = j(res_clean_col)
+    res_trust_partial = client.get("/get_trust_report")
+    d_trust_partial = j(res_trust_partial)
+    assert_test(
+        "Sütun Bazlı Eksik Veri Temizleme & Kısmi Güven Raporu (/clean_data & /get_trust_report)",
+        res_up.status_code == 200
+        and res_clean_col.status_code == 200
+        and d_clean_col.get("health", {}).get("missing_cells") == 1
+        and d_trust_partial.get("is_cleaned") is False
+        and d_trust_partial.get("has_cleaning_history") is True,
+        f"Kalan NaN: {d_clean_col.get('health', {}).get('missing_cells')}",
+    )
+
+    # 21. Full Cleaning Marks Trust Report as Cleaned, and Merge Resets Baseline
+    res_clean_all = client.post("/clean_data", json={"action": "fill_zero"})
+    d_trust_full = j(client.get("/get_trust_report"))
+    csv2_bytes = "Isim,Departman\nAli,IT\nVeli,HR\n".encode("utf-8")
+    res_merge = client.post(
+        "/merge_datasets",
+        data={
+            "file2": (io.BytesIO(csv2_bytes), "dept.csv"),
+            "key1": "Isim",
+            "key2": "Isim",
+            "join_type": "left",
+        },
+        content_type="multipart/form-data",
+    )
+    d_trust_after_merge = j(client.get("/get_trust_report"))
+    assert_test(
+        "Tam Temizleme Sonrası Güven Onayı & Birleştirme Sonrası Baseline Sıfırlama",
+        res_clean_all.status_code == 200
+        and d_trust_full.get("is_cleaned") is True
+        and res_merge.status_code == 200
+        and d_trust_after_merge.get("is_cleaned") is False,
+    )
+
+    # 22. Outer Join Key Coalescing & Duplicate Column Suffix Deduplication
+    csv_left = "ID,Satis\n1,100\n2,200\n".encode("utf-8")
+    csv_right = "ID,Satis,Satis_2\n2,250,999\n3,300,888\n".encode("utf-8")
+    client.post(
+        "/upload",
+        data={"file": (io.BytesIO(csv_left), "left.csv")},
+        content_type="multipart/form-data",
+    )
+    res_outer = client.post(
+        "/merge_datasets",
+        data={
+            "file2": (io.BytesIO(csv_right), "right.csv"),
+            "key1": "ID",
+            "key2": "ID",
+            "join_type": "outer",
+        },
+        content_type="multipart/form-data",
+    )
+    d_outer = j(res_outer)
+    res_id_vals = j(client.get("/get_column_unique_values?column=ID"))
+    all_merged_cols = d_outer.get("numeric_columns", []) + d_outer.get(
+        "categorical_columns", []
+    )
+    assert_test(
+        "Outer Join Anahtar Koruma & Çakışan Sütun Tekilleştirme (/merge_datasets)",
+        res_outer.status_code == 200
+        and len(all_merged_cols) == len(set(all_merged_cols))
+        and res_id_vals.get("max") == 3.0,
+        f"Sütunlar: {all_merged_cols}, ID Max: {res_id_vals.get('max')}",
+    )
+
+    # 23. Excel Multi-Sheet Reference Isolation on In-Place Mutation
+    import pandas as pd
+
+    excel_buf = io.BytesIO()
+    with pd.ExcelWriter(excel_buf, engine="openpyxl") as writer:
+        pd.DataFrame({"Kalem": ["A", "B"], "Tutar": [10, 20]}).to_excel(
+            writer, sheet_name="Sayfa1", index=False
+        )
+        pd.DataFrame({"Kalem": ["X", "Y"], "Tutar": [30, 40]}).to_excel(
+            writer, sheet_name="Sayfa2", index=False
+        )
+    excel_buf.seek(0)
+    res_ex_up = client.post(
+        "/upload",
+        data={"file": (excel_buf, "coklu_sayfa.xlsx")},
+        content_type="multipart/form-data",
+    )
+    client.post(
+        "/add_calculated_column",
+        json={"new_col_name": "Tutar_Kare", "col1": "Tutar", "op": "*", "col2": "Tutar"},
+    )
+    client.post("/switch_sheet", json={"sheet_name": "Sayfa2"})
+    res_sw_back = client.post("/switch_sheet", json={"sheet_name": "Sayfa1"})
+    d_sw_back = j(res_sw_back)
+    assert_test(
+        "Excel Çoklu Sayfa Bellek İzolasyonu (/upload & /switch_sheet)",
+        res_ex_up.status_code == 200
+        and res_sw_back.status_code == 200
+        and "Tutar_Kare" not in d_sw_back.get("numeric_columns", []),
+        f"Sayfa1 Sütunları: {d_sw_back.get('numeric_columns', [])}",
+    )
+
+    # 24. Global /clean_data Removes Duplicate Rows & Achieves 100% Cleaned Trust State
+    client.post("/load_sample")
+    client.post(
+        "/repair_column_anomalies",
+        json={"column": "__all__", "repair_mode": "smart_heal"},
+    )
+    client.post("/clean_data", json={"action": "fill_mean"})
+    d_trust_sample_cleaned = j(client.get("/get_trust_report"))
+    assert_test(
+        "Global /clean_data Mükerrer Satır Temizliği & Tam Güven Onayı",
+        d_trust_sample_cleaned.get("is_cleaned") is True
+        and d_trust_sample_cleaned.get("has_cleaning_history") is True
+        and d_trust_sample_cleaned.get("current_report", {}).get("duplicate_rows") == 0,
+        f"Kalan Mükerrer: {d_trust_sample_cleaned.get('current_report', {}).get('duplicate_rows')}",
+    )
+
     print("=" * 70)
     print(f"🎉 SONUÇ: {passed}/{total} TÜM MASTER ENTEGRASYON TESTLERİ KUSURSUZ GEÇTİ!")
     print("=" * 70)

@@ -17,6 +17,17 @@ function initPivotStudio() {
   const pivotPool = document.getElementById("pivotColPool");
   if (!pivotPool) return;
 
+  // Mevcut veri setinde bulunmayan eski sütunları temizle
+  pivotConfig.rows = (pivotConfig.rows || []).filter((c) =>
+    globalColumns.includes(c),
+  );
+  pivotConfig.cols = (pivotConfig.cols || []).filter(
+    (c) => globalColumns.includes(c) && !pivotConfig.rows.includes(c),
+  );
+  pivotConfig.values = (pivotConfig.values || []).filter((c) =>
+    numericColumns.includes(c),
+  );
+
   // Otomatik akıllı ilk varsayılanlar (Asla boş ve uyarı ile açılmasın)
   if (pivotConfig.rows.length === 0) {
     const defRow =
@@ -170,8 +181,7 @@ function renderPivotPoolSection(parentContainer, titleText, cols, sectionId) {
       } else if (pivotConfig.cols.includes(col)) {
         pivotConfig.cols = pivotConfig.cols.filter((x) => x !== col);
       } else if (pivotConfig.values.includes(col)) {
-        if (pivotConfig.values.length > 1)
-          pivotConfig.values = pivotConfig.values.filter((x) => x !== col);
+        pivotConfig.values = pivotConfig.values.filter((x) => x !== col);
       } else {
         if (isNum) pivotConfig.values.push(col);
         else if (pivotConfig.rows.length === 0) pivotConfig.rows.push(col);
@@ -264,12 +274,10 @@ function renderPivotDropZones() {
   // Values
   pivotConfig.values.forEach((col) => {
     const pill = createPivotZonePill(col, "num", () => {
-      if (pivotConfig.values.length > 1) {
-        pivotConfig.values = pivotConfig.values.filter((x) => x !== col);
-        renderPivotPoolStructured();
-        renderPivotDropZones();
-        refreshPivotStudio();
-      }
+      pivotConfig.values = pivotConfig.values.filter((x) => x !== col);
+      renderPivotPoolStructured();
+      renderPivotDropZones();
+      refreshPivotStudio();
     });
     valZone.appendChild(pill);
   });
@@ -369,6 +377,14 @@ async function refreshPivotStudio() {
   }
 }
 
+function escapePivotHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function renderPivotMatrixStage(data) {
   const container = document.getElementById("pmsTableContainer");
   if (!container) return;
@@ -384,11 +400,11 @@ function renderPivotMatrixStage(data) {
   // 1. Header
   html += `<thead><tr>`;
   data.index_names.forEach((name) => {
-    html += `<th class="pmt-corner">${name}</th>`;
+    html += `<th class="pmt-corner">${escapePivotHtml(name)}</th>`;
   });
   data.column_headers.forEach((h) => {
-    const isGrand = h.includes("Genel Toplam");
-    html += `<th class="${isGrand ? "pmt-grand-total-th" : "pmt-col-header"}">${h}</th>`;
+    const isGrand = String(h).includes("Genel Toplam");
+    html += `<th class="${isGrand ? "pmt-grand-total-th" : "pmt-col-header"}">${escapePivotHtml(h)}</th>`;
   });
   html += `</tr></thead>`;
 
@@ -400,7 +416,7 @@ function renderPivotMatrixStage(data) {
 
     // Row labels
     r.row_labels.forEach((lbl) => {
-      html += `<td class="pmt-row-header">${lbl}</td>`;
+      html += `<td class="pmt-row-header">${escapePivotHtml(lbl)}</td>`;
     });
 
     // Cell values
@@ -410,18 +426,19 @@ function renderPivotMatrixStage(data) {
       );
       let bgStyle = "";
 
-      if (useHeatmap && !isRowGrand && !isColGrand && val > 0) {
-        const ratio = Math.min(1, Math.max(0, (val - minVal) / valRange));
+      const numVal = Number(val ?? 0);
+      if (useHeatmap && !isRowGrand && !isColGrand && numVal > 0) {
+        const ratio = Math.min(1, Math.max(0, (numVal - minVal) / valRange));
         const alpha = 0.08 + ratio * 0.45;
         bgStyle = `background: rgba(52, 211, 153, ${alpha.toFixed(3)});`;
       }
 
-      let formattedVal = val.toLocaleString("tr-TR", {
+      let formattedVal = numVal.toLocaleString("tr-TR", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       });
-      if (val >= 1000)
-        formattedVal = val.toLocaleString("tr-TR", {
+      if (numVal >= 1000)
+        formattedVal = numVal.toLocaleString("tr-TR", {
           maximumFractionDigits: 0,
         });
 
@@ -498,6 +515,13 @@ function initPivotStudioListeners() {
       if (!colName || !globalColumns.includes(colName)) return;
 
       const pZone = zone.dataset.pivotZone;
+      if (pZone === "val" && !numericColumns.includes(colName)) {
+        alert(
+          `"${colName}" sayısal bir sütun değil. Değerler (Values) alanına yalnızca sayısal sütunlar bırakılabilir.`,
+        );
+        return;
+      }
+
       // Remove from everywhere first to prevent desync
       pivotConfig.rows = pivotConfig.rows.filter((x) => x !== colName);
       pivotConfig.cols = pivotConfig.cols.filter((x) => x !== colName);
@@ -616,6 +640,7 @@ function initPivotStudioListeners() {
       };
 
       dashboardCharts.push(dashItem);
+      window.dashboardCharts = dashboardCharts;
       if (typeof updateDashboardBadge === "function") updateDashboardBadge();
       if (typeof renderDashboardGrid === "function") renderDashboardGrid();
 

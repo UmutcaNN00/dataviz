@@ -105,34 +105,57 @@ async function openPdfPreviewStudio() {
         paper_bgcolor: "#ffffff",
         plot_bgcolor: "#ffffff",
         "font.color": "#0f172a",
-        "xaxis.gridcolor": "rgba(0,0,0,0.1)",
-        "yaxis.gridcolor": "rgba(0,0,0,0.1)",
-        "xaxis.title.font.color": "#0f172a",
-        "yaxis.title.font.color": "#0f172a",
-        "xaxis.tickfont.color": "#334155",
-        "yaxis.tickfont.color": "#334155",
       };
-      await Plotly.relayout(gd, update);
-      const chartDataUrl = await Plotly.toImage(gd, {
-        format: "png",
-        width: 700,
-        height: 400,
-      });
-      await Plotly.relayout(gd, {
-        paper_bgcolor: origPaperBg,
-        plot_bgcolor: origPlotBg,
-        "font.color": origFontColor,
-        "xaxis.gridcolor": origXGrid,
-        "yaxis.gridcolor": origYGrid,
-        "xaxis.title.font.color": origXTitleColor,
-        "yaxis.title.font.color": origYTitleColor,
-        "xaxis.tickfont.color": origXTickColor,
-        "yaxis.tickfont.color": origYTickColor,
-      });
-      contentHtml = `
-        <h4 contenteditable="true" style="margin:0 0 10px 0; font-size:16px; color:black; border-left:4px solid #3b82f6; padding-left:10px; outline:none;">${item.title}</h4>
-        <img src="${chartDataUrl}" style="width:100%; height:auto; display:block;">
-      `;
+      if (origLayout.xaxis) {
+        update["xaxis.gridcolor"] = "rgba(0,0,0,0.1)";
+        update["xaxis.title.font.color"] = "#0f172a";
+        update["xaxis.tickfont.color"] = "#334155";
+      }
+      if (origLayout.yaxis) {
+        update["yaxis.gridcolor"] = "rgba(0,0,0,0.1)";
+        update["yaxis.title.font.color"] = "#0f172a";
+        update["yaxis.tickfont.color"] = "#334155";
+      }
+
+      try {
+        await Plotly.relayout(gd, update);
+        const chartDataUrl = await Plotly.toImage(gd, {
+          format: "png",
+          width: 700,
+          height: 400,
+        });
+        contentHtml = `
+          <h4 contenteditable="true" style="margin:0 0 10px 0; font-size:16px; color:black; border-left:4px solid #3b82f6; padding-left:10px; outline:none;">${item.title}</h4>
+          <img src="${chartDataUrl}" style="width:100%; height:auto; display:block;">
+        `;
+      } catch (err) {
+        console.warn("PDF grafik görüntüsü oluşturulamadı:", err);
+        contentHtml = `
+          <h4 contenteditable="true" style="margin:0 0 10px 0; font-size:16px; color:black; border-left:4px solid #3b82f6; padding-left:10px; outline:none;">${item.title}</h4>
+          <div style="padding:16px; color:#64748b; font-size:13px;">Grafik önizlemesi oluşturulamadı.</div>
+        `;
+      } finally {
+        try {
+          const restore = {
+            paper_bgcolor: origPaperBg,
+            plot_bgcolor: origPlotBg,
+            "font.color": origFontColor,
+          };
+          if (origLayout.xaxis) {
+            restore["xaxis.gridcolor"] = origXGrid;
+            restore["xaxis.title.font.color"] = origXTitleColor;
+            restore["xaxis.tickfont.color"] = origXTickColor;
+          }
+          if (origLayout.yaxis) {
+            restore["yaxis.gridcolor"] = origYGrid;
+            restore["yaxis.title.font.color"] = origYTitleColor;
+            restore["yaxis.tickfont.color"] = origYTickColor;
+          }
+          await Plotly.relayout(gd, restore);
+        } catch (restoreErr) {
+          console.warn("Grafik teması geri yüklenemedi:", restoreErr);
+        }
+      }
     }
 
     chartBlock.innerHTML = `

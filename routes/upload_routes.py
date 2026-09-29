@@ -9,8 +9,15 @@ import pandas as pd
 from flask import Blueprint, jsonify, request
 
 # isort: split
-from core.store import get_excel_data, set_df, set_excel_data
+from core.store import (
+    get_excel_data,
+    set_baseline_trust,
+    set_df,
+    set_excel_data,
+    set_is_cleaned,
+)
 from services.file_service import (
+    _deduplicate_columns,
     clean_dataframe,
     read_csv_safely,
     read_excel_safely,
@@ -61,9 +68,11 @@ def upload():
                 {"error": "Yüklenen dosyada geçerli veri veya sütun bulunamadı."}
             ), 400
 
-        df.columns = [str(c).replace("\ufeff", "").strip() for c in df.columns]
+        df.columns = pd.Index(_deduplicate_columns(df.columns))
         set_df(df, 1)
         set_df(None, 2)
+        set_baseline_trust(None)
+        set_is_cleaned(False)
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
@@ -138,8 +147,10 @@ def switch_sheet():
                 {"error": f"'{sheet_name}' sayfası boş veya veri içermiyor."}
             ), 400
 
-        df.columns = [str(c).replace("\ufeff", "").strip() for c in df.columns]
+        df.columns = pd.Index(_deduplicate_columns(df.columns))
         set_df(df, 1)
+        set_baseline_trust(None)
+        set_is_cleaned(False)
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
@@ -166,7 +177,7 @@ def switch_sheet():
 
 
 from sqlalchemy import create_engine
-import urllib.parse
+
 
 @upload_bp.route("/fetch_sql", methods=["POST"])
 def fetch_sql():
@@ -174,36 +185,50 @@ def fetch_sql():
     req_json = request.get_json(silent=True) or {}
     db_uri = req_json.get("db_uri")
     query = req_json.get("query")
-    
+
     if not db_uri or not query:
-        return jsonify({"error": "Veritabani URL'si (URI) ve SQL sorgusu (Query) zorunludur."}), 400
-        
-    logger.info(f"SQL Baglanti istegi alindi: URI={db_uri.split('@')[-1] if '@' in db_uri else 'hidden'}")
-    
+        return jsonify(
+            {"error": "Veritabani URL'si (URI) ve SQL sorgusu (Query) zorunludur."}
+        ), 400
+
+    logger.info(
+        f"SQL Baglanti istegi alindi: URI={db_uri.split('@')[-1] if '@' in db_uri else 'hidden'}"
+    )
+
+    engine = None
     try:
         engine = create_engine(db_uri)
-        df = pd.read_sql(query, con=engine)
-        
+        df = clean_dataframe(pd.read_sql(query, con=engine))
+
         if df is None or df.empty or len(df.columns) == 0:
             return jsonify({"error": "Sorgu calisti ancak bos veri dondu."}), 400
-            
-        df.columns = [str(c).replace("\ufeff", "").strip() for c in df.columns]
+
+        df.columns = pd.Index(_deduplicate_columns(df.columns))
         set_df(df, 1)
         set_excel_data(None, [])
         set_df(None, 2)
-        
+        set_baseline_trust(None)
+        set_is_cleaned(False)
+
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = df.select_dtypes(include=["object", "category", "bool", "string"]).columns.tolist()
-        
-        return jsonify({
-            "success": True,
-            "total_rows": len(df),
-            "total_cols": len(df.columns),
-            "sheet_names": [],
-            "active_sheet": "SQL_Sorgusu",
-            "numeric_columns": numeric_cols,
-            "categorical_columns": categorical_cols,
-        })
+        categorical_cols = df.select_dtypes(
+            include=["object", "category", "bool", "string"]
+        ).columns.tolist()
+
+        return jsonify(
+            {
+                "success": True,
+                "total_rows": len(df),
+                "total_cols": len(df.columns),
+                "sheet_names": [],
+                "active_sheet": "SQL_Sorgusu",
+                "numeric_columns": numeric_cols,
+                "categorical_columns": categorical_cols,
+            }
+        )
     except Exception as e:
         logger.exception("SQL veritabani baglanti hatasi")
         return jsonify({"error": f"SQL Baglanti Hatasi: {str(e)}"}), 400
+    finally:
+        if engine is not None:
+            engine.dispose()

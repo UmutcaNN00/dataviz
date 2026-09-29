@@ -70,6 +70,8 @@ def set_df(df: Any, ds_index: int = 1, user_id: str | None = None) -> None:
                 2: None,
                 "excel_file": None,
                 "sheet_names": [],
+                "baseline_trust": None,
+                "is_cleaned": False,
                 "last_access": time.time(),
             }
         old_df = DATA_STORE[uid].get(ds_index)
@@ -99,7 +101,7 @@ def set_excel_data(
     excel_file: Any, sheet_names: list[str], user_id: str | None = None
 ) -> None:
     """
-    Stores the parsed Excel sheets and their sheet names.
+    Stores the parsed Excel sheets and their sheet names, and resets trust baseline on new file upload.
     """
     uid = user_id or get_user_id()
     with _STORE_LOCK:
@@ -109,8 +111,46 @@ def set_excel_data(
                 2: None,
                 "excel_file": None,
                 "sheet_names": [],
+                "baseline_trust": None,
+                "is_cleaned": False,
                 "last_access": time.time(),
             }
         DATA_STORE[uid]["excel_file"] = excel_file
         DATA_STORE[uid]["sheet_names"] = sheet_names
+        DATA_STORE[uid]["baseline_trust"] = None
+        DATA_STORE[uid]["is_cleaned"] = False
         DATA_STORE[uid]["last_access"] = time.time()
+
+
+def get_baseline_trust(user_id: str | None = None) -> dict[str, Any] | None:
+    """Retrieves the raw (uncleaned) baseline trust snapshot for the active dataset."""
+    uid = user_id or get_user_id()
+    with _STORE_LOCK:
+        entry = DATA_STORE.get(uid)
+        return entry.get("baseline_trust") if entry else None
+
+
+def set_baseline_trust(
+    snapshot: dict[str, Any] | None, user_id: str | None = None
+) -> None:
+    """Stores the raw (uncleaned) baseline trust snapshot for the active dataset."""
+    uid = user_id or get_user_id()
+    with _STORE_LOCK:
+        if uid in DATA_STORE:
+            DATA_STORE[uid]["baseline_trust"] = snapshot
+
+
+def get_is_cleaned(user_id: str | None = None) -> bool:
+    """Returns whether any data cleaning/repair operation has been applied to the active dataset."""
+    uid = user_id or get_user_id()
+    with _STORE_LOCK:
+        entry = DATA_STORE.get(uid)
+        return bool(entry.get("is_cleaned", False)) if entry else False
+
+
+def set_is_cleaned(cleaned: bool, user_id: str | None = None) -> None:
+    """Marks whether data cleaning/repair has been applied to the active dataset."""
+    uid = user_id or get_user_id()
+    with _STORE_LOCK:
+        if uid in DATA_STORE:
+            DATA_STORE[uid]["is_cleaned"] = bool(cleaned)

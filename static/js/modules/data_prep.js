@@ -132,6 +132,12 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
       if (batchBar) batchBar.classList.remove("hidden");
 
       if (cardsList) {
+        const escHtml = (s) =>
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
         cardsList.innerHTML = anomalies
           .map(
             (anom) => `
@@ -140,7 +146,7 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
               <div class="dp-anomaly-title-group">
                 <div class="dp-anomaly-icon">⚠️</div>
                 <div class="dp-anomaly-info">
-                  <strong class="dp-col-name">${anom.column}</strong>
+                  <strong class="dp-col-name">${escHtml(anom.column)}</strong>
                   <span class="dp-col-stats">${anom.numeric_count} geçerli sayı / ${anom.total_rows} satır</span>
                 </div>
               </div>
@@ -152,24 +158,24 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
             <div class="dp-anomaly-samples">
               <span class="dp-samples-label">Tespit Edilen Sözel Değerler:</span>
               <div class="dp-samples-list">
-                ${(anom.sample_invalid_values || []).map((val) => `<span class="dp-sample-tag">${val}</span>`).join("")}
+                ${(anom.sample_invalid_values || []).map((val) => `<span class="dp-sample-tag">${escHtml(val)}</span>`).join("")}
               </div>
             </div>
 
             <div class="dp-anomaly-actions-row">
-              <button type="button" class="btn-heal-col btn-glass-primary" data-col="${anom.column}" data-mode="smart_heal" title="Sayıları ayıklar, para/yüzde temizler, kalan sözelleri ortalamaya eşitler">
+              <button type="button" class="btn-heal-col btn-glass-primary" data-col="${escHtml(anom.column)}" data-mode="smart_heal" title="Sayıları ayıklar, para/yüzde temizler, kalan sözelleri ortalamaya eşitler">
                 🪄 Akıllı Onar (Sayı Ayıkla)
               </button>
-              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${anom.column}" data-mode="fill_zero" title="Sözel değerleri 0 ile ikame eder">
+              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${escHtml(anom.column)}" data-mode="fill_zero" title="Sözel değerleri 0 ile ikame eder">
                 0️⃣ 0 Yap
               </button>
-              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${anom.column}" data-mode="fill_mean" title="Sözel değerleri sütun ortalaması ile ikame eder">
+              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${escHtml(anom.column)}" data-mode="fill_mean" title="Sözel değerleri sütun ortalaması ile ikame eder">
                 📈 Ortalamayla Doldur
               </button>
-              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${anom.column}" data-mode="coerce_nan" title="Sözelleri boş (NaN) yapar, sütunu sayısal tipe geçirir">
+              <button type="button" class="btn-heal-col btn-glass-secondary" data-col="${escHtml(anom.column)}" data-mode="coerce_nan" title="Sözelleri boş (NaN) yapar, sütunu sayısal tipe geçirir">
                 🗑️ Boş (NaN) Yap
               </button>
-              <button type="button" class="btn-heal-col btn-glass-danger" data-col="${anom.column}" data-mode="drop_rows" title="Bu sütunda sözel değer olan satırları tablodan çıkarır">
+              <button type="button" class="btn-heal-col btn-glass-danger" data-col="${escHtml(anom.column)}" data-mode="drop_rows" title="Bu sütunda sözel değer olan satırları tablodan çıkarır">
                 ❌ Satırları Sil
               </button>
             </div>
@@ -301,6 +307,16 @@ async function callRepairColumn(columnName, mode) {
       renderPivotPoolStructured();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
     if (typeof evaluateCharts === "function") evaluateCharts();
+    if (typeof window.populateRegColumnSelects === "function")
+      window.populateRegColumnSelects();
+    const trustScreen = document.getElementById("screen-trust-studio");
+    if (
+      trustScreen &&
+      !trustScreen.classList.contains("hidden") &&
+      typeof window.fetchAndRenderTrustReport === "function"
+    ) {
+      window.fetchAndRenderTrustReport();
+    }
 
     if (
       currentChartData &&
@@ -308,6 +324,22 @@ async function callRepairColumn(columnName, mode) {
       typeof refreshActiveChart === "function"
     ) {
       refreshActiveChart();
+    }
+    const regPane = document.getElementById("tabRegression");
+    if (
+      regPane &&
+      !regPane.classList.contains("hidden") &&
+      typeof window.fetchAndRenderRegressionStudio === "function"
+    ) {
+      window.fetchAndRenderRegressionStudio();
+    }
+    const pivotScreen = document.getElementById("screen-pivot-studio");
+    if (
+      pivotScreen &&
+      !pivotScreen.classList.contains("hidden") &&
+      typeof refreshPivotStudio === "function"
+    ) {
+      refreshPivotStudio();
     }
 
     prog?.complete(`${colTitle} başarıyla onarıldı!`);
@@ -397,12 +429,38 @@ async function callCleanData(action) {
       renderPivotPoolStructured();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
     if (typeof evaluateCharts === "function") evaluateCharts();
+    if (typeof window.populateRegColumnSelects === "function")
+      window.populateRegColumnSelects();
+    const trustScreen = document.getElementById("screen-trust-studio");
+    if (
+      trustScreen &&
+      !trustScreen.classList.contains("hidden") &&
+      typeof window.fetchAndRenderTrustReport === "function"
+    ) {
+      window.fetchAndRenderTrustReport();
+    }
     if (
       currentChartData &&
       currentPlotType &&
       typeof refreshActiveChart === "function"
     )
       refreshActiveChart();
+    const regPane = document.getElementById("tabRegression");
+    if (
+      regPane &&
+      !regPane.classList.contains("hidden") &&
+      typeof window.fetchAndRenderRegressionStudio === "function"
+    ) {
+      window.fetchAndRenderRegressionStudio();
+    }
+    const pivotScreen = document.getElementById("screen-pivot-studio");
+    if (
+      pivotScreen &&
+      !pivotScreen.classList.contains("hidden") &&
+      typeof refreshPivotStudio === "function"
+    ) {
+      refreshPivotStudio();
+    }
 
     prog?.complete("Eksik veriler başarıyla temizlendi!");
     await new Promise((r) => setTimeout(r, 180));

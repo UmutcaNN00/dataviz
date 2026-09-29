@@ -85,7 +85,7 @@ async function executeMerge() {
 
   const key1Val = mergeKey1Select ? mergeKey1Select.value : "";
   const key2Val = mergeKey2Select ? mergeKey2Select.value : "";
-  if (!selectedFile2 && (!key1Val || !key2Val)) return;
+  if (!key1Val || !key2Val) return;
 
   if (btnExecuteMerge) {
     btnExecuteMerge.disabled = true;
@@ -125,6 +125,9 @@ async function executeMerge() {
     if (typeof initDragDropPool === "function") initDragDropPool(true);
     if (typeof renderPivotPoolStructured === "function")
       renderPivotPoolStructured();
+    if (typeof window.populateRegColumnSelects === "function")
+      window.populateRegColumnSelects();
+    if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
     if (
       currentChartData &&
       currentPlotType &&

@@ -11,7 +11,13 @@ from flask import Blueprint, jsonify, render_template
 
 # isort: split
 from core.config import BASE_DIR
-from core.store import get_df, set_df, set_excel_data
+from core.store import (
+    get_df,
+    set_baseline_trust,
+    set_df,
+    set_excel_data,
+    set_is_cleaned,
+)
 from services.file_service import clean_dataframe, read_csv_safely, read_excel_safely
 
 logger = logging.getLogger(__name__)
@@ -96,23 +102,41 @@ def load_sample():
                 "Ağustos",
             ]
             n = 120
+            kar_arr = rng.integers(200, 15000, n).astype(float)
+            kar_arr[[5, 18, 42, 77, 103]] = np.nan
+            mem_arr = rng.uniform(3.0, 5.0, n).round(2)
+            mem_arr[[11, 29, 64, 91]] = np.nan
+            indirim_list = [f"{rng.integers(100, 2500)} TL" for _ in range(n)]
+            indirim_list[3] = "binikiyüz"
+            indirim_list[14] = "yok"
+            indirim_list[27] = "belirsiz"
+            indirim_list[55] = "hatalı_giriş"
+            indirim_list[88] = "üçbin"
+
             df = pd.DataFrame(
                 {
                     "Kategori": rng.choice(categories, n),
                     "Bölge": rng.choice(regions, n),
                     "Dönem": rng.choice(months, n),
                     "Satış_Tutarı": rng.integers(1000, 50000, n),
-                    "Kar": rng.integers(200, 15000, n),
+                    "Kar": kar_arr,
                     "Maliyet": rng.integers(800, 35000, n),
-                    "Müşteri_Memnuniyeti": rng.uniform(3.0, 5.0, n).round(2),
+                    "Müşteri_Memnuniyeti": mem_arr,
                     "İşlem_Adedi": rng.integers(1, 20, n),
+                    "İndirim_Tutarı": indirim_list,
                 }
             )
+            # Add 3 duplicate rows and 2 statistical outliers for realistic quality demo
+            df.loc[0, "Satış_Tutarı"] = 245000
+            df.loc[1, "Satış_Tutarı"] = 260000
+            df = pd.concat([df, df.iloc[:3]], ignore_index=True)
             df = clean_dataframe(df)
             set_df(df, 1)
             set_df(None, 2)
             set_excel_data(None, [])
 
+        set_baseline_trust(None)
+        set_is_cleaned(False)
         df = get_df(1)
         if df is None:
             return jsonify({"error": "Örnek veri oluşturulamadı."}), 500

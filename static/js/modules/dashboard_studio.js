@@ -216,23 +216,31 @@ function renderDashboardPivotTable(containerId, data) {
   const container = document.getElementById(containerId);
   if (!container || !data) return;
 
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
   let html = `<table class="pivot-matrix-table" style="font-size: 0.78rem;">`;
   html += `<thead><tr>`;
   (data.index_names || []).forEach((name) => {
-    html += `<th class="pmt-corner">${name}</th>`;
+    html += `<th class="pmt-corner">${esc(name)}</th>`;
   });
   (data.column_headers || []).forEach((h) => {
-    html += `<th class="pmt-col-header">${h}</th>`;
+    html += `<th class="pmt-col-header">${esc(h)}</th>`;
   });
   html += `</tr></thead><tbody>`;
 
   (data.rows || []).forEach((r) => {
     html += `<tr>`;
     (r.row_labels || []).forEach((lbl) => {
-      html += `<td class="pmt-row-header">${lbl}</td>`;
+      html += `<td class="pmt-row-header">${esc(lbl)}</td>`;
     });
     (r.cells || []).forEach((val) => {
-      let formattedVal = val.toLocaleString("tr-TR", {
+      const numVal = Number(val ?? 0);
+      let formattedVal = numVal.toLocaleString("tr-TR", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       });

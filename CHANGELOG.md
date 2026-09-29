@@ -1,5 +1,30 @@
 # Güncelleme Notları (Changelog)
 
+## [v3.2.0] - AI Veri Güvenilirlik Stüdyosu, SQL Bağlantısı ve Kapsamlı Kararlılık Güncellemesi (29.09.2026)
+
+### 🛡️ Yeni Özellikler
+
+- **Tam Ekran AI Veri Güvenilirlik ve Kalite Stüdyosu (`#screen-trust-studio` — `data_routes.py`, `store.py`, `app.js`, `analysis.html`):**
+  - Veri setinin ilk yüklendiği andaki **Temizlenmemiş (Ham) Güven Skoru** ile **Temizlenmiş / Onarılmış Güven Skoru**'nu (`0–100`) yan yana kıyaslayan bağımsız tam ekran stüdyo eklendi.
+  - **4 Boyutlu Ağırlıklı Kalite Modeli:** Eksiksizlik (`%35`), Tip Doğruluğu (`%30`), İstatistiksel Tutarlılık / IQR Aykırı Değer (`%20`) ve Tekillik / Mükerrer Satır (`%15`) kırılımları eklendi.
+  - **Sütun Bazlı Güven Karnesi & Tek Tıkla Onarım (`/get_trust_report`, `/auto_heal_all_trust`):** Her sütunun bireysel güven puanını, boş hücre sayısını, sözel hata örneklerini (`"binikiyüz"`, `"yok"`, `"belirsiz"`) ve aykırı değer oranını gösteren interaktif tablo ile tekil sütun veya tüm veri seti onarımı eklendi.
+  - **Satır Bazlı AI Anomali Skoru (`/calculate_risk_score`):** *Scikit-Learn Isolation Forest* ve vektörize Z-skoru ile `Guven_Skoru_AI` sütununu veri havuzuna ekleme özelliği entegre edildi.
+
+- **SQL Veritabanı Bağlantısı (`/fetch_sql` — `upload_routes.py`, `app.js`):**
+  - `SQLAlchemy` üzerinden PostgreSQL, MySQL, SQLite ve SQL Server bağlantı dizeleriyle doğrudan SQL sorgusu çekme modalı eklendi.
+
+### 🐛 Hata Düzeltmeleri ve Kararlılık İyileştirmeleri (25/25 E2E Test)
+
+- **Veri Birleştirme (`JOIN`) & Çoklu Sayfa (`Multi-Sheet`) Koruması (`data_routes.py`, `file_service.py`, `upload_routes.py`):**
+  - `Right` ve `Outer` Join işlemlerinde ortak anahtar sütun (`key1 == key2`) değerlerinin sağ tablodan gelen satırlarda `NaN` olması (anahtar kaybı) giderildi.
+  - Sağ tabloda çakışan sonekli sütunlar bulunduğunda oluşan `pandas.errors.MergeError` hatası dinamik sütun tekilleştirme ile önlendi.
+  - Çok sayfalı Excel dosyalarında aktif sayfa üzerinde yapılan yerinde değişikliklerin (`add_calculated_column`) önbellekteki orijinal sayfayı bozması `.copy()` izolasyonu ile engellendi.
+- **Pivot Matris & Filtre Senkronizasyonu (`stats_service.py`, `export_service.py`, `pivot_studio.js`, `chart_manager.js`):**
+  - Aynı sütunun hem Satır hem Sütun/Değer olarak seçilmesi durumunda `pandas.pivot_table` çökmesi giderildi; Değerler kutusundaki son metriğin kaldırılabilmesi sağlandı ve tablo başlıklarına XSS koruması eklendi.
+  - Filtre modalında aktif filtrelerin korunması, `Min > Max` sayısal filtrelerin otomatik takası ve Regresyon Stüdyosu eksen çakışması düzeltildi.
+
+---
+
 ## [v3.1.0] - Aşamalı Canlı Yükleme Barı, Yatay İstatistik Kartları ve Tek Geçişli Data Healer (25.09.2026)
 
 ### 🚀 Yeni Özellikler ve Arayüz İyileştirmeleri

@@ -34,7 +34,13 @@ def get_stats():
         return jsonify({"error": "Veri yok"}), 400
 
     data = request.get_json(silent=True) or {}
-    cols = data.get("columns") or data.get("y_cols") or data.get("y") or []
+    cols = (
+        data.get("columns")
+        or data.get("column")
+        or data.get("y_cols")
+        or data.get("y")
+        or []
+    )
     if isinstance(cols, str):
         cols = [cols] if cols else []
     filters = data.get("filters", [])

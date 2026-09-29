@@ -152,6 +152,15 @@ def detect_column_anomalies(df: pd.DataFrame | None) -> list[dict[str, Any]]:
                 & (series.astype(str).str.strip() != "")
             )
             sample_invalid_count = int(invalid_mask.sum())
+            if sample_invalid_count == 0:
+                raw_numeric = pd.to_numeric(series, errors="coerce")
+                formatted_mask = raw_numeric.isna() & parsed_vals.notna()
+                if int(formatted_mask.sum()) > 0:
+                    invalid_mask = formatted_mask
+                    sample_invalid_count = int(formatted_mask.sum())
+                else:
+                    invalid_mask = parsed_vals.notna()
+                    sample_invalid_count = int(invalid_mask.sum())
             if sample_invalid_count > 0:
                 raw_invalid = series[invalid_mask].dropna().unique()
                 sample_invalids = [
@@ -318,9 +327,19 @@ def repair_column_data(
 
 
 def _fill_categorical_columns(
-    df_clean: pd.DataFrame, fill_label: str = "Bilinmiyor", is_massive: bool = False
+    df_clean: pd.DataFrame,
+    fill_label: str = "Bilinmiyor",
+    is_massive: bool = False,
+    target_cols: list[str] | None = None,
 ) -> None:
-    for c in df_clean.select_dtypes(include=["object", "category", "string"]).columns:
+    cat_cols = (
+        [c for c in target_cols if c in df_clean.columns]
+        if target_cols is not None
+        else list(
+            df_clean.select_dtypes(include=["object", "category", "string"]).columns
+        )
+    )
+    for c in cat_cols:
         col_s = df_clean[c]
         has_na = (
             bool(col_s.iloc[:100_000].isna().any() or col_s.isna().any())
@@ -336,9 +355,13 @@ def _fill_categorical_columns(
             df_clean[c] = col_s.fillna(fill_label)
 
 
-def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.DataFrame:
+def clean_missing_data(
+    df: pd.DataFrame | None,
+    action: str = "drop",
+    target_column: str | None = None,
+) -> pd.DataFrame:
     """
-    Cleans missing data across DataFrame based on action:
+    Cleans missing data across DataFrame (or a specific column) based on action:
     - 'drop': drops rows with any missing values
     - 'fill_mean' / 'mean': fills numerical missing values with mean, categorical with 'Bilinmiyor'
     - 'fill_median' / 'median': fills numerical missing values with median, categorical with 'Bilinmiyor'
@@ -351,10 +374,20 @@ def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.Data
 
     is_massive = len(df) > 1_000_000
     df_clean = df.copy(deep=not is_massive)
+    single_col = (
+        target_column
+        if target_column and target_column != "__all__" and target_column in df_clean.columns
+        else None
+    )
+
     if action == "drop":
-        df_clean = df_clean.dropna().reset_index(drop=True)
+        if single_col:
+            df_clean = df_clean.dropna(subset=[single_col]).reset_index(drop=True)
+        else:
+            df_clean = df_clean.dropna().reset_index(drop=True)
     elif action in ("fill_mean", "mean"):
-        num_cols = df_clean.select_dtypes(include=["number"]).columns
+        all_num_cols = df_clean.select_dtypes(include=["number"]).columns
+        num_cols = [single_col] if single_col in all_num_cols else ([] if single_col else list(all_num_cols))
         for c in num_cols:
             col_s = df_clean[c]
             if col_s.isna().any():
@@ -363,9 +396,14 @@ def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.Data
                 df_clean[c] = col_s.fillna(
                     np.float32(fill_v) if col_s.dtype == np.float32 else fill_v
                 )
-        _fill_categorical_columns(df_clean, is_massive=is_massive)
+        cat_targets = [single_col] if (single_col and single_col not in all_num_cols) else ([] if single_col else None)
+        if cat_targets is None or len(cat_targets) > 0:
+            _fill_categorical_columns(
+                df_clean, is_massive=is_massive, target_cols=cat_targets
+            )
     elif action in ("fill_median", "median"):
-        num_cols = df_clean.select_dtypes(include=["number"]).columns
+        all_num_cols = df_clean.select_dtypes(include=["number"]).columns
+        num_cols = [single_col] if single_col in all_num_cols else ([] if single_col else list(all_num_cols))
         for c in num_cols:
             col_s = df_clean[c]
             if col_s.isna().any():
@@ -376,15 +414,24 @@ def clean_missing_data(df: pd.DataFrame | None, action: str = "drop") -> pd.Data
                 df_clean[c] = col_s.fillna(
                     np.float32(fill_v) if col_s.dtype == np.float32 else fill_v
                 )
-        _fill_categorical_columns(df_clean, is_massive=is_massive)
+        cat_targets = [single_col] if (single_col and single_col not in all_num_cols) else ([] if single_col else None)
+        if cat_targets is None or len(cat_targets) > 0:
+            _fill_categorical_columns(
+                df_clean, is_massive=is_massive, target_cols=cat_targets
+            )
     elif action in ("fill_zero", "zero"):
-        num_cols = df_clean.select_dtypes(include=["number"]).columns
+        all_num_cols = df_clean.select_dtypes(include=["number"]).columns
+        num_cols = [single_col] if single_col in all_num_cols else ([] if single_col else list(all_num_cols))
         for c in num_cols:
             col_s = df_clean[c]
             if col_s.isna().any():
                 df_clean[c] = col_s.fillna(
                     np.float32(0.0) if col_s.dtype == np.float32 else 0
                 )
-        _fill_categorical_columns(df_clean, is_massive=is_massive)
+        cat_targets = [single_col] if (single_col and single_col not in all_num_cols) else ([] if single_col else None)
+        if cat_targets is None or len(cat_targets) > 0:
+            _fill_categorical_columns(
+                df_clean, is_massive=is_massive, target_cols=cat_targets
+            )
 
     return df_clean

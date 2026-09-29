@@ -21,6 +21,9 @@
     const selY = document.getElementById("regSelectY");
     if (!selX || !selY) return;
 
+    const prevX = selX.value;
+    const prevY = selY.value;
+
     const numCols =
       window.numericColumns && window.numericColumns.length > 0
         ? window.numericColumns
@@ -47,14 +50,18 @@
 
     if (curX && numCols.includes(curX)) {
       selX.value = curX;
+    } else if (prevX && numCols.includes(prevX)) {
+      selX.value = prevX;
     } else if (numCols.length > 0) {
       selX.value = numCols[0];
     }
 
     if (curY && numCols.includes(curY) && curY !== selX.value) {
       selY.value = curY;
+    } else if (prevY && numCols.includes(prevY) && prevY !== selX.value) {
+      selY.value = prevY;
     } else if (numCols.length > 1) {
-      selY.value = numCols[1];
+      selY.value = numCols.find((c) => c !== selX.value) || numCols[0];
     } else if (numCols.length > 0) {
       selY.value = numCols[0];
     }
@@ -126,7 +133,13 @@
       yCol = selY.value;
     }
 
-    if (!xCol || !yCol) return;
+    const scatterArea = document.getElementById("regScatterPlotArea");
+    if (!xCol || !yCol) {
+      if (scatterArea) {
+        scatterArea.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:var(--orange); padding:20px; text-align:center;">⚠️ Regresyon analizi için veri setinde en az 1 sayısal sütun bulunmalıdır.</div>`;
+      }
+      return;
+    }
 
     const modelType =
       document.getElementById("regSelectModel")?.value || "linear";
@@ -134,7 +147,6 @@
       document.getElementById("regSelectCorrMethod")?.value || "pearson";
     const filters = window.activeFilters || [];
 
-    const scatterArea = document.getElementById("regScatterPlotArea");
     const prog = window.DataVizProgress?.start({
       icon: "📈",
       title: `${xCol} & ${yCol} Regresyon Modeli`,

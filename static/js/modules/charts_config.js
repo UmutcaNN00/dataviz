@@ -524,17 +524,20 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
       // Finansal: Candlestick & OHLC
       else if (type === "candlestick" || type === "ohlc") {
         const y0 = keys[0] ? raw[keys[0]] : [];
-        if (!y0 || y0.length === 0) {
+        const hasValidNumbers =
+          Array.isArray(y0) && y0.some((v) => Number.isFinite(Number(v)));
+        if (!y0 || y0.length === 0 || !hasValidNumbers) {
           const el = document.getElementById(targetElementId);
           if (el)
             el.innerHTML =
               '<div style="color:var(--orange); padding:40px; text-align:center;">⚠️ Mum grafiği için en az bir sayısal fiyat sütunu seçiniz.</div>';
           return;
         }
-        const openVals = keys[1] ? raw[keys[1]] : y0.map((v) => v * 0.98);
-        const highVals = keys[2] ? raw[keys[2]] : y0.map((v) => v * 1.03);
-        const lowVals = keys[3] ? raw[keys[3]] : y0.map((v) => v * 0.95);
-        const closeVals = y0;
+        const numY0 = y0.map((v) => Number(v) || 0);
+        const openVals = keys[1] ? raw[keys[1]] : numY0.map((v) => v * 0.98);
+        const highVals = keys[2] ? raw[keys[2]] : numY0.map((v) => v * 1.03);
+        const lowVals = keys[3] ? raw[keys[3]] : numY0.map((v) => v * 0.95);
+        const closeVals = numY0;
 
         traces.push({
           type: type,
@@ -646,10 +649,13 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
           let tr = {
             type: type === "strip" || type === "rug" ? "scatter" : type,
             name: k,
-            x: xVals.length && type !== "histogram" ? xVals : undefined,
-            y: raw[k],
+            x: type === "histogram" ? raw[k] : xVals.length ? xVals : undefined,
+            y: type === "histogram" ? undefined : raw[k],
             marker: { color: keys.length === 1 ? mainColor : PALETTE[i % 10] },
           };
+          if (type === "histogram" && keys.length > 1) {
+            tr.opacity = 0.75;
+          }
           if (type === "strip") {
             tr.mode = "markers";
             tr.marker.size = sz * 2;
