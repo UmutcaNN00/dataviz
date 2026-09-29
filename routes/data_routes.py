@@ -431,3 +431,61 @@ def add_calculated_column():
     except Exception as e:
         logger.exception("create_calculated_column hatası")
         return jsonify({"error": f"Hesaplama hatası: {e}"}), 500
+
+
+from sklearn.ensemble import IsolationForest
+import numpy as np
+
+@data_bp.route("/calculate_risk_score", methods=["POST"])
+def calculate_risk_score():
+    """Calculates an AI-based Trust/Risk Score using Isolation Forest."""
+    global_df = get_df(1)
+    if global_df is None:
+        return jsonify({"error": "Veri yok"}), 400
+
+    try:
+        numeric_cols = global_df.select_dtypes(include=["number"]).columns.tolist()
+        if len(numeric_cols) == 0:
+            return jsonify({"error": "Model egitimi icin en az bir sayisal sutun gereklidir."}), 400
+        
+        # Sadece sayisal sutunlari al ve eksik verileri medyan ile doldur (modelin patlamamasi icin)
+        df_numeric = global_df[numeric_cols].copy()
+        df_numeric = df_numeric.fillna(df_numeric.median())
+        # Tumu hala NaN ise sifir ile doldur
+        df_numeric = df_numeric.fillna(0)
+
+        # Isolation Forest modeli
+        model = IsolationForest(n_estimators=100, contamination='auto', random_state=42)
+        model.fit(df_numeric)
+        
+        # Skorlar negatif gelir (-0.5 ile 0.5 arasi, kuculdukce risk artar)
+        anomaly_scores = model.decision_function(df_numeric)
+        
+        # Skoru 0 ile 100 arasina normalize et (0 = Cok Riskli, 100 = Cok Guvenli)
+        min_score = anomaly_scores.min()
+        max_score = anomaly_scores.max()
+        
+        if max_score > min_score:
+            normalized_scores = ((anomaly_scores - min_score) / (max_score - min_score)) * 100
+        else:
+            normalized_scores = np.full(len(anomaly_scores), 100)
+            
+        # Skorlari yuvarla ve integer yap
+        risk_scores = np.round(normalized_scores).astype(int)
+        
+        # Yeni sutun olarak ekle
+        global_df["Guven_Skoru_AI"] = risk_scores
+        set_df(global_df, 1)
+
+        new_numeric_cols = global_df.select_dtypes(include=["number"]).columns.tolist()
+        new_categorical_cols = global_df.select_dtypes(include=["object", "category", "bool", "string"]).columns.tolist()
+
+        return jsonify({
+            "success": True,
+            "message": "AI Guven Skoru (Isolation Forest) basariyla hesaplandi ve sutun eklendi.",
+            "numeric_columns": new_numeric_cols,
+            "categorical_columns": new_categorical_cols
+        })
+    except Exception as e:
+        logger.exception("AI Risk Skoru hatasi")
+        return jsonify({"error": f"Hesaplama hatasi: {str(e)}"}), 500

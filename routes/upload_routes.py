@@ -163,3 +163,47 @@ def switch_sheet():
     except Exception as e:
         logger.exception("Sayfa değiştirme hatası")
         return jsonify({"error": f"Sayfa değiştirilirken bir hata oluştu: {e}"}), 400
+
+
+from sqlalchemy import create_engine
+import urllib.parse
+
+@upload_bp.route("/fetch_sql", methods=["POST"])
+def fetch_sql():
+    """Fetches data from an SQL database using SQLAlchemy."""
+    req_json = request.get_json(silent=True) or {}
+    db_uri = req_json.get("db_uri")
+    query = req_json.get("query")
+    
+    if not db_uri or not query:
+        return jsonify({"error": "Veritabani URL'si (URI) ve SQL sorgusu (Query) zorunludur."}), 400
+        
+    logger.info(f"SQL Baglanti istegi alindi: URI={db_uri.split('@')[-1] if '@' in db_uri else 'hidden'}")
+    
+    try:
+        engine = create_engine(db_uri)
+        df = pd.read_sql(query, con=engine)
+        
+        if df is None or df.empty or len(df.columns) == 0:
+            return jsonify({"error": "Sorgu calisti ancak bos veri dondu."}), 400
+            
+        df.columns = [str(c).replace("\ufeff", "").strip() for c in df.columns]
+        set_df(df, 1)
+        set_excel_data(None, [])
+        set_df(None, 2)
+        
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=["object", "category", "bool", "string"]).columns.tolist()
+        
+        return jsonify({
+            "success": True,
+            "total_rows": len(df),
+            "total_cols": len(df.columns),
+            "sheet_names": [],
+            "active_sheet": "SQL_Sorgusu",
+            "numeric_columns": numeric_cols,
+            "categorical_columns": categorical_cols,
+        })
+    except Exception as e:
+        logger.exception("SQL veritabani baglanti hatasi")
+        return jsonify({"error": f"SQL Baglanti Hatasi: {str(e)}"}), 400

@@ -784,3 +784,106 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 });
+
+
+
+// --- SQL Bağlantı ve AI Güven Skoru Modülleri ---
+
+// SQL Modal Elements
+const btnOpenSqlModal = document.getElementById('btnOpenSqlModal');
+const sqlConnectModal = document.getElementById('sqlConnectModal');
+const btnCloseSqlModal = document.getElementById('btnCloseSqlModal');
+const btnCancelSqlModal = document.getElementById('btnCancelSqlModal');
+const btnExecuteSql = document.getElementById('btnExecuteSql');
+const sqlUriInput = document.getElementById('sqlUriInput');
+const sqlQueryInput = document.getElementById('sqlQueryInput');
+
+if(btnOpenSqlModal) {
+    btnOpenSqlModal.addEventListener('click', () => {
+        sqlConnectModal.classList.remove('hidden');
+    });
+}
+if(btnCloseSqlModal) btnCloseSqlModal.addEventListener('click', () => sqlConnectModal.classList.add('hidden'));
+if(btnCancelSqlModal) btnCancelSqlModal.addEventListener('click', () => sqlConnectModal.classList.add('hidden'));
+
+if(btnExecuteSql) {
+    btnExecuteSql.addEventListener('click', async () => {
+        const db_uri = sqlUriInput.value.trim();
+        const query = sqlQueryInput.value.trim();
+        if(!db_uri || !query) {
+            Swal.fire({ icon: 'warning', title: 'Hata', text: 'Lütfen Veritabanı URI ve SQL Sorgusunu girin.', background: 'var(--bg-2)', color: 'var(--text)'});
+            return;
+        }
+        
+        const originalBtnText = btnExecuteSql.innerHTML;
+        btnExecuteSql.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Çekiliyor...';
+        btnExecuteSql.disabled = true;
+        
+        try {
+            const res = await fetch('/fetch_sql', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ db_uri, query })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'SQL bağlantı hatası.');
+            
+            window.numericColumns = data.numeric_columns || [];
+            window.categoricalColumns = data.categorical_columns || [];
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Başarılı!',
+                text: ${data.total_rows} satır,  sütun çekildi.,
+                background: 'var(--bg-2)', color: 'var(--text)', timer: 2000, showConfirmButton: false
+            });
+            
+            sqlConnectModal.classList.add('hidden');
+            if (typeof proceedToStep2 === 'function') proceedToStep2();
+            
+        } catch(err) {
+            Swal.fire({ icon: 'error', title: 'Hata', text: err.message, background: 'var(--bg-2)', color: 'var(--text)'});
+        } finally {
+            btnExecuteSql.innerHTML = originalBtnText;
+            btnExecuteSql.disabled = false;
+        }
+    });
+}
+
+// AI Güven Skoru Butonu
+const btnCalculateRiskScore = document.getElementById('btnCalculateRiskScore');
+if(btnCalculateRiskScore) {
+    btnCalculateRiskScore.addEventListener('click', async () => {
+        Swal.fire({
+            title: 'AI Modeli Eğitiliyor...',
+            text: 'Verideki tüm sayısal sütunlar Isolation Forest algoritması ile taranıyor. Lütfen bekleyin...',
+            allowOutsideClick: false,
+            background: 'var(--bg-2)', color: 'var(--text)',
+            didOpen: () => { Swal.showLoading(); }
+        });
+        
+        try {
+            const res = await fetch('/calculate_risk_score', { method: 'POST' });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Skor hesaplama hatası.');
+            
+            window.numericColumns = data.numeric_columns || [];
+            window.categoricalColumns = data.categorical_columns || [];
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Yapay Zeka Analizi Tamamlandı',
+                text: 'Guven_Skoru_AI adlı yeni bir sütun eklendi! (0 = Çok Riskli/Anormal, 100 = Çok Güvenli/Normal)',
+                background: 'var(--bg-2)', color: 'var(--text)'
+            });
+            
+            // Eğer varsa chart filter çiplerini vs güncelleyelim
+            if (typeof updateFilterChipsUI === 'function') updateFilterChipsUI();
+            
+        } catch(err) {
+            Swal.fire({ icon: 'error', title: 'Hata', text: err.message, background: 'var(--bg-2)', color: 'var(--text)'});
+        }
+    });
+}
