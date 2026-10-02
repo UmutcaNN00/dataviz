@@ -379,15 +379,19 @@ const CHARTS = [
 ];
 
 function buildLayout(bg, sGrid, sLeg, isMini = false) {
+  const currentTheme =
+    document.documentElement.getAttribute("data-theme") || "dark";
   const isLight =
-    bg &&
-    ["#ffffff", "#fff", "#f8fafc", "white"].includes(String(bg).toLowerCase());
+    currentTheme === "light" ||
+    (bg &&
+      ["#ffffff", "#fff", "#f8fafc", "white"].includes(String(bg).toLowerCase()));
   const gc = sGrid
     ? isLight
-      ? "rgba(0,0,0,0.08)"
-      : "rgba(255,255,255,0.08)"
+      ? "rgba(15, 23, 42, 0.08)"
+      : "rgba(255, 255, 255, 0.08)"
     : "transparent";
-  const tc = isLight ? "#334155" : "#94a3b8";
+  const tc = isLight ? "#0f172a" : "#f5f5f7";
+  const plotBg = isLight ? (bg && bg !== "transparent" ? bg : "#ffffff") : (bg || "transparent");
   const customTitle = !isMini
     ? document.getElementById("customChartTitle")?.value?.trim() || ""
     : "";
@@ -395,7 +399,7 @@ function buildLayout(bg, sGrid, sLeg, isMini = false) {
   const layout = {
     autosize: true,
     paper_bgcolor: "transparent",
-    plot_bgcolor: bg,
+    plot_bgcolor: plotBg,
     font: { family: "Inter", color: tc },
     showlegend: sLeg,
     legend: { bgcolor: "transparent" },

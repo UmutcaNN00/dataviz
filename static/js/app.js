@@ -927,28 +927,31 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ── AI VERİ GÜVEN SKORU STÜDYOSU (TAM EKRAN) ──
+  // ── AI VERİ GÜVEN SKORU STÜDYOSU (TAM EKRAN) ──
   function getScoreTheme(score) {
     const s = Number(score) || 0;
+    const isLight =
+      document.documentElement.getAttribute("data-theme") === "light";
     if (s >= 85) {
       return {
-        color: "#34d399",
-        border: "#10b981",
-        bg: "rgba(16, 185, 129, 0.14)",
+        color: isLight ? "#059669" : "#30d158",
+        border: isLight ? "#059669" : "#30d158",
+        bg: isLight ? "rgba(5, 150, 105, 0.1)" : "rgba(48, 209, 88, 0.14)",
         label: "Yüksek Güven",
       };
     }
     if (s >= 65) {
       return {
-        color: "#fbbf24",
-        border: "#f59e0b",
-        bg: "rgba(245, 158, 11, 0.14)",
+        color: isLight ? "#d97706" : "#ff9f0a",
+        border: isLight ? "#d97706" : "#ff9f0a",
+        bg: isLight ? "rgba(217, 119, 6, 0.1)" : "rgba(255, 159, 10, 0.14)",
         label: "Orta Güven (Onarım Önerilir)",
       };
     }
     return {
-      color: "#f87171",
-      border: "#ef4444",
-      bg: "rgba(239, 68, 68, 0.15)",
+      color: isLight ? "#dc2626" : "#ff453a",
+      border: isLight ? "#dc2626" : "#ff453a",
+      bg: isLight ? "rgba(220, 38, 38, 0.1)" : "rgba(255, 69, 58, 0.15)",
       label: "Riskli Veri (Temizlik Şart)",
     };
   }
@@ -965,17 +968,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Üst durum rozeti
     const globalChip = document.getElementById("trustGlobalStatusChip");
     if (globalChip) {
+      globalChip.style.background = "";
+      globalChip.style.color = "";
+      globalChip.style.borderColor = "";
       if (isCleaned) {
         globalChip.textContent = "✓ Veri Seti Temizlendi ve Onarıldı";
-        globalChip.style.background = "rgba(16, 185, 129, 0.18)";
-        globalChip.style.color = "#34d399";
-        globalChip.style.borderColor = "rgba(16, 185, 129, 0.45)";
+        globalChip.className = "trust-status-chip clean";
       } else if (hasCleaningHistory) {
         globalChip.textContent =
           "🔧 Kısmi Temizleme Uygulandı — Kalan Sorunlar Mevcut";
-        globalChip.style.background = "rgba(56, 189, 248, 0.18)";
-        globalChip.style.color = "#38bdf8";
-        globalChip.style.borderColor = "rgba(56, 189, 248, 0.45)";
+        globalChip.className = "trust-status-chip info";
       } else if (
         raw.missing_cells > 0 ||
         raw.invalid_cells > 0 ||
@@ -983,14 +985,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ) {
         globalChip.textContent =
           "⚠️ Ham Veri Setinde Kalite Sorunları Tespit Edildi";
-        globalChip.style.background = "rgba(245, 158, 11, 0.18)";
-        globalChip.style.color = "#fbbf24";
-        globalChip.style.borderColor = "rgba(245, 158, 11, 0.45)";
+        globalChip.className = "trust-status-chip warning";
       } else {
         globalChip.textContent = "✓ Veri Seti Doğal Olarak Temiz";
-        globalChip.style.background = "rgba(16, 185, 129, 0.18)";
-        globalChip.style.color = "#34d399";
-        globalChip.style.borderColor = "rgba(16, 185, 129, 0.45)";
+        globalChip.className = "trust-status-chip clean";
       }
     }
 
@@ -1035,12 +1033,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const rawMissEl = document.getElementById("trustRawMissingCount");
     if (rawMissEl) {
       rawMissEl.textContent = `${fmtNum(raw.missing_cells)} Hücre (%${raw.missing_pct})`;
-      rawMissEl.style.color = raw.missing_cells > 0 ? "#f87171" : "#34d399";
     }
     const rawInvEl = document.getElementById("trustRawInvalidCount");
     if (rawInvEl) {
       rawInvEl.textContent = `${fmtNum(raw.invalid_cells)} Hücre (${raw.anomalous_cols_count} Sütun)`;
-      rawInvEl.style.color = raw.invalid_cells > 0 ? "#fb923c" : "#34d399";
     }
     const rawOutEl = document.getElementById("trustRawOutlierCount");
     if (rawOutEl) {
@@ -1055,21 +1051,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const cleanStateBadge = document.getElementById("trustCleanStateBadge");
     const cleanSubtitle = document.getElementById("trustCleanSubtitle");
     if (cleanStateBadge) {
+      cleanStateBadge.style.background = "";
+      cleanStateBadge.style.color = "";
       if (isCleaned) {
         cleanStateBadge.textContent =
           "✅ TEMİZLENMİŞ AKTİF VERİ SETİ (UYGULANDI)";
-        cleanStateBadge.style.background = "rgba(16, 185, 129, 0.22)";
-        cleanStateBadge.style.color = "#34d399";
+        cleanStateBadge.className = "trust-state-badge trust-badge-clean";
       } else if (hasCleaningHistory) {
         cleanStateBadge.textContent =
           "🔄 KISMİ ONARIM UYGULANDI (TAM TEMİZLİK HEDEFİ)";
-        cleanStateBadge.style.background = "rgba(245, 158, 11, 0.2)";
-        cleanStateBadge.style.color = "#fbbf24";
+        cleanStateBadge.className = "trust-state-badge trust-badge-history";
       } else {
         cleanStateBadge.textContent =
           "✨ TEMİZLENMİŞ VERİ SETİ (ONARIM SONRASI HEDEF)";
-        cleanStateBadge.style.background = "rgba(56, 189, 248, 0.18)";
-        cleanStateBadge.style.color = "#38bdf8";
+        cleanStateBadge.className = "trust-state-badge trust-badge-target";
       }
     }
     if (cleanSubtitle) {
@@ -1086,14 +1081,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const deltaBadge = document.getElementById("trustScoreDeltaBadge");
     if (deltaBadge) {
+      deltaBadge.style.background = "";
+      deltaBadge.style.color = "";
       if (delta > 0) {
         deltaBadge.textContent = `+${delta.toFixed(1)} Puan Artış ↑`;
-        deltaBadge.style.background = "rgba(16, 185, 129, 0.22)";
-        deltaBadge.style.color = "#34d399";
+        deltaBadge.className = "trust-delta-badge positive";
       } else {
         deltaBadge.textContent = "Maksimum Güven ✓";
-        deltaBadge.style.background = "rgba(56, 189, 248, 0.18)";
-        deltaBadge.style.color = "#38bdf8";
+        deltaBadge.className = "trust-delta-badge max";
       }
     }
 
@@ -1145,11 +1140,11 @@ document.addEventListener("DOMContentLoaded", () => {
             ? ` ve <strong>${fmtNum(current.duplicate_rows)} mükerrer satır</strong>`
             : "";
         cleanFooter.innerHTML = `
-          <div style="background: rgba(16, 185, 129, 0.1); border: 1px dashed rgba(16, 185, 129, 0.45); border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <div style="font-size: 0.82rem; color: #e2e8f0;">
+          <div class="trust-heal-prompt-box">
+            <div class="trust-heal-prompt-text">
               💡 <strong>${fmtNum(current.missing_cells)} boş hücre</strong>, <strong>${fmtNum(current.invalid_cells)} hatalı/sözel hücre</strong>${dupPart} tek tıkla onarılabilir.
             </div>
-            <button type="button" id="btnTrustCardQuickHeal" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none;">
+            <button type="button" id="btnTrustCardQuickHeal" class="btn-primary btn-trust-card-heal">
               ⚡ Şimdi Onar ve Skoru ${Number(clean.overall_score).toFixed(1)}'e Yükselt
             </button>
           </div>
@@ -1159,7 +1154,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ?.addEventListener("click", autoHealFromTrustStudio);
       } else {
         cleanFooter.innerHTML = `
-          <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 12px 16px; color: #34d399; font-size: 0.83rem; font-weight: 600;">
+          <div class="trust-clean-success-box">
             🎉 Veri setinizdeki tüm eksik ve hatalı veriler giderildi! Analiz ve grafikleriniz en yüksek doğrulukla çalışıyor.
           </div>
         `;
@@ -1171,48 +1166,53 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tbody) {
       const cols = current.columns || [];
       if (cols.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="padding: 20px; text-align: center; color: #94a3b8;">Sütun bulunamadı.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="trust-table-empty">Sütun bulunamadı.</td></tr>`;
       } else {
         tbody.innerHTML = cols
           .map((c) => {
             const cTheme = getScoreTheme(c.trust_score);
             const samplesHtml =
               c.sample_invalid_values && c.sample_invalid_values.length > 0
-                ? `<div style="font-size: 0.72rem; color: #fb923c; margin-top: 2px;">Örn: ${c.sample_invalid_values.map((v) => `"${escapeHtmlSafe(String(v))}"`).join(", ")}</div>`
+                ? `<div class="trust-sample-values">Örn: ${c.sample_invalid_values.map((v) => `<span class="trust-sample-tag">"${escapeHtmlSafe(String(v))}"</span>`).join(" ")}</div>`
                 : "";
-            let actionHtml = `<span style="color: #34d399; font-weight: 700; font-size: 0.8rem;">✅ Güvenli</span>`;
+            let actionHtml = `<span class="trust-safe-badge">✅ Güvenli</span>`;
             if (c.has_anomaly) {
-              actionHtml = `<button type="button" class="btn-trust-col-repair" data-col="${escapeHtmlSafe(c.column)}" style="padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-weight: 700; font-size: 0.76rem; cursor: pointer;">🪄 Sütunu Onar</button>`;
+              actionHtml = `<button type="button" class="btn-trust-col-repair" data-col="${escapeHtmlSafe(c.column)}">🪄 Sütunu Onar</button>`;
             } else if (c.missing_count > 0) {
-              actionHtml = `<button type="button" class="btn-trust-col-clean" data-col="${escapeHtmlSafe(c.column)}" style="padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; font-size: 0.76rem; cursor: pointer;">🧹 Boşları Doldur</button>`;
+              actionHtml = `<button type="button" class="btn-trust-col-clean" data-col="${escapeHtmlSafe(c.column)}">🧹 Boşları Doldur</button>`;
             }
+            const typeClass = c.has_anomaly
+              ? "anomaly"
+              : c.is_numeric
+                ? "numeric"
+                : "categorical";
             return `
-              <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
-                <td style="padding: 12px; font-weight: 700; color: #f8fafc;">${escapeHtmlSafe(c.column)}</td>
-                <td style="padding: 12px;">
-                  <span style="font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: ${c.has_anomaly ? "#fb923c" : c.is_numeric ? "#38bdf8" : "#cbd5e1"};">
+              <tr class="trust-col-row">
+                <td class="trust-col-name-cell">${escapeHtmlSafe(c.column)}</td>
+                <td class="trust-col-type-cell">
+                  <span class="trust-type-badge ${typeClass}">
                     ${escapeHtmlSafe(c.dtype_label)}
                   </span>
                 </td>
-                <td style="padding: 12px;">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="flex: 1; height: 7px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden;">
-                      <div style="height: 100%; width: ${Math.max(0, Math.min(100, c.trust_score))}%; background: ${cTheme.border}; border-radius: 99px;"></div>
+                <td class="trust-score-cell">
+                  <div class="trust-score-bar-wrap">
+                    <div class="trust-score-track">
+                      <div class="trust-score-fill" style="width: ${Math.max(0, Math.min(100, c.trust_score))}%; background: ${cTheme.border};"></div>
                     </div>
-                    <strong style="color: ${cTheme.color}; min-width: 38px; text-align: right;">${Number(c.trust_score).toFixed(1)}</strong>
+                    <strong class="trust-score-num" style="color: ${cTheme.color};">${Number(c.trust_score).toFixed(1)}</strong>
                   </div>
                 </td>
-                <td style="padding: 12px; color: ${c.missing_count > 0 ? "#f87171" : "#94a3b8"}; font-weight: ${c.missing_count > 0 ? "700" : "400"};">
+                <td class="trust-missing-cell ${c.missing_count > 0 ? "has-issue" : ""}">
                   ${c.missing_count > 0 ? `${fmtNum(c.missing_count)} (%${c.missing_pct})` : "0 (Tam)"}
                 </td>
-                <td style="padding: 12px; color: ${c.invalid_count > 0 ? "#fb923c" : "#94a3b8"}; font-weight: ${c.invalid_count > 0 ? "700" : "400"};">
+                <td class="trust-invalid-cell ${c.invalid_count > 0 ? "has-issue" : ""}">
                   ${c.invalid_count > 0 ? `${fmtNum(c.invalid_count)} (%${c.invalid_pct})` : "0 (Temiz)"}
                   ${samplesHtml}
                 </td>
-                <td style="padding: 12px; color: ${c.outlier_count > 0 ? "#fbbf24" : "#94a3b8"};">
+                <td class="trust-outlier-cell ${c.outlier_count > 0 ? "has-outlier" : ""}">
                   ${c.is_numeric ? (c.outlier_count > 0 ? `${fmtNum(c.outlier_count)} (%${c.outlier_pct})` : "0 (Normal)") : "—"}
                 </td>
-                <td style="padding: 12px; text-align: right;">${actionHtml}</td>
+                <td class="trust-action-cell">${actionHtml}</td>
               </tr>
             `;
           })
@@ -1507,4 +1507,53 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // 🌓 UNIFIED THEME SYSTEM (Apple Pro Dark <-> Clean Corporate Light)
+  window.applyTheme = function (theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("dataviz-theme", theme);
+
+    // Update active Plotly chart with theme colors if rendered
+    try {
+      const chartBox = document.getElementById("mainMegaChart");
+      if (chartBox && chartBox.data && window.Plotly) {
+        const isLight = theme === "light";
+        const bg = isLight ? "#ffffff" : "transparent";
+        const tc = isLight ? "#0f172a" : "#f5f5f7";
+        const gc = isLight
+          ? "rgba(15, 23, 42, 0.08)"
+          : "rgba(255, 255, 255, 0.08)";
+        window.Plotly.relayout(chartBox, {
+          plot_bgcolor: bg,
+          paper_bgcolor: "transparent",
+          "font.color": tc,
+          "xaxis.gridcolor": gc,
+          "yaxis.gridcolor": gc,
+        });
+      }
+    } catch (e) {
+      console.warn("Theme chart relayout warning:", e);
+    }
+  };
+
+  // Initialize theme from storage
+  const savedTheme = localStorage.getItem("dataviz-theme") || "dark";
+  window.applyTheme(savedTheme);
+
+  // Bind all theme toggle buttons (.theme-toggle-trigger or .theme-toggle-btn)
+  document
+    .querySelectorAll(".theme-toggle-trigger, .theme-toggle-btn")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const current =
+          document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        window.applyTheme(next);
+      });
+    });
 });

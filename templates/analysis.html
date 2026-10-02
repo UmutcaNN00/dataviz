@@ -16,8 +16,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/analysis.css') }}?v=20260929_v9"
+      href="{{ url_for('static', filename='css/analysis.css') }}?v=20261003_apple_v5"
     />
+    <script>
+      (function () {
+        const savedTheme = localStorage.getItem("dataviz-theme") || "dark";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        if (savedTheme === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- ══════════ DATA PREP (VERİ SAĞLIĞI, TİP ONARIMI & NAN TEMİZLEME) MODALI ══════════ -->
@@ -54,46 +65,17 @@
         </div>
 
         <!-- MODAL SEKMELERİ -->
-        <div
-          class="dp-tabs"
-          style="
-            display: flex;
-            gap: 8px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
-            margin-bottom: 14px;
-          "
-        >
+        <div class="dp-tabs">
           <button
             type="button"
             class="dp-tab-btn active"
             id="dpTabBtnAnomalies"
             data-dptab="anomalies"
-            style="
-              background: rgba(167, 139, 250, 0.15);
-              color: var(--purple);
-              border: 1px solid rgba(167, 139, 250, 0.3);
-              border-radius: 8px;
-              padding: 6px 14px;
-              font-size: 0.82rem;
-              font-weight: 700;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              gap: 6px;
-            "
           >
             <span>🧩 Sözel / Tip Uyuşmazlığı</span>
             <span
               id="dpAnomalyTabCount"
-              class="hidden"
-              style="
-                background: #ef4444;
-                color: #fff;
-                font-size: 0.68rem;
-                padding: 1px 6px;
-                border-radius: 10px;
-              "
+              class="dp-tab-badge dp-tab-badge-red hidden"
               >0</span
             >
           </button>
@@ -102,251 +84,77 @@
             class="dp-tab-btn"
             id="dpTabBtnNans"
             data-dptab="nans"
-            style="
-              background: transparent;
-              color: var(--muted);
-              border: 1px solid transparent;
-              border-radius: 8px;
-              padding: 6px 14px;
-              font-size: 0.82rem;
-              font-weight: 700;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              gap: 6px;
-            "
           >
             <span>🩺 Eksik Değer (NaN)</span>
             <span
               id="dpNanTabCount"
-              class="hidden"
-              style="
-                background: var(--orange);
-                color: #fff;
-                font-size: 0.68rem;
-                padding: 1px 6px;
-                border-radius: 10px;
-              "
+              class="dp-tab-badge dp-tab-badge-orange hidden"
               >0</span
             >
           </button>
         </div>
 
         <!-- SEKME 1: SÖZEL / ALAKASIZ DEĞER ONARIMI -->
-        <div
-          id="dpPaneAnomalies"
-          class="dp-pane"
-          style="overflow-y: auto; flex: 1; padding-right: 4px"
-        >
-          <div id="dpAnomalyHeaderBanner" style="margin-bottom: 12px"></div>
+        <div id="dpPaneAnomalies" class="dp-pane">
+          <div id="dpAnomalyHeaderBanner"></div>
 
           <!-- Toplu Onarım Buton Barı -->
-          <div
-            id="dpBatchActionBar"
-            class="hidden"
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              background: rgba(251, 191, 36, 0.08);
-              border: 1px solid rgba(251, 191, 36, 0.25);
-              border-radius: 8px;
-              padding: 10px 14px;
-              margin-bottom: 14px;
-            "
-          >
-            <div>
-              <strong style="color: #fbbf24; font-size: 0.85rem"
-                >⚡ Hızlı Toplu Çözüm:</strong
-              >
-              <p
-                style="
-                  margin: 2px 0 0 0;
-                  font-size: 0.75rem;
-                  color: var(--muted);
-                "
-              >
+          <div id="dpBatchActionBar" class="dp-batch-bar hidden">
+            <div class="dp-batch-info">
+              <strong class="dp-batch-title">⚡ Hızlı Toplu Çözüm:</strong>
+              <p class="dp-batch-desc">
                 Tespit edilen tüm sütunlardaki sözel ekleri ayıklar ve sayısal
                 tipe dönüştürür.
               </p>
             </div>
-            <button
-              type="button"
-              class="btn-primary"
-              id="btnHealAllColumns"
-              style="
-                width: auto;
-                padding: 8px 14px;
-                font-size: 0.82rem;
-                background: linear-gradient(135deg, #f59e0b, #d97706);
-                border: none;
-                white-space: nowrap;
-              "
-            >
+            <button type="button" class="btn-heal-all" id="btnHealAllColumns">
               🪄 Tümünü Akıllı Onar
             </button>
           </div>
 
           <!-- Sütun Anomali Kartları Listesi -->
-          <div
-            id="dpAnomalyCardsList"
-            style="display: flex; flex-direction: column; gap: 10px"
-          >
-            <div
-              style="
-                color: var(--muted);
-                text-align: center;
-                padding: 20px;
-                font-size: 0.85rem;
-              "
-            >
-              Sütunlar taranıyor...
-            </div>
+          <div id="dpAnomalyCardsList" class="dp-anomaly-cards-container">
+            <div class="dp-loading-placeholder">Sütunlar taranıyor...</div>
           </div>
         </div>
 
         <!-- SEKME 2: BOŞ DEĞER (NAN) TEMİZLEME -->
-        <div
-          id="dpPaneNans"
-          class="dp-pane hidden"
-          style="overflow-y: auto; flex: 1"
-        >
-          <p id="dpMessage" class="filter-hint" style="margin-top: 0">
+        <div id="dpPaneNans" class="dp-pane hidden">
+          <p id="dpMessage" class="dp-nan-message">
             Veri setinizdeki boş satırlar ve eksik hücreler:
           </p>
 
-          <div
-            class="dp-stats-grid"
-            style="
-              display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
-              gap: 10px;
-              margin: 14px 0;
-            "
-          >
-            <div
-              style="
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 12px;
-                text-align: center;
-              "
-            >
-              <div style="font-size: 0.75rem; color: var(--muted)">
-                Toplam Satır
-              </div>
-              <div
-                id="dpTotalRows"
-                style="
-                  font-size: 1.3rem;
-                  font-weight: 700;
-                  color: var(--text);
-                  margin-top: 4px;
-                "
-              >
+          <div class="dp-stats-grid">
+            <div class="dp-stat-tile">
+              <div class="dp-stat-tile-label">Toplam Satır</div>
+              <div id="dpTotalRows" class="dp-stat-tile-val">0</div>
+            </div>
+            <div class="dp-stat-tile">
+              <div class="dp-stat-tile-label">Boş Hücre (Hücre Bazlı)</div>
+              <div id="dpMissingCells" class="dp-stat-tile-val dp-stat-cyan">
                 0
               </div>
             </div>
-            <div
-              style="
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 12px;
-                text-align: center;
-              "
-            >
-              <div style="font-size: 0.75rem; color: var(--muted)">
-                Boş Hücre (Hücre Bazlı)
-              </div>
-              <div
-                id="dpMissingCells"
-                style="
-                  font-size: 1.3rem;
-                  font-weight: 700;
-                  color: var(--cyan);
-                  margin-top: 4px;
-                "
-              >
-                0
-              </div>
-            </div>
-            <div
-              style="
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 12px;
-                text-align: center;
-              "
-            >
-              <div style="font-size: 0.75rem; color: var(--muted)">
-                Eksik Satır Sayısı
-              </div>
-              <div
-                id="dpMissingRows"
-                style="
-                  font-size: 1.3rem;
-                  font-weight: 700;
-                  color: var(--orange);
-                  margin-top: 4px;
-                "
-              >
+            <div class="dp-stat-tile">
+              <div class="dp-stat-tile-label">Eksik Satır Sayısı</div>
+              <div id="dpMissingRows" class="dp-stat-tile-val dp-stat-orange">
                 0
               </div>
             </div>
           </div>
 
-          <div
-            style="
-              display: flex;
-              flex-direction: column;
-              gap: 8px;
-              margin-top: 14px;
-            "
-          >
-            <div
-              style="
-                font-size: 0.8rem;
-                font-weight: 700;
-                color: var(--text);
-                margin-bottom: 4px;
-              "
-            >
+          <div class="dp-nan-actions-wrap">
+            <div class="dp-nan-actions-label">
               Tüm Boş (NaN) Değerleri Doldur veya Sil:
             </div>
-            <div
-              style="
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 8px;
-              "
-            >
-              <button
-                class="btn-primary"
-                id="dpDropBtn"
-                style="
-                  background: #ef4444;
-                  border-color: #ef4444;
-                  font-size: 0.82rem;
-                  padding: 10px;
-                "
-              >
+            <div class="dp-nan-actions-grid">
+              <button class="btn-nan-action btn-nan-drop" id="dpDropBtn">
                 🗑️ Boş Satırları Sil
               </button>
-              <button
-                class="btn-secondary"
-                id="dpFillBtn"
-                style="font-size: 0.82rem; padding: 10px"
-              >
+              <button class="btn-nan-action btn-nan-fill" id="dpFillBtn">
                 📈 Ortalamayla Doldur
               </button>
-              <button
-                class="btn-secondary"
-                id="dpFillZeroBtn"
-                style="font-size: 0.82rem; padding: 10px"
-              >
+              <button class="btn-nan-action btn-nan-zero" id="dpFillZeroBtn">
                 0️⃣ Sıfır (0) ile Doldur
               </button>
             </div>
@@ -354,19 +162,8 @@
         </div>
 
         <!-- MODAL ALTI BUTONLAR -->
-        <div
-          class="modal-actions"
-          style="
-            margin-top: 14px;
-            border-top: 1px solid var(--border);
-            padding-top: 12px;
-            display: flex;
-            justify-content: flex-end;
-          "
-        >
-          <button class="btn-ghost" id="dpSkipBtn" style="min-width: 120px">
-            Kapat
-          </button>
+        <div class="dp-modal-actions">
+          <button class="btn-modal-close-action" id="dpSkipBtn">Kapat</button>
         </div>
       </div>
     </div>
@@ -715,14 +512,67 @@
     <!-- ══════════ AŞAMA 1: DOSYA YÜKLEME ══════════ -->
     <!-- ══════════ AŞAMA 1: DOSYA YÜKLEME (PREMIUM) ══════════ -->
     <div id="step1-upload" class="wizard-screen active">
-      <div class="hero-glow glow-1"></div>
-      <div class="hero-glow glow-2"></div>
+      <header class="s1-top-nav">
+        <a href="/" class="s1-nav-logo">
+          <svg viewBox="0 0 170 170" width="16" height="16" fill="currentColor">
+            <path
+              d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.85-11.93-14.42-6.52-10.02-11.53-20.91-15.03-32.66-3.5-11.75-5.25-22.95-5.25-33.6 0-14.36 3.69-26.31 11.07-35.84 7.38-9.53 16.71-14.38 27.99-14.56 4.35 0 9.29 1.15 14.82 3.46 5.53 2.31 9.4 3.53 11.61 3.67 1.84-.14 5.78-1.39 11.83-3.74 6.05-2.35 10.9-3.46 14.54-3.32 10.88.58 19.82 4.67 26.83 12.28-9.58 5.79-14.28 13.91-14.1 24.36.19 8.16 3.32 15.11 9.38 20.84 6.06 5.73 13.25 9.04 21.56 9.94-2.12 6.53-4.66 13.25-7.62 20.16zm-26.7-111.45c0 6.08-2.29 11.89-6.87 17.43-4.58 5.54-10.23 9.17-16.94 10.89-.35-1.52-.52-2.98-.52-4.38 0-5.87 2.4-11.77 7.21-17.7 4.81-5.93 10.51-9.54 17.12-10.84 0 1.54 0 3.07 0 4.6z"
+            />
+          </svg>
+          <span>DataViz</span>
+        </a>
+        <div class="s1-nav-actions">
+          <button
+            type="button"
+            class="theme-toggle-btn theme-toggle-trigger"
+            id="themeToggleBtnS1"
+            aria-label="Temayı Değiştir"
+            title="Karanlık / Aydınlık Tema"
+          >
+            <span class="theme-icon-sun">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span class="theme-icon-moon">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                ></path>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </header>
 
       <div class="s1-container">
         <div class="s1-header-text">
-          <a href="/" class="s1-logo"
-            ><span class="logo-icon">⬡</span> DataViz <em>Research</em></a
-          >
           <h1 class="s1-title">Verinizi Bilgiye Dönüştürün.</h1>
           <p class="s1-subtitle">
             Excel, CSV veya Parquet dosyanızı yükleyin; SciPy motoru saniyeler
@@ -802,13 +652,6 @@
               type="button"
               class="btn-hero-secondary"
               id="btnOpenSqlModal"
-              style="
-                margin-left: 10px;
-                background: rgba(30, 41, 59, 0.7);
-                color: #f1f5f9;
-                border: 1px solid rgba(148, 163, 184, 0.2);
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-              "
             >
               <svg
                 width="18"
@@ -828,50 +671,6 @@
             <button type="button" class="btn-hero-ghost" id="btnLoadSampleData">
               🧪 Örnek Veri ile Başla
             </button>
-          </div>
-        </div>
-
-        <div class="security-footer">
-          <div class="sec-item">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            %100 Yerel İşlem (Bulutsuz)
-          </div>
-          <div class="sec-item">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            Veriler Asla Dışarı Çıkmaz
-          </div>
-          <div class="sec-item">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            SciPy 1.11+ Destekli
           </div>
         </div>
       </div>
@@ -942,14 +741,9 @@
             </button>
             <button
               type="button"
-              class="btn-quick-data-tool"
+              class="btn-quick-data-tool btn-tool-ai-score"
               id="btnCalculateRiskScore"
               title="Yapay zeka ile satırların anomali/güven skorunu hesapla"
-              style="
-                background: rgba(139, 92, 246, 0.15);
-                border: 1px solid rgba(139, 92, 246, 0.4);
-                color: #c4b5fd;
-              "
             >
               🤖 AI Güven Skoru
             </button>
@@ -964,15 +758,9 @@
             </button>
             <button
               type="button"
-              class="btn-quick-data-tool"
+              class="btn-quick-data-tool btn-tool-export-parquet"
               id="btnQuickExportParquet"
               title="Aktif veriyi sıkıştırılmış Apache Parquet formatında indir"
-              style="
-                background: rgba(16, 185, 129, 0.15);
-                border: 1px solid rgba(16, 185, 129, 0.4);
-                color: #34d399;
-                font-weight: 600;
-              "
             >
               ⚡ Parquet İndir
             </button>
@@ -1005,7 +793,56 @@
             <span>Görünüm</span>
           </div>
         </div>
-        <div class="s2-header-right">
+        <div
+          class="s2-header-right"
+          style="display: flex; align-items: center; gap: 8px"
+        >
+          <button
+            type="button"
+            class="theme-toggle-btn theme-toggle-trigger"
+            id="themeToggleBtnS2"
+            aria-label="Temayı Değiştir"
+            title="Karanlık / Aydınlık Tema"
+          >
+            <span class="theme-icon-sun">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span class="theme-icon-moon">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                ></path>
+              </svg>
+            </span>
+          </button>
           <button class="btn-ghost" id="btnCancelStep2">İptal</button>
         </div>
       </header>
@@ -1339,6 +1176,53 @@
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
+          </button>
+          <button
+            type="button"
+            class="theme-toggle-btn theme-toggle-trigger"
+            id="themeToggleBtnTop"
+            aria-label="Temayı Değiştir"
+            title="Karanlık / Aydınlık Tema"
+            style="margin-left: 6px"
+          >
+            <span class="theme-icon-sun">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span class="theme-icon-moon">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                ></path>
+              </svg>
+            </span>
           </button>
         </div>
       </header>
@@ -2882,19 +2766,12 @@
 
     <!-- ══════════ 5. BAĞIMSIZ TAM EKRAN AI VERİ GÜVEN SKORU STÜDYOSU ══════════ -->
     <div id="screen-trust-studio" class="wizard-screen hidden">
-      <header class="s2-header">
+      <header class="s2-header trust-header">
         <div class="s2-header-left">
           <button
             type="button"
-            class="btn-ghost"
+            class="btn-ghost btn-trust-back"
             id="btnTrustBackToStudio"
-            style="
-              margin-right: 12px;
-              display: inline-flex;
-              align-items: center;
-              gap: 6px;
-              font-weight: 700;
-            "
           >
             ← Analize Dön
           </button>
@@ -2928,432 +2805,188 @@
           </button>
         </div>
 
-        <div
-          class="s2-header-right"
-          style="display: flex; align-items: center; gap: 10px"
-        >
+        <div class="s2-header-right">
           <button
             type="button"
-            class="btn-topbar-action"
+            class="btn-topbar-action btn-trust-ai-col"
             id="btnAddRowRiskColumn"
             title="Her satır için Isolation Forest tabanlı Guven_Skoru_AI sütununu veri setine ekler"
-            style="
-              border-color: rgba(56, 189, 248, 0.4);
-              color: #38bdf8;
-              background: rgba(56, 189, 248, 0.1);
-            "
           >
             ➕ Satır Bazlı AI Skoru Sütunu Ekle
           </button>
           <button
             type="button"
-            class="btn-primary"
+            class="btn-primary btn-trust-heal-all"
             id="btnTrustAutoHealAll"
-            style="
-              width: auto;
-              padding: 9px 18px;
-              font-size: 0.84rem;
-              font-weight: 700;
-              background: linear-gradient(135deg, #10b981, #059669);
-              border: none;
-              box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
-            "
           >
             🪄 Tüm Sorunları Tek Tıkla Onar &amp; Temizle
+          </button>
+          <button
+            type="button"
+            class="theme-toggle-btn theme-toggle-trigger"
+            id="themeToggleBtnTrust"
+            title="Karanlık / Aydınlık Tema"
+            aria-label="Temayı Değiştir"
+          >
+            <span class="theme-icon-sun">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span class="theme-icon-moon">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                ></path>
+              </svg>
+            </span>
           </button>
         </div>
       </header>
 
       <!-- GÜVEN STÜDYOSU ANA GÖVDE -->
-      <div
-        id="trustStudioBody"
-        style="
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px 32px 48px 32px;
-          max-width: 1520px;
-          width: 100%;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        "
-      >
+      <div id="trustStudioBody" class="trust-studio-body">
         <!-- ÜST AÇIKLAMA VE FORMÜL BARI -->
-        <div
-          style="
-            background: linear-gradient(
-              135deg,
-              rgba(15, 23, 42, 0.9),
-              rgba(30, 41, 59, 0.75)
-            );
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 16px;
-            padding: 18px 24px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-          "
-        >
-          <div>
-            <h2
-              style="
-                margin: 0 0 4px 0;
-                font-size: 1.2rem;
-                color: #f8fafc;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-              "
-            >
+        <div class="trust-hero-bar">
+          <div class="trust-hero-content">
+            <h2 class="trust-hero-title">
               <span>🤖 Çok Boyutlu Veri Güven Skoru Karşılaştırması</span>
-              <span
-                id="trustGlobalStatusChip"
-                style="
-                  font-size: 0.74rem;
-                  padding: 3px 10px;
-                  border-radius: 999px;
-                  background: rgba(245, 158, 11, 0.15);
-                  color: #fbbf24;
-                  border: 1px solid rgba(245, 158, 11, 0.35);
-                  font-weight: 700;
-                "
+              <span id="trustGlobalStatusChip" class="trust-status-chip"
                 >Analiz Hazır</span
               >
             </h2>
-            <p style="margin: 0; font-size: 0.84rem; color: #94a3b8">
+            <p class="trust-hero-desc">
               Veri setinizin <strong>Temizlenmemiş (Ham)</strong> hali ile
               <strong>Temizlenmiş / Onarılmış</strong> hali arasındaki
               güvenilirlik farkı 4 temel kalite metriğinin ağırlıklı
               ortalamasıyla hesaplanır:
             </p>
           </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px">
-            <span
-              style="
-                background: rgba(56, 189, 248, 0.1);
-                border: 1px solid rgba(56, 189, 248, 0.28);
-                color: #38bdf8;
-                padding: 6px 12px;
-                border-radius: 10px;
-                font-size: 0.78rem;
-                font-weight: 700;
-              "
-            >
+          <div class="trust-weight-pills">
+            <span class="trust-weight-pill trust-pill-comp">
               📊 Eksiksizlik (Boş/NaN): %35
             </span>
-            <span
-              style="
-                background: rgba(168, 85, 247, 0.1);
-                border: 1px solid rgba(168, 85, 247, 0.28);
-                color: #c084fc;
-                padding: 6px 12px;
-                border-radius: 10px;
-                font-size: 0.78rem;
-                font-weight: 700;
-              "
-            >
+            <span class="trust-weight-pill trust-pill-type">
               🔤 Tip Doğruluğu (Yanlış/Sözel): %30
             </span>
-            <span
-              style="
-                background: rgba(245, 158, 11, 0.1);
-                border: 1px solid rgba(245, 158, 11, 0.28);
-                color: #fbbf24;
-                padding: 6px 12px;
-                border-radius: 10px;
-                font-size: 0.78rem;
-                font-weight: 700;
-              "
-            >
+            <span class="trust-weight-pill trust-pill-outlier">
               📈 Aykırı Değer (Outlier): %20
             </span>
-            <span
-              style="
-                background: rgba(52, 211, 153, 0.1);
-                border: 1px solid rgba(52, 211, 153, 0.28);
-                color: #34d399;
-                padding: 6px 12px;
-                border-radius: 10px;
-                font-size: 0.78rem;
-                font-weight: 700;
-              "
-            >
+            <span class="trust-weight-pill trust-pill-unique">
               🧬 Tekillik (Mükerrer Satır): %15
             </span>
           </div>
         </div>
 
         <!-- YAN YANA 2 ANA KART: TEMİZLENMEMİŞ vs TEMİZLENMİŞ VERİ SETİ -->
-        <div
-          style="
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
-            gap: 24px;
-          "
-        >
+        <div class="trust-cards-grid">
           <!-- SOL KART: TEMİZLENMEMİŞ (HAM) VERİ SETİ GÜVEN SKORU -->
-          <div
-            id="trustRawCard"
-            style="
-              background: linear-gradient(
-                160deg,
-                rgba(30, 41, 59, 0.82),
-                rgba(15, 23, 42, 0.92)
-              );
-              border: 1px solid rgba(248, 113, 113, 0.32);
-              border-radius: 18px;
-              padding: 24px;
-              display: flex;
-              flex-direction: column;
-              gap: 20px;
-              box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-            "
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 12px;
-              "
-            >
-              <div>
-                <span
-                  style="
-                    display: inline-block;
-                    font-size: 0.72rem;
-                    font-weight: 800;
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    background: rgba(239, 68, 68, 0.15);
-                    color: #f87171;
-                    border: 1px solid rgba(239, 68, 68, 0.3);
-                    margin-bottom: 8px;
-                  "
-                >
+          <div id="trustRawCard" class="trust-card trust-card-raw">
+            <div class="trust-card-header">
+              <div class="trust-card-title-group">
+                <span class="trust-state-badge trust-badge-raw">
                   ⚠️ Temizlenmemiş (Ham) Veri Seti
                 </span>
-                <h3 style="margin: 0; font-size: 1.15rem; color: #f8fafc">
+                <h3 class="trust-card-title">
                   İlk Yüklenen Ham Veri Güven Skoru
                 </h3>
-                <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8">
+                <p class="trust-card-subtitle">
                   Hiçbir temizlik veya tip onarımı uygulanmadan önceki başlangıç
                   kalitesi
                 </p>
               </div>
-              <div
-                id="trustRawGradeBadge"
-                style="
-                  padding: 6px 12px;
-                  border-radius: 10px;
-                  font-size: 0.82rem;
-                  font-weight: 800;
-                  background: rgba(245, 158, 11, 0.15);
-                  color: #fbbf24;
-                  border: 1px solid rgba(245, 158, 11, 0.35);
-                  white-space: nowrap;
-                "
-              >
+              <div id="trustRawGradeBadge" class="trust-grade-badge">
                 Orta Güven
               </div>
             </div>
 
             <!-- Büyük Skor Gösterimi -->
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 24px;
-                background: rgba(15, 23, 42, 0.6);
-                border: 1px solid rgba(255, 255, 255, 0.07);
-                border-radius: 14px;
-                padding: 18px 22px;
-              "
-            >
-              <div
-                id="trustRawScoreCircle"
-                style="
-                  width: 96px;
-                  height: 96px;
-                  border-radius: 50%;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  border: 5px solid #f59e0b;
-                  background: rgba(245, 158, 11, 0.08);
-                  flex-shrink: 0;
-                "
-              >
-                <span
-                  id="trustRawOverallScore"
-                  style="
-                    font-size: 1.85rem;
-                    font-weight: 900;
-                    color: #fbbf24;
-                    line-height: 1;
-                  "
-                  >0</span
-                >
-                <span style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px"
-                  >/ 100</span
-                >
+            <div class="trust-score-box">
+              <div id="trustRawScoreCircle" class="trust-score-circle">
+                <span id="trustRawOverallScore" class="trust-score-val">0</span>
+                <span class="trust-score-max">/ 100</span>
               </div>
-              <div
-                style="
-                  flex: 1;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 10px;
-                "
-              >
+              <div class="trust-sub-bars">
                 <!-- 4 Alt Kriter Barları (Ham) -->
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >📊 Eksiksizlik (Boş Veri Yokluğu)</span
-                    >
-                    <strong id="trustRawCompletenessVal" style="color: #38bdf8"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>📊 Eksiksizlik (Boş Veri Yokluğu)</span>
+                    <strong id="trustRawCompletenessVal" class="trust-val-blue"
                       >0%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustRawCompletenessBar"
-                      style="
-                        height: 100%;
-                        width: 0%;
-                        background: #38bdf8;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-blue"
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >🔤 Tip Doğruluğu (Sözel Hata Yokluğu)</span
-                    >
-                    <strong id="trustRawTypeVal" style="color: #c084fc"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>🔤 Tip Doğruluğu (Sözel Hata Yokluğu)</span>
+                    <strong id="trustRawTypeVal" class="trust-val-purple"
                       >0%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustRawTypeBar"
-                      style="
-                        height: 100%;
-                        width: 0%;
-                        background: #c084fc;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-purple"
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >📈 İstatistiksel Tutarlılık (Outlier)</span
-                    >
-                    <strong id="trustRawOutlierVal" style="color: #fbbf24"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>📈 İstatistiksel Tutarlılık (Outlier)</span>
+                    <strong id="trustRawOutlierVal" class="trust-val-orange"
                       >0%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustRawOutlierBar"
-                      style="
-                        height: 100%;
-                        width: 0%;
-                        background: #fbbf24;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-orange"
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >🧬 Tekillik (Kopya Satır Yokluğu)</span
-                    >
-                    <strong id="trustRawUniqueVal" style="color: #34d399"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>🧬 Tekillik (Kopya Satır Yokluğu)</span>
+                    <strong id="trustRawUniqueVal" class="trust-val-green"
                       >0%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustRawUniqueBar"
-                      style="
-                        height: 100%;
-                        width: 0%;
-                        background: #34d399;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-green"
                     ></div>
                   </div>
                 </div>
@@ -3361,369 +2994,133 @@
             </div>
 
             <!-- Ham Veri Sorun Özeti Kutuları (2x2) -->
-            <div
-              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
-            >
-              <div
-                style="
-                  background: rgba(255, 255, 255, 0.03);
-                  border: 1px solid rgba(255, 255, 255, 0.07);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Boş (NaN / Eksik) Hücre
-                </div>
+            <div class="trust-sub-grid">
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Boş (NaN / Eksik) Hücre</div>
                 <div
                   id="trustRawMissingCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #f87171;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-red"
                 >
                   0
                 </div>
               </div>
-              <div
-                style="
-                  background: rgba(255, 255, 255, 0.03);
-                  border: 1px solid rgba(255, 255, 255, 0.07);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Yanlış / Sözel Veri Hücresi
-                </div>
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Yanlış / Sözel Veri Hücresi</div>
                 <div
                   id="trustRawInvalidCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #fb923c;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-orange"
                 >
                   0
                 </div>
               </div>
-              <div
-                style="
-                  background: rgba(255, 255, 255, 0.03);
-                  border: 1px solid rgba(255, 255, 255, 0.07);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Aykırı Değer (Outlier)
-                </div>
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Aykırı Değer (Outlier)</div>
                 <div
                   id="trustRawOutlierCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #fbbf24;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-amber"
                 >
                   0
                 </div>
               </div>
-              <div
-                style="
-                  background: rgba(255, 255, 255, 0.03);
-                  border: 1px solid rgba(255, 255, 255, 0.07);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Mükerrer (Kopya) Satır
-                </div>
-                <div
-                  id="trustRawDupCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #cbd5e1;
-                    margin-top: 4px;
-                  "
-                >
-                  0
-                </div>
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Mükerrer (Kopya) Satır</div>
+                <div id="trustRawDupCount" class="trust-stat-val">0</div>
               </div>
             </div>
           </div>
 
           <!-- SAĞ KART: TEMİZLENMİŞ VERİ SETİ GÜVEN SKORU -->
-          <div
-            id="trustCleanCard"
-            style="
-              background: linear-gradient(
-                160deg,
-                rgba(16, 185, 129, 0.1),
-                rgba(15, 23, 42, 0.94)
-              );
-              border: 1px solid rgba(16, 185, 129, 0.42);
-              border-radius: 18px;
-              padding: 24px;
-              display: flex;
-              flex-direction: column;
-              gap: 20px;
-              box-shadow: 0 12px 32px rgba(16, 185, 129, 0.12);
-            "
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 12px;
-              "
-            >
-              <div>
+          <div id="trustCleanCard" class="trust-card trust-card-clean">
+            <div class="trust-card-header">
+              <div class="trust-card-title-group">
                 <span
                   id="trustCleanStateBadge"
-                  style="
-                    display: inline-block;
-                    font-size: 0.72rem;
-                    font-weight: 800;
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    background: rgba(16, 185, 129, 0.18);
-                    color: #34d399;
-                    border: 1px solid rgba(16, 185, 129, 0.4);
-                    margin-bottom: 8px;
-                  "
+                  class="trust-state-badge trust-badge-clean"
                 >
                   ✅ Temizlenmiş Veri Seti
                 </span>
-                <h3 style="margin: 0; font-size: 1.15rem; color: #f8fafc">
+                <h3 class="trust-card-title">
                   Temizlenmiş / Onarılmış Veri Güven Skoru
                 </h3>
-                <p
-                  id="trustCleanSubtitle"
-                  style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8"
-                >
+                <p id="trustCleanSubtitle" class="trust-card-subtitle">
                   Eksik veriler doldurulduğunda ve sözel bozulmalar
                   onarıldığında oluşan güven skoru
                 </p>
               </div>
-              <div
-                id="trustScoreDeltaBadge"
-                style="
-                  padding: 6px 12px;
-                  border-radius: 10px;
-                  font-size: 0.84rem;
-                  font-weight: 800;
-                  background: rgba(16, 185, 129, 0.2);
-                  color: #34d399;
-                  border: 1px solid rgba(16, 185, 129, 0.45);
-                  white-space: nowrap;
-                "
-              >
+              <div id="trustScoreDeltaBadge" class="trust-delta-badge">
                 +0.0 Puan ↑
               </div>
             </div>
 
             <!-- Büyük Skor Gösterimi (Temizlenmiş) -->
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 24px;
-                background: rgba(15, 23, 42, 0.65);
-                border: 1px solid rgba(16, 185, 129, 0.22);
-                border-radius: 14px;
-                padding: 18px 22px;
-              "
-            >
+            <div class="trust-score-box">
               <div
                 id="trustCleanScoreCircle"
-                style="
-                  width: 96px;
-                  height: 96px;
-                  border-radius: 50%;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  border: 5px solid #10b981;
-                  background: rgba(16, 185, 129, 0.12);
-                  flex-shrink: 0;
-                "
+                class="trust-score-circle trust-circle-clean"
               >
                 <span
                   id="trustCleanOverallScore"
-                  style="
-                    font-size: 1.85rem;
-                    font-weight: 900;
-                    color: #34d399;
-                    line-height: 1;
-                  "
+                  class="trust-score-val trust-val-green"
                   >0</span
                 >
-                <span style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px"
-                  >/ 100</span
-                >
+                <span class="trust-score-max">/ 100</span>
               </div>
-              <div
-                style="
-                  flex: 1;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 10px;
-                "
-              >
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >📊 Eksiksizlik (Boş Veri Yokluğu)</span
-                    >
+              <div class="trust-sub-bars">
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>📊 Eksiksizlik (Boş Veri Yokluğu)</span>
                     <strong
                       id="trustCleanCompletenessVal"
-                      style="color: #34d399"
+                      class="trust-val-green"
                       >100%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustCleanCompletenessBar"
-                      style="
-                        height: 100%;
-                        width: 100%;
-                        background: #10b981;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-green"
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >🔤 Tip Doğruluğu (Sözel Hata Yokluğu)</span
-                    >
-                    <strong id="trustCleanTypeVal" style="color: #34d399"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>🔤 Tip Doğruluğu (Sözel Hata Yokluğu)</span>
+                    <strong id="trustCleanTypeVal" class="trust-val-green"
                       >100%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustCleanTypeBar"
-                      style="
-                        height: 100%;
-                        width: 100%;
-                        background: #10b981;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-green"
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >📈 İstatistiksel Tutarlılık (Outlier)</span
-                    >
-                    <strong id="trustCleanOutlierVal" style="color: #38bdf8"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>📈 İstatistiksel Tutarlılık (Outlier)</span>
+                    <strong id="trustCleanOutlierVal" class="trust-val-blue"
                       >100%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustCleanOutlierBar"
-                      style="
-                        height: 100%;
-                        width: 100%;
-                        background: #38bdf8;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-blue"
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      font-size: 0.76rem;
-                      margin-bottom: 3px;
-                    "
-                  >
-                    <span style="color: #cbd5e1"
-                      >🧬 Tekillik (Kopya Satır Yokluğu)</span
-                    >
-                    <strong id="trustCleanUniqueVal" style="color: #34d399"
+                <div class="trust-sub-bar-item">
+                  <div class="trust-sub-bar-header">
+                    <span>🧬 Tekillik (Kopya Satır Yokluğu)</span>
+                    <strong id="trustCleanUniqueVal" class="trust-val-green"
                       >100%</strong
                     >
                   </div>
-                  <div
-                    style="
-                      height: 6px;
-                      background: rgba(255, 255, 255, 0.07);
-                      border-radius: 99px;
-                      overflow: hidden;
-                    "
-                  >
+                  <div class="trust-sub-bar-track">
                     <div
                       id="trustCleanUniqueBar"
-                      style="
-                        height: 100%;
-                        width: 100%;
-                        background: #10b981;
-                        border-radius: 99px;
-                        transition: width 0.5s ease;
-                      "
+                      class="trust-sub-bar-fill trust-fill-green"
                     ></div>
                   </div>
                 </div>
@@ -3731,97 +3128,39 @@
             </div>
 
             <!-- Temizlenmiş Veri Özeti Kutuları (2x2) -->
-            <div
-              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
-            >
-              <div
-                style="
-                  background: rgba(16, 185, 129, 0.06);
-                  border: 1px solid rgba(16, 185, 129, 0.2);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Boş (NaN / Eksik) Hücre
-                </div>
+            <div class="trust-sub-grid">
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Boş (NaN / Eksik) Hücre</div>
                 <div
                   id="trustCleanMissingCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #34d399;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-green"
                 >
                   0
                 </div>
               </div>
-              <div
-                style="
-                  background: rgba(16, 185, 129, 0.06);
-                  border: 1px solid rgba(16, 185, 129, 0.2);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Yanlış / Sözel Veri Hücresi
-                </div>
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Yanlış / Sözel Veri Hücresi</div>
                 <div
                   id="trustCleanInvalidCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #34d399;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-green"
                 >
                   0
                 </div>
               </div>
-              <div
-                style="
-                  background: rgba(16, 185, 129, 0.06);
-                  border: 1px solid rgba(16, 185, 129, 0.2);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Aykırı Değer (Outlier)
-                </div>
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Aykırı Değer (Outlier)</div>
                 <div
                   id="trustCleanOutlierCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #38bdf8;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-blue"
                 >
                   0
                 </div>
               </div>
-              <div
-                style="
-                  background: rgba(16, 185, 129, 0.06);
-                  border: 1px solid rgba(16, 185, 129, 0.2);
-                  border-radius: 10px;
-                  padding: 12px;
-                "
-              >
-                <div style="font-size: 0.74rem; color: #94a3b8">
-                  Mükerrer (Kopya) Satır
-                </div>
+              <div class="trust-stat-box">
+                <div class="trust-stat-label">Mükerrer (Kopya) Satır</div>
                 <div
                   id="trustCleanDupCount"
-                  style="
-                    font-size: 1.15rem;
-                    font-weight: 800;
-                    color: #34d399;
-                    margin-top: 4px;
-                  "
+                  class="trust-stat-val trust-val-green"
                 >
                   0
                 </div>
@@ -3829,85 +3168,50 @@
             </div>
 
             <!-- Kart Altı Durum / Onarım Butonu -->
-            <div id="trustCleanCardFooter" style="margin-top: auto"></div>
+            <div
+              id="trustCleanCardFooter"
+              class="trust-clean-card-footer"
+            ></div>
           </div>
         </div>
 
         <!-- ALT BÖLÜM: SÜTUN BAZLI GÜVEN KARNESİ TABLOSU -->
-        <div
-          style="
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 18px;
-            padding: 22px 24px;
-          "
-        >
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              flex-wrap: wrap;
-              gap: 12px;
-              margin-bottom: 16px;
-            "
-          >
+        <div class="trust-table-card">
+          <div class="trust-table-header">
             <div>
-              <h3 style="margin: 0; font-size: 1.08rem; color: #f8fafc">
+              <h3 class="trust-table-title">
                 📋 Sütun Bazlı Güven Karnesi (Aktif Veri Seti)
               </h3>
-              <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8">
+              <p class="trust-table-subtitle">
                 Her bir sütunun boş veri oranı, sözel/hatalı veri sayısı, aykırı
                 değer yoğunluğu ve bireysel güven puanı
               </p>
             </div>
             <button
               type="button"
-              class="btn-ghost"
+              class="btn-ghost btn-trust-open-prep"
               id="btnTrustOpenDetailedPrep"
-              style="font-size: 0.8rem"
             >
               🩺 Gelişmiş Veri &amp; Tip Onarma Panelini Aç
             </button>
           </div>
 
-          <div style="overflow-x: auto">
-            <table
-              style="
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 0.84rem;
-                text-align: left;
-              "
-            >
+          <div class="trust-table-wrapper">
+            <table class="trust-table">
               <thead>
-                <tr
-                  style="
-                    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-                    color: #94a3b8;
-                    font-size: 0.76rem;
-                    text-transform: uppercase;
-                  "
-                >
-                  <th style="padding: 10px 12px">Sütun Adı</th>
-                  <th style="padding: 10px 12px">Veri Tipi</th>
-                  <th style="padding: 10px 12px; min-width: 170px">
-                    Güven Skoru
-                  </th>
-                  <th style="padding: 10px 12px">Boş (NaN) Veri</th>
-                  <th style="padding: 10px 12px">Yanlış / Sözel Veri</th>
-                  <th style="padding: 10px 12px">Aykırı Değer (IQR)</th>
-                  <th style="padding: 10px 12px; text-align: right">
-                    Durum / İşlem
-                  </th>
+                <tr class="trust-table-thead-tr">
+                  <th>Sütun Adı</th>
+                  <th>Veri Tipi</th>
+                  <th style="min-width: 170px">Güven Skoru</th>
+                  <th>Boş (NaN) Veri</th>
+                  <th>Yanlış / Sözel Veri</th>
+                  <th>Aykırı Değer (IQR)</th>
+                  <th style="text-align: right">Durum / İşlem</th>
                 </tr>
               </thead>
               <tbody id="trustColumnsTableBody">
                 <tr>
-                  <td
-                    colspan="7"
-                    style="padding: 24px; text-align: center; color: #94a3b8"
-                  >
+                  <td colspan="7" class="trust-table-loading">
                     Güven karnesi yükleniyor...
                   </td>
                 </tr>
@@ -3918,16 +3222,16 @@
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/dashboard_studio.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/regression_studio.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/modules/pdf_studio.js') }}?v=20260929_v10"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260929_v10"></script>
+    <script src="{{ url_for('static', filename='js/modules/globals.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/charts_config.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/data_prep.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/join_modal.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/dashboard_studio.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/chart_manager.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/regression_studio.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/pivot_studio.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/modules/pdf_studio.js') }}?v=20261003_apple_v5"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=20261003_apple_v5"></script>
 
     <!-- PDF EXPORT STUDIO MODAL (A4 PREVIEW) -->
     <div

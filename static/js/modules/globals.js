@@ -87,7 +87,7 @@ var DataVizProgress = (function () {
             <div class="dv-progress-title" id="${prefix}_title">${cfg.title || "İşlem Yürütülüyor..."}</div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-            <span id="${prefix}_elapsed" style="font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: #94a3b8;">0.1 sn</span>
+            <span id="${prefix}_elapsed" class="dv-progress-elapsed">0.1 sn</span>
             <div class="dv-progress-pct" id="${prefix}_pct">%${safePct}</div>
           </div>
         </div>

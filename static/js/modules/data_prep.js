@@ -124,7 +124,7 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
     if (hasAnomalies) {
       if (headerBanner) {
         headerBanner.innerHTML = `
-          <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:10px 14px; font-size:0.85rem; color:#fca5a5; line-height:1.5;">
+          <div class="dp-alert-banner dp-alert-danger">
             ⚠️ <strong>${anomalies.length} adet sütunda</strong> sayısal alana sözel işlem/metin girildiği tespit edildi. Bu sütunları grafiklerde sayısal eksen (Y) olarak kullanabilmek için aşağıdaki onarma yöntemlerinden birini uygulayın:
           </div>
         `;
@@ -196,7 +196,7 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
     } else {
       if (headerBanner) {
         headerBanner.innerHTML = `
-          <div style="background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); border-radius:8px; padding:14px; font-size:0.9rem; color:#6ee7b7; line-height:1.5;">
+          <div class="dp-alert-banner dp-alert-success">
             ✓ <strong>Mükemmel!</strong> Veri setinizdeki tüm sayısal sütunlar saf ve hatasız. Sayısal alanlara sözel metin girilmemiş.
           </div>
         `;
@@ -212,13 +212,13 @@ async function openDataPrepModal(targetTab = null, preloadedData = null) {
 
     if (data.missing_rows > 0) {
       if (msgEl)
-        msgEl.innerHTML = `<span style="color:var(--orange); font-weight:700;">⚠️ ${data.missing_rows} satırda toplam ${data.missing_cells} adet boş (NaN) hücre tespit edildi.</span><br>Grafiklerin ve istatistik testlerinin kusursuz çalışması için aşağıdaki yöntemlerden birini seçebilirsiniz:`;
+        msgEl.innerHTML = `<span class="dp-nan-warn-text">⚠️ ${data.missing_rows} satırda toplam ${data.missing_cells} adet boş (NaN) hücre tespit edildi.</span><br>Grafiklerin ve istatistik testlerinin kusursuz çalışması için aşağıdaki yöntemlerden birini seçebilirsiniz:`;
       if (dropBtn) dropBtn.style.display = "inline-block";
       if (fillBtn) fillBtn.style.display = "inline-block";
       if (fillZeroBtn) fillZeroBtn.style.display = "inline-block";
     } else {
       if (msgEl)
-        msgEl.innerHTML = `<span style="color:var(--green); font-weight:700;">✓ Tebrikler! Veri setinizde hiç eksik değer (NaN) bulunmuyor.</span><br>Tüm satır ve sütunlar eksiksiz ve analize %100 hazır.`;
+        msgEl.innerHTML = `<span class="dp-nan-success-text">✓ Tebrikler! Veri setinizde hiç eksik değer (NaN) bulunmuyor.</span><br>Tüm satır ve sütunlar eksiksiz ve analize %100 hazır.`;
       if (dropBtn) dropBtn.style.display = "none";
       if (fillBtn) fillBtn.style.display = "none";
       if (fillZeroBtn) fillZeroBtn.style.display = "none";
@@ -483,18 +483,18 @@ function initDataPrepListeners() {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".dp-tab-btn").forEach((b) => {
         b.classList.remove("active");
-        b.style.background = "transparent";
-        b.style.color = "var(--muted)";
-        b.style.borderColor = "transparent";
+        b.style.background = "";
+        b.style.color = "";
+        b.style.borderColor = "";
       });
       document
         .querySelectorAll(".dp-pane")
         .forEach((p) => p.classList.add("hidden"));
 
       btn.classList.add("active");
-      btn.style.background = "rgba(167,139,250,0.15)";
-      btn.style.color = "var(--purple)";
-      btn.style.borderColor = "rgba(167,139,250,0.3)";
+      btn.style.background = "";
+      btn.style.color = "";
+      btn.style.borderColor = "";
 
       const tab = btn.dataset.dptab;
       if (tab === "anomalies") {
