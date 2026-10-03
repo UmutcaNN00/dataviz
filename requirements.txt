@@ -6,3 +6,5 @@ openpyxl
 scipy
 polars
 pyarrow
+scikit-learn
+sqlalchemy
