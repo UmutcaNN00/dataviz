@@ -165,49 +165,67 @@ def read_csv_safely(file_input: Any) -> pd.DataFrame:
     and delimiter detection (;, ,, \\t, |). Uses multi-core Polars as primary engine with Pandas fallback.
     Preserves dirty string columns so Data Healer can inspect and repair them.
     """
-    raw_bytes = _extract_bytes(file_input)
+    should_close = False
+    if isinstance(file_input, (str, os.PathLike)):
+        file_stream = open(file_input, "rb")
+        sample_bytes = file_stream.read(100000)
+        file_stream.seek(0)
+        should_close = True
+    elif hasattr(file_input, "stream") and hasattr(file_input.stream, "seek"):
+        file_stream = file_input.stream
+        file_stream.seek(0)
+        sample_bytes = file_stream.read(100000)
+        file_stream.seek(0)
+    elif hasattr(file_input, "seek") and hasattr(file_input, "read"):
+        file_stream = file_input
+        file_stream.seek(0)
+        sample_bytes = file_stream.read(100000)
+        file_stream.seek(0)
+    elif isinstance(file_input, bytes):
+        sample_bytes = file_input[:100000]
+        file_stream = io.BytesIO(file_input)
+    else:
+        raise ValueError("Geçersiz dosya nesnesi.")
 
-    if not raw_bytes or not raw_bytes.strip():
+    if not sample_bytes or not sample_bytes.strip():
+        if should_close: file_stream.close()
         raise pd.errors.EmptyDataError("CSV dosyası tamamen boş.")
 
-    # 1. Encoding sequence: BOM detection first
-    if raw_bytes.startswith(b"\xef\xbb\xbf"):
+    if sample_bytes.startswith(b"\xef\xbb\xbf"):
         encodings = ["utf-8-sig", "utf-8", "windows-1254", "iso-8859-9", "latin1"]
     else:
         encodings = ["utf-8", "utf-8-sig", "windows-1254", "iso-8859-9", "latin1"]
 
-    decoded_text: str | None = None
     successful_enc: str | None = None
+    text_sample: str = ""
     for enc in encodings:
         try:
-            text = raw_bytes.decode(enc)
-            if "\x00" in text:
+            text_sample = sample_bytes.decode(enc)
+            if "\x00" in text_sample:
                 continue
-            decoded_text = text
             successful_enc = enc
             break
         except UnicodeDecodeError:
             continue
 
-    if decoded_text is None:
+    if successful_enc is None:
+        if should_close: file_stream.close()
         raise UnicodeDecodeError(
             "unknown",
-            raw_bytes,
+            sample_bytes,
             0,
             1,
             f"Dosya karakter kodlaması çözülemedi. Denediğimiz kodlamalar: {', '.join(encodings)}",
         )
 
-    # Free raw_bytes immediately to reduce peak RAM usage on large uploads
-    del raw_bytes
     logger.info(f"CSV başarıyla çözümlendi. Kodlama: {successful_enc}")
 
-    # 2. Delimiter detection from first 25 lines without splitting entire multi-million line string
+    # 2. Delimiter detection from first 100 lines
     sample_lines: list[str] = []
-    for line in io.StringIO(decoded_text):
+    for line in io.StringIO(text_sample):
         if line.strip():
             sample_lines.append(line.rstrip("\r\n"))
-        if len(sample_lines) >= 25:
+        if len(sample_lines) >= 100:
             break
 
     detected_delim: str | None = None
@@ -227,54 +245,59 @@ def read_csv_safely(file_input: Any) -> pd.DataFrame:
         else:
             detected_delim = ","
 
-    # 3. Polars fast multi-core engine (without ignore_errors=True so dirty numeric strings are preserved as Utf8 for Data Healer)
+    # 3. Polars fast multi-core engine / Pandas fallback
     df: pd.DataFrame | None = None
     errors: list[Exception] = []
 
     if detected_delim:
-        try:
-            pldf = pl.read_csv(
-                io.StringIO(decoded_text),
-                separator=detected_delim,
-                infer_schema_length=10000,
-                ignore_errors=False,
-            )
-            df = pldf.to_pandas()
-            del pldf
-            logger.info("CSV Polars hızlı motoru ile ayrıştırıldı.")
-        except Exception as e_pl:  # noqa: BLE001
-            logger.debug(
-                f"Polars strict CSV fallback (karma tipli sütunlar korunuyor): {e_pl}"
-            )
+        if successful_enc in ["utf-8", "utf-8-sig"]:
+            try:
+                pldf = pl.read_csv(
+                    file_stream,
+                    separator=detected_delim,
+                    infer_schema_length=10000,
+                    ignore_errors=False,
+                )
+                df = pldf.to_pandas()
+                del pldf
+                logger.info("CSV Polars hızlı motoru ile ayrıştırıldı.")
+            except Exception as e_pl:  # noqa: BLE001
+                logger.debug(f"Polars strict CSV fallback: {e_pl}")
+                file_stream.seek(0)
+        
+        if df is None:
             try:
                 df = pd.read_csv(
-                    io.StringIO(decoded_text), sep=detected_delim, low_memory=False
+                    file_stream, sep=detected_delim, encoding=successful_enc, low_memory=False
                 )
             except Exception:  # noqa: BLE001
+                file_stream.seek(0)
                 try:
                     df = pd.read_csv(
-                        io.StringIO(decoded_text), sep=detected_delim, engine="python"
+                        file_stream, sep=detected_delim, encoding=successful_enc, engine="python"
                     )
                 except Exception as e:  # noqa: BLE001
                     errors.append(e)
 
     if df is None:
+        file_stream.seek(0)
         try:
-            df = pd.read_csv(io.StringIO(decoded_text), sep=None, engine="python")
+            df = pd.read_csv(file_stream, sep=None, encoding=successful_enc, engine="python")
         except Exception as e:  # noqa: BLE001
             errors.append(e)
 
     if df is None:
         for fallback_sep in (";", ",", "\t"):
+            file_stream.seek(0)
             try:
                 df = pd.read_csv(
-                    io.StringIO(decoded_text), sep=fallback_sep, low_memory=False
+                    file_stream, sep=fallback_sep, encoding=successful_enc, low_memory=False
                 )
                 break
             except Exception as e:  # noqa: BLE001
                 errors.append(e)
 
-    del decoded_text
+    if should_close: file_stream.close()
 
     if df is None:
         raise ValueError(

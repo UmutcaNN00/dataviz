@@ -18,8 +18,11 @@ def safe_float(val, default=None):
     Converts a value to a JSON-safe float, replacing NaN, Infinity, and -Infinity with default.
     """
     try:
-        if val is None or pd.isna(val) or np.isinf(val):
+        if val is None or pd.isna(val):
             return default
+        if not isinstance(val, (str, bytes)):
+            if np.isinf(val):
+                return default
         f = float(val)
         return f if np.isfinite(f) else default
     except Exception:  # noqa: BLE001
@@ -158,9 +161,15 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
     x_clean = x_arr[valid_mask]
     y_clean = y_arr[valid_mask]
 
+    num_unique_x = len(np.unique(x_clean))
+    min_points_required = 3
+    if model_type == "poly3":
+        min_points_required = 4
+    elif model_type == "poly2":
+        min_points_required = 3
+
     if (
-        len(x_clean) < 3
-        or np.all(x_clean == x_clean[0])
+        num_unique_x < min_points_required
         or np.all(y_clean == y_clean[0])
     ):
         return {
@@ -189,85 +198,112 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
     y_fit_used = None
     n_params = 2
 
+    # Store design matrix for CI calculation if poly
+    X_design = None
+    X_curve_design = None
+
     try:
-        if model_type == "poly2":
-            n_params = 3
-            coeffs = np.polyfit(x_clean, y_clean, 2)
-            y_fit_used = np.polyval(coeffs, x_clean)
-            y_curve = np.polyval(coeffs, x_curve)
-            a, b, c = coeffs
-            sign_b = "+" if b >= 0 else "-"
-            sign_c = "+" if c >= 0 else "-"
-            eq_str = f"y = {a:.4f}x² {sign_b} {abs(b):.4f}x {sign_c} {abs(c):.4f}"
+        if model_type in ("poly2", "poly3"):
+            deg = 2 if model_type == "poly2" else 3
+            n_params = deg + 1
+            
+            x_mean = np.mean(x_clean)
+            x_std = np.std(x_clean) if np.std(x_clean) > 0 else 1.0
+            
+            x_scaled = (x_clean - x_mean) / x_std
+            x_curve_scaled = (x_curve - x_mean) / x_std
+            
+            coeffs_scaled = np.polyfit(x_scaled, y_clean, deg)
+            y_fit_used = np.polyval(coeffs_scaled, x_scaled)
+            y_curve = np.polyval(coeffs_scaled, x_curve_scaled)
+            
+            # Equation string parameters from mathematically unscaling the scaled coefficients
+            if deg == 2:
+                A, B, C = coeffs_scaled
+                a = A / (x_std**2)
+                b = B / x_std - 2 * A * x_mean / (x_std**2)
+                c = C - B * x_mean / x_std + A * (x_mean**2) / (x_std**2)
+                
+                sign_b = "+" if b >= 0 else "-"
+                sign_c = "+" if c >= 0 else "-"
+                eq_str = f"y = {a:.4f}x² {sign_b} {abs(b):.4f}x {sign_c} {abs(c):.4f}"
+                X_design = np.column_stack([np.ones_like(x_scaled), x_scaled, x_scaled**2])
+                X_curve_design = np.column_stack([np.ones_like(x_curve_scaled), x_curve_scaled, x_curve_scaled**2])
+            else:
+                A, B, C, D = coeffs_scaled
+                a = A / (x_std**3)
+                b = B / (x_std**2) - 3 * A * x_mean / (x_std**3)
+                c = C / x_std - 2 * B * x_mean / (x_std**2) + 3 * A * (x_mean**2) / (x_std**3)
+                d = D - C * x_mean / x_std + B * (x_mean**2) / (x_std**2) - A * (x_mean**3) / (x_std**3)
+                
+                sign_b = "+" if b >= 0 else "-"
+                sign_c = "+" if c >= 0 else "-"
+                sign_d = "+" if d >= 0 else "-"
+                eq_str = f"y = {a:.4f}x³ {sign_b} {abs(b):.4f}x² {sign_c} {abs(c):.4f}x {sign_d} {abs(d):.4f}"
+                X_design = np.column_stack([np.ones_like(x_scaled), x_scaled, x_scaled**2, x_scaled**3])
+                X_curve_design = np.column_stack([np.ones_like(x_curve_scaled), x_curve_scaled, x_curve_scaled**2, x_curve_scaled**3])
 
             ss_res = float(np.sum((y_clean - y_fit_used) ** 2))
             ss_tot = float(np.sum((y_clean - np.mean(y_clean)) ** 2))
             r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
-            dof_poly = max(len(x_clean) - 3, 1)
+            dof_poly = max(len(x_clean) - n_params, 1)
             se = float(np.sqrt(ss_res / dof_poly))
-            if ss_res > 0 and len(x_clean) > 3:
-                f_stat = ((ss_tot - ss_res) / 2.0) / (ss_res / dof_poly)
-                p_val = safe_float(1.0 - sp_stats.f.cdf(f_stat, 2, dof_poly), None)
-
-        elif model_type == "poly3":
-            n_params = 4
-            coeffs = np.polyfit(x_clean, y_clean, 3)
-            y_fit_used = np.polyval(coeffs, x_clean)
-            y_curve = np.polyval(coeffs, x_curve)
-            a, b, c, d = coeffs
-            sign_b = "+" if b >= 0 else "-"
-            sign_c = "+" if c >= 0 else "-"
-            sign_d = "+" if d >= 0 else "-"
-            eq_str = f"y = {a:.4f}x³ {sign_b} {abs(b):.4f}x² {sign_c} {abs(c):.4f}x {sign_d} {abs(d):.4f}"
-
-            ss_res = float(np.sum((y_clean - y_fit_used) ** 2))
-            ss_tot = float(np.sum((y_clean - np.mean(y_clean)) ** 2))
-            r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
-            dof_poly = max(len(x_clean) - 4, 1)
-            se = float(np.sqrt(ss_res / dof_poly))
-            if ss_res > 0 and len(x_clean) > 4:
-                f_stat = ((ss_tot - ss_res) / 3.0) / (ss_res / dof_poly)
-                p_val = safe_float(1.0 - sp_stats.f.cdf(f_stat, 3, dof_poly), None)
+            if ss_res > 0 and len(x_clean) > n_params:
+                f_stat = ((ss_tot - ss_res) / float(deg)) / (ss_res / dof_poly)
+                p_val = safe_float(1.0 - sp_stats.f.cdf(f_stat, deg, dof_poly), None)
 
         elif model_type == "log":
             pos_mask = x_clean > 0
-            if np.sum(pos_mask) >= 3:
+            if np.sum(pos_mask) >= 3 and len(np.unique(x_clean[pos_mask])) >= 2:
                 x_used = x_clean[pos_mask]
                 y_used = y_clean[pos_mask]
-                slope, intercept, r_val, p_val, std_err = sp_stats.linregress(
-                    np.log(x_used), y_used
-                )
-                r_squared = safe_float(r_val**2, 0.0)
-                se = safe_float(std_err, None)
-                sign_int = "+" if intercept >= 0 else "-"
-                eq_str = f"y = {slope:.4f}·ln(x) {sign_int} {abs(intercept):.4f}"
+                
+                if np.var(x_used) == 0 or np.var(y_used) == 0:
+                    eq_str = "Filtreleme sonrası yetersiz veya sabit varyanslı veri."
+                else:
+                    slope, intercept, r_val, p_val, std_err = sp_stats.linregress(
+                        np.log(x_used), y_used
+                    )
+                    r_squared = safe_float(r_val**2, 0.0)
+                    se = safe_float(std_err, None)
+                    sign_int = "+" if intercept >= 0 else "-"
+                    eq_str = f"y = {slope:.4f}·ln(x) {sign_int} {abs(intercept):.4f}"
 
-                x_curve_pos = np.linspace(
-                    max(float(np.min(x_used)), 1e-4), float(np.max(x_used)), num_points
-                )
-                y_curve = slope * np.log(x_curve_pos) + intercept
-                x_curve = x_curve_pos
-                y_fit_used = slope * np.log(x_used) + intercept
+                    x_curve_pos = np.linspace(
+                        max(float(np.min(x_used)), 1e-4), float(np.max(x_used)), num_points
+                    )
+                    y_curve = slope * np.log(x_curve_pos) + intercept
+                    x_curve = x_curve_pos
+                    y_fit_used = slope * np.log(x_used) + intercept
             else:
-                eq_str = "Logaritmik regresyon için X değerleri pozitif (>0) olmalıdır."
+                eq_str = "Logaritmik regresyon için yeterli pozitif X değeri bulunamadı."
 
         elif model_type == "exp":
             pos_mask = y_clean > 0
-            if np.sum(pos_mask) >= 3:
+            if np.sum(pos_mask) >= 3 and len(np.unique(x_clean[pos_mask])) >= 2:
                 x_used = x_clean[pos_mask]
                 y_used = y_clean[pos_mask]
-                slope, intercept, r_val, p_val, std_err = sp_stats.linregress(
-                    x_used, np.log(y_used)
-                )
-                a = np.exp(intercept)
-                b = slope
-                eq_str = f"y = {a:.4f}·e^({b:.4f}x)"
-                r_squared = safe_float(r_val**2, 0.0)
-                se = safe_float(std_err, None)
-                y_curve = a * np.exp(b * x_curve)
-                y_fit_used = a * np.exp(b * x_used)
+                
+                if np.var(x_used) == 0 or np.var(y_used) == 0:
+                    eq_str = "Filtreleme sonrası yetersiz veya sabit varyanslı veri."
+                else:
+                    slope, intercept, r_val, p_val, std_err = sp_stats.linregress(
+                        x_used, np.log(y_used)
+                    )
+                    a = np.exp(intercept)
+                    b = slope
+                    eq_str = f"y = {a:.4f}·e^({b:.4f}x)"
+                    
+                    y_fit_used = a * np.exp(b * x_used)
+                    y_curve = a * np.exp(b * x_curve)
+                    
+                    ss_res = float(np.sum((y_used - y_fit_used) ** 2))
+                    ss_tot = float(np.sum((y_used - np.mean(y_used)) ** 2))
+                    r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+                    
+                    se = safe_float(std_err, None)
             else:
-                eq_str = "Üstel regresyon için Y değerleri pozitif (>0) olmalıdır."
+                eq_str = "Üstel regresyon için yeterli pozitif Y değeri bulunamadı."
 
         else:  # linear
             slope, intercept, r_val, p_val, std_err = sp_stats.linregress(
@@ -291,18 +327,53 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
         n_used = len(x_used)
         if y_fit_used is not None and n_used > n_params:
             dof = max(n_used - n_params, 1)
-            residuals = y_used - y_fit_used
-            s_err = float(np.sqrt(np.sum(residuals**2) / dof))
-            x_bar = float(np.mean(x_used))
-            ss_x = float(np.sum((x_used - x_bar) ** 2))
-
-            if ss_x > 0:
-                se_line = s_err * np.sqrt(
-                    1.0 / n_used + ((x_curve - x_bar) ** 2) / ss_x
-                )
-                t_val = float(sp_stats.t.ppf(0.975, dof))
+            t_val = float(sp_stats.t.ppf(0.975, dof))
+            
+            if model_type in ("poly2", "poly3") and X_design is not None and X_curve_design is not None:
+                residuals = y_used - y_fit_used
+                s_err2 = np.sum(residuals**2) / dof
+                
+                inv_xtx = np.linalg.pinv(X_design.T @ X_design)
+                
+                var_fit = np.sum((X_curve_design @ inv_xtx) * X_curve_design, axis=1) * s_err2
+                se_line = np.sqrt(np.maximum(var_fit, 0))
+                
                 ci_upper = [round(float(v), 4) for v in (y_curve + t_val * se_line)]
                 ci_lower = [round(float(v), 4) for v in (y_curve - t_val * se_line)]
+                
+            elif model_type == "exp":
+                log_y_used = np.log(y_used)
+                log_y_fit = intercept + slope * x_used
+                log_y_curve = intercept + slope * x_curve
+                
+                residuals_log = log_y_used - log_y_fit
+                s_err_log = float(np.sqrt(np.sum(residuals_log**2) / dof))
+                x_bar = float(np.mean(x_used))
+                ss_x = float(np.sum((x_used - x_bar) ** 2))
+                
+                if ss_x > 0:
+                    se_line_log = s_err_log * np.sqrt(
+                        1.0 / n_used + ((x_curve - x_bar) ** 2) / ss_x
+                    )
+                    
+                    ci_upper = [round(float(v), 4) for v in np.exp(log_y_curve + t_val * se_line_log)]
+                    ci_lower = [round(float(v), 4) for v in np.exp(log_y_curve - t_val * se_line_log)]
+                
+            else: # linear and log
+                x_for_ci = np.log(x_used) if model_type == "log" else x_used
+                x_curve_for_ci = np.log(x_curve) if model_type == "log" else x_curve
+                
+                residuals = y_used - y_fit_used
+                s_err = float(np.sqrt(np.sum(residuals**2) / dof))
+                x_bar = float(np.mean(x_for_ci))
+                ss_x = float(np.sum((x_for_ci - x_bar) ** 2))
+
+                if ss_x > 0:
+                    se_line = s_err * np.sqrt(
+                        1.0 / n_used + ((x_curve_for_ci - x_bar) ** 2) / ss_x
+                    )
+                    ci_upper = [round(float(v), 4) for v in (y_curve + t_val * se_line)]
+                    ci_lower = [round(float(v), 4) for v in (y_curve - t_val * se_line)]
     except Exception as e_ci:  # noqa: BLE001
         logger.debug(f"CI calculation error: {e_ci}")
 
@@ -378,6 +449,8 @@ def compute_correlation_matrix(active_df, num_cols=None, method="pearson"):
             "matrix": matrix,
             "sample_size": len(clean_sub),
             "method": method,
+            "truncated": len(num_cols) > 12,
+            "total_cols": len(num_cols),
         }
     except Exception as e:
         logger.exception("compute_correlation_matrix error")
@@ -454,7 +527,7 @@ def compute_advanced_stats(
                 groups = [
                     group[y_col].values
                     for _, group in valid_df.groupby(x_col, observed=False)
-                    if len(group) > 0
+                    if len(group) > 1 and np.var(group[y_col].values) > 0
                 ]
 
                 # Compute best and worst groups by group mean (for ANOVA / T-Test) and sum

@@ -140,6 +140,9 @@ def repair_column_anomalies():
                 "health": health_data,
             }
         )
+    except ValueError as ve:
+        logger.error(f"Sütun onarma hatası (Geçersiz istek): {ve}")
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:  # noqa: BLE001
         logger.error(f"Sütun onarma hatası: {e}")
         return jsonify({"error": f"Onarma işlemi sırasında hata: {e}"}), 500

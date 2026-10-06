@@ -71,27 +71,27 @@
     document
       .getElementById("btnRunRegStudio")
       ?.addEventListener("click", () => {
-        fetchAndRenderRegressionStudio();
+        fetchAndRenderRegressionStudio().catch(() => {});
       });
 
     document.getElementById("regSelectX")?.addEventListener("change", () => {
-      fetchAndRenderRegressionStudio();
+      fetchAndRenderRegressionStudio().catch(() => {});
     });
 
     document.getElementById("regSelectY")?.addEventListener("change", () => {
-      fetchAndRenderRegressionStudio();
+      fetchAndRenderRegressionStudio().catch(() => {});
     });
 
     document
       .getElementById("regSelectModel")
       ?.addEventListener("change", () => {
-        fetchAndRenderRegressionStudio();
+        fetchAndRenderRegressionStudio().catch(() => {});
       });
 
     document
       .getElementById("regSelectCorrMethod")
       ?.addEventListener("change", () => {
-        fetchAndRenderRegressionStudio();
+        fetchAndRenderRegressionStudio().catch(() => {});
       });
 
     document
@@ -510,6 +510,34 @@
 
     Plotly.react("regHeatmapPlotArea", [trace], layout, config);
 
+    // Add visual warning badge if columns are truncated
+    let existingBadge = container.querySelector(".heatmap-truncate-badge");
+    if (existingBadge) existingBadge.remove();
+
+    if (data.truncated) {
+      const badge = document.createElement("div");
+      badge.className = "heatmap-truncate-badge";
+      badge.innerHTML = `⚠️ ${data.total_cols || "Çok fazla"} sütundan ilk 12'si gösteriliyor`;
+      badge.style.position = "absolute";
+      badge.style.top = "10px";
+      badge.style.right = "10px";
+      badge.style.background = "rgba(245, 158, 11, 0.15)";
+      badge.style.border = "1px solid rgba(245, 158, 11, 0.4)";
+      badge.style.color = "#fbbf24";
+      badge.style.padding = "4px 8px";
+      badge.style.borderRadius = "6px";
+      badge.style.fontSize = "0.75rem";
+      badge.style.fontWeight = "600";
+      badge.style.zIndex = "10";
+      badge.style.pointerEvents = "none";
+
+      if (window.getComputedStyle(container).position === "static") {
+        container.style.position = "relative";
+      }
+
+      container.appendChild(badge);
+    }
+
     // Interactive Click: Change X and Y variables when user clicks on a heatmap cell
     container.removeAllListeners &&
       container.removeAllListeners("plotly_click");
@@ -524,7 +552,7 @@
         if (selX && selY && clickedX && clickedY && clickedX !== clickedY) {
           selX.value = clickedX;
           selY.value = clickedY;
-          fetchAndRenderRegressionStudio();
+          fetchAndRenderRegressionStudio().catch(() => {});
         }
       }
     });
@@ -675,7 +703,7 @@
       if (selY && yCol) selY.value = yCol;
       if (selM && modelType) selM.value = modelType;
 
-      fetchAndRenderRegressionStudio();
+      fetchAndRenderRegressionStudio().catch(() => {});
     }, 200);
   }
 

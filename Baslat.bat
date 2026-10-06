@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
@@ -110,16 +111,23 @@ echo [OK] Kutuphaneler hazir.
 if not exist "uploads" mkdir "uploads"
 
 :: 4. Uygulamayi Baslat
+set "PORT=5000"
+if exist ".env" (
+    for /f "tokens=1,2 delims==" %%a in (.env) do (
+        if "%%a"=="PORT" set "PORT=%%b"
+    )
+)
+
 echo.
 echo ========================================================================
 echo   [3/3] DataViz Analiz Platformu Baslatiliyor...
 echo.
-echo   Adres     : http://127.0.0.1:5000
+echo   Adres     : http://127.0.0.1:%PORT%
 echo   Durdurmak : Bu pencereyi kapatin veya Ctrl + C tuslarina basin
 echo ========================================================================
 echo.
 
-start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:5000'"
+start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:%PORT%'"
 
 .\.venv\Scripts\python.exe app.py
 

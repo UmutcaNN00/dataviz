@@ -413,7 +413,7 @@ async function switchSheet(sheetName) {
       !trustScreen.classList.contains("hidden") &&
       typeof fetchAndRenderTrustReport === "function"
     ) {
-      fetchAndRenderTrustReport();
+      fetchAndRenderTrustReport().catch(() => {});
     }
     prog?.complete(`"${sheetName}" sayfası yüklendi!`);
     if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
@@ -549,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("tabRegression")?.classList.remove("hidden");
         if (typeof window.initRegressionStudio === "function") {
           window.initRegressionStudio();
-          window.fetchAndRenderRegressionStudio();
+          window.fetchAndRenderRegressionStudio().catch(() => {});
         }
         try {
           Plotly.Plots.resize("regScatterPlotArea");
@@ -717,6 +717,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isResizing) return;
 
       const container = leftPane.parentElement;
+      if (!container) return;
       const containerRect = container.getBoundingClientRect();
       let newWidth = e.clientX - containerRect.left;
 
@@ -1252,7 +1253,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (typeof updateAnomalyBadges === "function" && rData.health)
                 updateAnomalyBadges(rData.health);
               showToast(`"${colName}" sütunu başarıyla onarıldı!`, "success");
-              await fetchAndRenderTrustReport();
+              await fetchAndRenderTrustReport().catch(() => {});
             } catch (e) {
               showToast(e.message, "error");
               btn.disabled = false;
@@ -1298,7 +1299,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 `"${colName}" sütunundaki boş hücreler dolduruldu!`,
                 "success",
               );
-              await fetchAndRenderTrustReport();
+              await fetchAndRenderTrustReport().catch(() => {});
             } catch (e) {
               showToast(e.message, "error");
               btn.disabled = false;
@@ -1334,7 +1335,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     showScreen("trust");
     try {
-      await fetchAndRenderTrustReport();
+      await fetchAndRenderTrustReport().catch(() => {});
     } catch (err) {
       showToast(err.message, "error", "Güven Skoru Hatası");
     }
@@ -1439,7 +1440,7 @@ document.addEventListener("DOMContentLoaded", () => {
           !regPane.classList.contains("hidden") &&
           typeof window.fetchAndRenderRegressionStudio === "function"
         ) {
-          window.fetchAndRenderRegressionStudio();
+          window.fetchAndRenderRegressionStudio().catch(() => {});
         }
       }
     });

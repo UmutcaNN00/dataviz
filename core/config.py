@@ -21,6 +21,9 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dataviz_secret_super_key")
 PORT = int(os.environ.get("PORT", "5000"))
 DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() in ["true", "1"]
 
+# PDF Font Settings
+FONT_PATH = os.environ.get("FONT_PATH", "C:/Windows/Fonts/arial.ttf")
+
 # Sampling parameters for performance
 ANOMALY_SAMPLE_THRESHOLD = 15000
 ANOMALY_SAMPLE_SIZE = 10000
@@ -40,3 +43,5 @@ class Config:
     ALLOWED_EXTENSIONS = ALLOWED_EXTENSIONS
     TEMPLATES_AUTO_RELOAD = True
     SEND_FILE_MAX_AGE_DEFAULT = 0
+    MAX_ACTIVE_SESSIONS = MAX_ACTIVE_SESSIONS
+    FONT_PATH = FONT_PATH

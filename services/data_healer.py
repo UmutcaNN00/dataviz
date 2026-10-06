@@ -59,6 +59,14 @@ def robust_parse_numeric_string(v: Any) -> float | None:
     ):
         return None
 
+    # IP address detection
+    if re.search(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", s):
+        return None
+
+    # Phone number detection (e.g. +90 555 123 45 67)
+    if re.search(r"^\+?\d[\d\s-]{8,20}$", s) and len(re.findall(r"\d", s)) >= 9:
+        return None
+
     # Strip currency symbols, percentages, and common unit suffixes (including lt, ml, l, ton, paket, etc.)
     s = re.sub(r"[₺$€£%]", "", s)
     s = re.sub(
@@ -136,9 +144,12 @@ def detect_column_anomalies(df: pd.DataFrame | None) -> list[dict[str, Any]]:
         series = sample_df[col]
         if isinstance(series.dtype, pd.CategoricalDtype):
             series = series.astype(object)
-        parsed_vals = pd.to_numeric(
-            series.apply(robust_parse_numeric_string), errors="coerce"
-        )
+        
+        unique_vals = series.unique()
+        parsed_unique = pd.Series(unique_vals).apply(robust_parse_numeric_string)
+        mapping = dict(zip(unique_vals, parsed_unique))
+        parsed_vals = pd.to_numeric(series.map(mapping), errors="coerce")
+        
         sample_valid_numeric_count = int(parsed_vals.notna().sum())
 
         # If at least 2 numbers and >=15% parseable as numeric, but contains text anomalies
@@ -245,8 +256,11 @@ def _parse_series_fast(
 
         return pd.Series(out, index=series.index, dtype=target_dtype)
 
+    unique_vals = series.unique()
+    parsed_unique = pd.Series(unique_vals).apply(robust_parse_numeric_string)
+    mapping = dict(zip(unique_vals, parsed_unique))
     parsed = pd.to_numeric(
-        series.apply(robust_parse_numeric_string), errors="coerce"
+        series.map(mapping), errors="coerce"
     ).astype(target_dtype)
     if fill_mode == "fill_zero":
         return parsed.fillna(target_dtype(0.0))

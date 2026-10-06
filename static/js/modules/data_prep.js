@@ -315,7 +315,7 @@ async function callRepairColumn(columnName, mode) {
       !trustScreen.classList.contains("hidden") &&
       typeof window.fetchAndRenderTrustReport === "function"
     ) {
-      window.fetchAndRenderTrustReport();
+      window.fetchAndRenderTrustReport().catch(() => {});
     }
 
     if (
@@ -331,7 +331,7 @@ async function callRepairColumn(columnName, mode) {
       !regPane.classList.contains("hidden") &&
       typeof window.fetchAndRenderRegressionStudio === "function"
     ) {
-      window.fetchAndRenderRegressionStudio();
+      window.fetchAndRenderRegressionStudio().catch(() => {});
     }
     const pivotScreen = document.getElementById("screen-pivot-studio");
     if (
@@ -437,7 +437,7 @@ async function callCleanData(action) {
       !trustScreen.classList.contains("hidden") &&
       typeof window.fetchAndRenderTrustReport === "function"
     ) {
-      window.fetchAndRenderTrustReport();
+      window.fetchAndRenderTrustReport().catch(() => {});
     }
     if (
       currentChartData &&
@@ -451,7 +451,7 @@ async function callCleanData(action) {
       !regPane.classList.contains("hidden") &&
       typeof window.fetchAndRenderRegressionStudio === "function"
     ) {
-      window.fetchAndRenderRegressionStudio();
+      window.fetchAndRenderRegressionStudio().catch(() => {});
     }
     const pivotScreen = document.getElementById("screen-pivot-studio");
     if (

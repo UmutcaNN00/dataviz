@@ -742,7 +742,7 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
         ].includes(type)
       ) {
         if (type === "sankey") {
-          let nodeLabels = [...xVals, ...keys];
+          let nodeLabels = [...xVals.map(x => String(x) + " "), ...keys];
           let source = [];
           let target = [];
           let value = [];
@@ -787,6 +787,7 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
               ? xVals.map(() => "")
               : undefined;
             let _values = agg[k];
+            let _ids = undefined;
 
             if (["sunburst", "treemap", "icicle"].includes(type)) {
               const cleanVals = (agg[k] || []).map((v) =>
@@ -798,12 +799,14 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
                 let s = String(x || `Kategori ${idx + 1}`).trim();
                 return s === rootLabel ? s + " " : s;
               });
+              
+              _ids = [...safeLabels.map((s, idx) => `id_${idx}_${s}`), "id_root"];
               _labels = [...safeLabels, rootLabel];
-              _parents = [...safeLabels.map(() => rootLabel), ""];
+              _parents = [...safeLabels.map(() => "id_root"), ""];
               _values = [...cleanVals, totalVal];
             }
 
-            traces.push({
+            let traceObj = {
               type: ["sunburst", "treemap", "icicle"].includes(type)
                 ? type
                 : type === "funnelarea"
@@ -815,7 +818,11 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
               values: _values,
               hole: type === "donut" ? 0.5 : 0,
               marker: { colors: PALETTE },
-            });
+            };
+            if (_ids) {
+                traceObj.ids = _ids;
+            }
+            traces.push(traceObj);
             if (layout.xaxis) layout.xaxis.visible = false;
             if (layout.yaxis) layout.yaxis.visible = false;
           }

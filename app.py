@@ -39,7 +39,7 @@ def _sanitize_json_value(val):
         return {str(k): _sanitize_json_value(v) for k, v in val.items()}
     if isinstance(val, (list, tuple, set)):
         return [_sanitize_json_value(v) for v in val]
-    if isinstance(val, np.ndarray):
+    if isinstance(val, (np.ndarray, pd.Series)):
         return [_sanitize_json_value(v) for v in val.tolist()]
     if isinstance(val, (pd.Timestamp, datetime, date, np.datetime64)):
         return str(val)
@@ -55,7 +55,7 @@ class NumpyJSONProvider(DefaultJSONProvider):
         if isinstance(obj, (np.floating, float)):
             fval = float(obj)
             return None if (math.isnan(fval) or math.isinf(fval)) else fval
-        if isinstance(obj, np.ndarray):
+        if isinstance(obj, (np.ndarray, pd.Series)):
             return [_sanitize_json_value(v) for v in obj.tolist()]
         if isinstance(obj, np.bool_):
             return bool(obj)

@@ -693,7 +693,7 @@ function syncFilteredViews() {
     !regPane.classList.contains("hidden") &&
     typeof fetchAndRenderRegressionStudio === "function"
   ) {
-    fetchAndRenderRegressionStudio();
+    fetchAndRenderRegressionStudio().catch(() => {});
   }
 }
 
@@ -955,7 +955,7 @@ function renderStatsCards(data) {
               </div>
               <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
                 <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
-                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong>
+                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
               </div>
               ${bestGroupHtml}
               ${worstGroupHtml}
@@ -994,7 +994,7 @@ function renderStatsCards(data) {
               </div>
               <div class="b-metric" style="background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
                 <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
-                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? Number(adv.p_value).toExponential(2) : "-"}</strong>
+                <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
               </div>
               ${bestGroupHtml}
               ${worstGroupHtml}
