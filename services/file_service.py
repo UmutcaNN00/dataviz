@@ -416,3 +416,81 @@ def read_parquet_safely(file_input: Any) -> pd.DataFrame:
 
     df.columns = pd.Index(_deduplicate_columns(df.columns))
     return df
+
+
+def read_spss_safely(file_input: Any) -> pd.DataFrame:
+    """
+    Reads IBM SPSS Statistics (.sav, .zsav) files using pyreadstat C-engine.
+    - Preserves UTF-8 encoding and user labels.
+    - Renames variables to descriptive question labels if available.
+    - Intelligently applies value labels for categorical/demographic fields (e.g. 1 -> 'Kadın', 2 -> 'Erkek')
+      while retaining numeric scales for continuous Likert variables so statistical tests (ANOVA/regression) work seamlessly.
+    - Deduplicates column headers and cleans empty records.
+    """
+    try:
+        import pyreadstat
+    except ImportError as e_import:
+        raise ImportError(
+            "SPSS (.sav) dosyalarını okumak için 'pyreadstat' kütüphanesi gereklidir. "
+            "Lütfen 'pip install pyreadstat' komutuyla yükleyin."
+        ) from e_import
+
+    source_bytes = _extract_bytes(file_input)
+    if not source_bytes:
+        raise pd.errors.EmptyDataError("SPSS dosyası tamamen boş.")
+
+    try:
+        df, meta = pyreadstat.read_sav(io.BytesIO(source_bytes), apply_value_formats=False)
+    except Exception as e_spss:
+        logger.error(f"SPSS okuma hatası: {e_spss}")
+        raise ValueError(f"SPSS (.sav) dosyası açılamadı: {e_spss}") from e_spss
+
+    if df.empty or len(df.columns) == 0:
+        raise ValueError("SPSS dosyasında herhangi bir veri veya sütun bulunamadı.")
+
+    # 1. Değer etiketlerini (Value Labels) akıllıca uygula:
+    # Demografik ve kategorik değişkenleri metne ("Kadın", "Erkek") çevir,
+    # ancak Likert ölçek sorularını (1-5 puan) ANOVA ve regresyonun çalışabilmesi için sayısal bırak.
+    likert_keywords = {
+        "katıl", "memnun", "sık", "bazen", "hiç", "zaman",
+        "katılıyorum", "katılmıyorum", "agree", "disagree",
+        "neutral", "never", "always", "rarely", "often", "satisf"
+    }
+
+    if meta and hasattr(meta, "variable_value_labels") and meta.variable_value_labels:
+        for col, val_map in meta.variable_value_labels.items():
+            if col not in df.columns or not val_map:
+                continue
+
+            labels_text = " ".join(str(v).lower() for v in val_map.values())
+            is_likert = any(kw in labels_text for kw in likert_keywords)
+
+            if not is_likert:
+                mapped_series = df[col].map(val_map)
+                if mapped_series.isna().all() and not df[col].isna().all():
+                    int_map = {
+                        int(k): v
+                        for k, v in val_map.items()
+                        if isinstance(k, (int, float))
+                    }
+                    mapped_series = df[col].map(int_map)
+
+                if not mapped_series.isna().all():
+                    df[col] = mapped_series.fillna(df[col])
+
+    # 2. Değişken İsimlerini Açıklayıcı Soru Başlıklarına (Column Labels) Çevir
+    if meta and hasattr(meta, "column_names_to_labels") and meta.column_names_to_labels:
+        rename_map = {}
+        for col_name, col_label in meta.column_names_to_labels.items():
+            if col_name in df.columns and col_label and str(col_label).strip():
+                clean_lbl = str(col_label).strip()
+                rename_map[col_name] = clean_lbl
+        if rename_map:
+            df.rename(columns=rename_map, inplace=True)
+
+    df.columns = pd.Index(_deduplicate_columns(df.columns))
+    logger.info(
+        f"SPSS (.sav) dosyası başarıyla okundu: {len(df)} satır, {len(df.columns)} sütun"
+    )
+    return clean_dataframe(df)
+

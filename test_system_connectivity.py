@@ -565,6 +565,64 @@ def run_tests():
         f"Reg R²: {d_kg_reg.get('regression', {}).get('r_squared')}, T-Stat: {adv_kg_t.get('t_test_stat')}, ANOVA F: {adv_kg_a.get('anova_f')}, BF₁₀: {adv_kg_a.get('bayes_bf10')}",
     )
 
+    # 28. IBM SPSS Statistics (.sav) Dosya Okuma, Etiket Dönüşümü & Hipotez Testi
+    try:
+        import pyreadstat
+        df_spss_test = pd.DataFrame({
+            "cinsiyet": [1.0, 2.0, 1.0, 2.0, 1.0],
+            "puan": [4.0, 2.0, 5.0, 3.0, 4.0]
+        })
+        spss_buf = io.BytesIO()
+        # pyreadstat write requires file path or temp file
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".sav", delete=False) as tmp_sav:
+            tmp_sav_path = tmp_sav.name
+        
+        pyreadstat.write_sav(
+            df_spss_test, tmp_sav_path,
+            column_labels={"cinsiyet": "Cinsiyetiniz", "puan": "Romantik_Memnuniyet"},
+            variable_value_labels={"cinsiyet": {1.0: "Kadın", 2.0: "Erkek"}}
+        )
+        with open(tmp_sav_path, "rb") as f_sav:
+            spss_bytes = f_sav.read()
+        os.remove(tmp_sav_path)
+
+        res_spss = client.post(
+            "/upload",
+            data={"file": (io.BytesIO(spss_bytes), "arastirma_anket.sav")},
+            content_type="multipart/form-data"
+        )
+        d_spss = j(res_spss)
+
+        # Test T-test on SPSS uploaded data
+        res_spss_stats = client.post(
+            "/get_stats",
+            json={
+                "columns": ["Romantik_Memnuniyet"],
+                "x_col": "Cinsiyetiniz",
+            }
+        )
+        d_spss_stats = j(res_spss_stats)
+        adv_spss = (d_spss_stats.get("advanced") or {}).get("Romantik_Memnuniyet") or {}
+
+        assert_test(
+            "IBM SPSS (.sav) Dosya Okuma, Değer Etiketi Dönüşümü & T-Testi (/upload & /get_stats)",
+            res_spss.status_code == 200
+            and d_spss.get("total_rows") == 5
+            and "Cinsiyetiniz" in d_spss.get("categorical_columns", [])
+            and "Romantik_Memnuniyet" in d_spss.get("numeric_columns", [])
+            and res_spss_stats.status_code == 200
+            and adv_spss.get("type") == "categorical_2"
+            and adv_spss.get("t_test_stat") is not None,
+            f"SPSS Satır: {d_spss.get('total_rows')}, Sütunlar: {d_spss.get('categorical_columns', []) + d_spss.get('numeric_columns', [])}, T-Stat: {adv_spss.get('t_test_stat')}"
+        )
+    except Exception as e_spss_test:
+        assert_test(
+            "IBM SPSS (.sav) Dosya Okuma, Değer Etiketi Dönüşümü & T-Testi (/upload & /get_stats)",
+            False,
+            f"SPSS Test Hatası: {e_spss_test}"
+        )
+
     print("=" * 70)
     print(f"🎉 SONUÇ: {passed}/{total} TÜM MASTER ENTEGRASYON TESTLERİ KUSURSUZ GEÇTİ!")
     print("=" * 70)

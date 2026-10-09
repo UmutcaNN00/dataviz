@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Yapay_Zekâ-İzolasyon_Ormanı_%2B_Data_Healer-10b981?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="AI Isolation Forest">
   <img src="https://img.shields.io/badge/İstatistik-SciPy_1.11%2B_Hipotez_Lab-8b5cf6?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy">
   <img src="https://img.shields.io/badge/Görselleştirme-Plotly.js_50%2B_Tür-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
-  <img src="https://img.shields.io/badge/Doğrulama-27%2F27_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
+  <img src="https://img.shields.io/badge/Doğrulama-28%2F28_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
   <img src="https://img.shields.io/badge/Veri_Egemenliği-%25100_Yerel_(KVKK_Uyumlu)-ff4500?style=for-the-badge&logo=shield&logoColor=white" alt="100% Local">
   <img src="https://img.shields.io/badge/Lisans-MIT_Açık_Kaynak-yellow?style=for-the-badge" alt="MIT License">
   <a href="https://github.com/UmutcaNN00/dataviz/releases/latest"><img src="https://img.shields.io/badge/İndir-DataViz_Portable.zip_(v1.0.0)-22c55e?style=for-the-badge&logo=windows&logoColor=white" alt="Download Portable"></a>
@@ -282,11 +282,11 @@ Sentetik benchmark testlerinde insan denek veya kişisel veri kullanılmamış; 
 dataviz/
 │
 ├── app.py                          # Flask uygulama fabrikası ve JSON serileştirici (NaN/Inf korumalı)
-├── requirements.txt                # Python bağımlılıkları (Flask, Polars, PyArrow, SciPy, Scikit-Learn, SQLAlchemy)
+├── requirements.txt                # Python bağımlılıkları (Flask, Polars, PyArrow, SciPy, Scikit-Learn, Pyreadstat)
 ├── Baslat.bat                      # Windows için tek tıkla otomatik sanal ortam ve başlatıcı
 ├── Dockerfile                      # Konteyner dağıtım tanımı
 ├── docker-compose.yml              # Docker Compose servis yapılandırması
-├── test_system_connectivity.py     # 27 adımlı uçtan uca (E2E) master entegrasyon test paketi
+├── test_system_connectivity.py     # 28 adımlı uçtan uca (E2E) master entegrasyon test paketi
 │
 ├── scripts/                        # Yardımcı ve Benchmark Betikleri
 │   └── generate_100m_dataset.py    # 100M satır sentetik stres benchmark veri seti üreteci
@@ -297,7 +297,7 @@ dataviz/
 │
 ├── routes/                         # Modüler Flask Blueprint Uç Noktaları (Controller Layer)
 │   ├── main_routes.py              # GET / (Karşılama), /analysis (Stüdyo), /health, POST /load_sample
-│   ├── upload_routes.py            # POST /upload (CSV/Excel/Parquet), /switch_sheet, /fetch_sql (SQLAlchemy)
+│   ├── upload_routes.py            # POST /upload (CSV/Excel/Parquet/SPSS .sav), /switch_sheet, /fetch_sql
 │   ├── data_routes.py              # /check_health, /repair_column_anomalies, /clean_data, /merge_datasets,
 │   │                               # /get_trust_report, /auto_heal_all_trust, /calculate_risk_score
 │   ├── chart_routes.py             # POST /get_chart_data (Sütun izdüşümlü), /get_column_unique_values
@@ -305,7 +305,7 @@ dataviz/
 │   └── export_routes.py            # /export_data (CSV/Excel/Parquet), /export_pivot_excel
 │
 ├── services/                       # İş Mantığı ve Veri İşleme Katmanı (Service Layer)
-│   ├── file_service.py             # Polars/PyArrow destekli hızlı dosya okuma, sayfa izolasyonu ve tip optimizasyonu
+│   ├── file_service.py             # Polars/PyArrow/Pyreadstat destekli hızlı CSV, Excel, Parquet ve SPSS (.sav) okuyucu
 │   ├── data_healer.py              # İzolasyon Ormanı anomali tespiti, birim temizleme ve sütun bazlı onarım
 │   ├── stats_service.py            # SciPy tabanlı ANOVA, T-Testi, Korelasyon, Regresyon (%95 GA), Bayes Faktörü (BF₁₀) ve Naive Bayes
 │   ├── ai_service.py               # İstatistiksel bulguları sade ve anlaşılır akademik yönetici diline çeviren yorumlayıcı
@@ -368,7 +368,7 @@ docker compose up -d --build
 # Tarayıcıda: http://localhost:5000
 ```
 
-### 🧪 Sistem Doğrulama Testi (27/27 Master Test)
+### 🧪 Sistem Doğrulama Testi (28/28 Master Test)
 
 Tüm mimari bileşenlerin, sıfır-kopyalama bellek motorunun, İzolasyon Ormanı onarıcısının ve istatistik servislerinin doğruluğunu tek komutla test edebilirsiniz:
 

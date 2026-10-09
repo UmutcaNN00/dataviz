@@ -22,6 +22,7 @@ from services.file_service import (
     read_csv_safely,
     read_excel_safely,
     read_parquet_safely,
+    read_spss_safely,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ upload_bp = Blueprint("upload", __name__)
 
 @upload_bp.route("/upload", methods=["POST"])
 def upload():
-    """Handles dataset file uploads across CSV, Parquet, and Excel formats."""
+    """Handles dataset file uploads across CSV, Parquet, Excel, and SPSS formats."""
     if "file" not in request.files:
         return jsonify(
             {"error": "İstekte dosya bulunamadı. Lütfen bir dosya seçin."}
@@ -56,10 +57,13 @@ def upload():
         elif filename.endswith((".xls", ".xlsx")):
             df, sheets_dict, sheet_names, active_sheet = read_excel_safely(file)
             set_excel_data(sheets_dict, sheet_names)
+        elif filename.endswith((".sav", ".zsav")):
+            df = read_spss_safely(file)
+            set_excel_data(None, [])
         else:
             return jsonify(
                 {
-                    "error": "Desteklenmeyen dosya formatı. Lütfen sadece .parquet, .csv, .xlsx veya .xls uzantılı dosyalar yükleyin."
+                    "error": "Desteklenmeyen dosya formatı. Lütfen sadece .parquet, .csv, .xlsx, .xls veya .sav (SPSS) uzantılı dosyalar yükleyin."
                 }
             ), 400
 

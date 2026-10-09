@@ -179,7 +179,7 @@
           <button class="modal-close-btn" id="btnCloseMergeModal">×</button>
         </div>
         <p class="filter-hint">
-          2. bir Parquet, Excel veya CSV dosyası seçerek ortak bir sütun
+          2. bir Parquet, Excel, CSV veya SPSS (.sav) dosyası seçerek ortak bir sütun
           üzerinden iki tabloyu yan yana birleştirin:
         </p>
 
@@ -188,7 +188,7 @@
           <input
             type="file"
             id="mergeFileInput"
-            accept=".xlsx,.xls,.csv,.parquet"
+            accept=".xlsx,.xls,.csv,.parquet,.sav,.zsav"
             style="
               opacity: 0;
               position: absolute;
@@ -201,7 +201,7 @@
           />
           <div style="font-size: 2rem; margin-bottom: 6px">📁</div>
           <div style="font-weight: 700; font-size: 0.95rem">
-            2. Dosyayı Buraya Sürükleyin (.parquet, .xlsx, .csv)
+            2. Dosyayı Buraya Sürükleyin (.parquet, .xlsx, .csv, .sav)
           </div>
           <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px">
             veya
@@ -575,7 +575,7 @@
         <div class="s1-header-text">
           <h1 class="s1-title">Verinizi Bilgiye Dönüştürün.</h1>
           <p class="s1-subtitle">
-            Excel, CSV veya Parquet dosyanızı yükleyin; SciPy motoru saniyeler
+            Excel, CSV, Parquet veya SPSS (.sav) dosyanızı yükleyin; SciPy motoru saniyeler
             içinde istatistiksel analizlerinizi ve interaktif panolarınızı
             hazırlasın.
           </p>
@@ -594,7 +594,7 @@
             <input
               type="file"
               id="mainFileInput"
-              accept=".xlsx,.xls,.csv,.parquet"
+              accept=".xlsx,.xls,.csv,.parquet,.sav,.zsav"
               style="
                 opacity: 0;
                 position: absolute;
@@ -629,6 +629,7 @@
             <div class="dz-format-tags">
               <span class="fmt-tag">.XLSX</span>
               <span class="fmt-tag">.CSV</span>
+              <span class="fmt-tag">.SAV (SPSS)</span>
               <span class="fmt-tag highlight">.PARQUET (Önerilen)</span>
             </div>
           </div>

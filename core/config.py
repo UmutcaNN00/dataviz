@@ -12,7 +12,7 @@ UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.join(BASE_DIR, "uploads"
 MAX_CONTENT_LENGTH = int(
     os.environ.get("MAX_CONTENT_LENGTH", str(5 * 1024 * 1024 * 1024))
 )  # 5 GB
-ALLOWED_EXTENSIONS = {"csv", "xlsx", "xls", "parquet"}
+ALLOWED_EXTENSIONS = {"csv", "xlsx", "xls", "parquet", "sav", "zsav"}
 
 # Security and session
 SECRET_KEY = os.environ.get("SECRET_KEY", "dataviz_secret_super_key")

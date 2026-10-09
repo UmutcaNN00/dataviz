@@ -22,6 +22,7 @@ from services.file_service import (
     read_csv_safely,
     read_excel_safely,
     read_parquet_safely,
+    read_spss_safely,
 )
 from services.stats_service import (
     apply_filters,

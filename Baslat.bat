@@ -134,7 +134,7 @@ echo [OK] Sanal ortam hazirlandi.
 
 :: 3. Kutuphanelerin Kontrolu
 echo [2/3] Kutuphaneler kontrol ediliyor...
-"%VENV_PY%" -c "import flask, flask_cors, pandas, numpy, openpyxl, scipy, polars, pyarrow, sklearn, sqlalchemy, reportlab" >nul 2>&1
+"%VENV_PY%" -c "import flask, flask_cors, pandas, numpy, openpyxl, scipy, polars, pyarrow, sklearn, sqlalchemy, reportlab, pyreadstat" >nul 2>&1
 if %errorlevel% equ 0 goto :kutuphaneler_tamam
 
 echo Gerekli kutuphaneler yukleniyor - requirements.txt...
