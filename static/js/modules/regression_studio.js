@@ -286,6 +286,28 @@
       valSe.textContent = reg.se != null ? `±${reg.se.toFixed(4)}` : "±0.000";
     }
 
+    const valBf = document.getElementById("regValBf10");
+    const valBfBadge = document.getElementById("regValBf10Badge");
+    if (valBf) {
+      const bf =
+        reg.bayes_bf10 != null
+          ? reg.bayes_bf10
+          : corr.bayes_bf10 != null
+            ? corr.bayes_bf10
+            : null;
+      if (bf != null) {
+        valBf.textContent =
+          typeof bf === "number" && bf > 10000 ? bf.toExponential(2) : String(bf);
+        if (valBfBadge) {
+          valBfBadge.textContent =
+            reg.bayes_evidence || corr.bayes_evidence || "Bayes Kanıtı";
+        }
+      } else {
+        valBf.textContent = "-";
+        if (valBfBadge) valBfBadge.textContent = "Bayes kanıtı yok";
+      }
+    }
+
     const valEq = document.getElementById("regValEquation");
     if (valEq) {
       valEq.textContent = reg.equation || "y = mx + c";

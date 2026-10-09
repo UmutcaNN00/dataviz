@@ -142,6 +142,13 @@ def _extract_key_findings(
                     f"<strong>{best_g}</strong> ({best_v:,.2f}), en düşük ise <strong>{worst_g}</strong> ({worst_v:,.2f}) grubundadır."
                 )
 
+        bf_val = adv.get("bayes_bf10")
+        bf_ev = adv.get("bayes_evidence")
+        if bf_val is not None:
+            findings.append(
+                f"<strong>Bayesçi Kanıt (BF₁₀):</strong> Bayes Faktörü <strong>{bf_val}</strong> ({bf_ev}) olarak ölçülmüştür."
+            )
+
     if stats and isinstance(stats, dict):
         stats_dict = (
             {y_list[0] if y_list else "Metrik": stats}
@@ -249,6 +256,13 @@ def generate_rule_based_insight(
                     bullets.append(
                         "- **Güvenilirlik:** Gözlenen ilişki istatistiksel olarak **anlamlı değildir** (*p* ≥ 0.05)."
                     )
+
+        bf_val = adv.get("bayes_bf10")
+        bf_ev = adv.get("bayes_evidence")
+        if bf_val is not None:
+            bullets.append(
+                f"- **Bayesçi Hipotez Testi:** Bayes Faktörü (*BF*₁₀ = **{bf_val}**), alternatif hipotez lehine **{bf_ev}** düzeyindedir."
+            )
 
     # 2. DAĞILIM ÖZETİ (Her sayısal sütun için tek ve net bir cümle)
     if stats and isinstance(stats, dict):

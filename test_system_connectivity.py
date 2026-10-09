@@ -420,7 +420,7 @@ def run_tests():
         f"Sayfa1 Sütunları: {d_sw_back.get('numeric_columns', [])}",
     )
 
-    # 24. Global /clean_data Removes Duplicate Rows & Achieves 100% Cleaned Trust State
+    # 25. Global /clean_data Removes Duplicate Rows & Achieves 100% Cleaned Trust State
     client.post("/load_sample")
     client.post(
         "/repair_column_anomalies",
@@ -434,6 +434,135 @@ def run_tests():
         and d_trust_sample_cleaned.get("has_cleaning_history") is True
         and d_trust_sample_cleaned.get("current_report", {}).get("duplicate_rows") == 0,
         f"Kalan Mükerrer: {d_trust_sample_cleaned.get('current_report', {}).get('duplicate_rows')}",
+    )
+
+    # 26. Bayes Factor (BF₁₀) & Naive Bayes Classifier Verification
+    client.post("/load_sample")
+    res_bayes_stats = client.post(
+        "/get_stats",
+        json={
+            "columns": ["Satış_Tutarı"],
+            "x_col": "Bölge",  # Categorical multi-group -> ANOVA + Bayes Factor
+        },
+    )
+    d_bs = j(res_bayes_stats)
+    adv_bs = (d_bs.get("advanced") or {}).get("Satış_Tutarı") or {}
+
+    res_nb = client.post(
+        "/get_naive_bayes",
+        json={
+            "target_col": "Bölge",
+            "feature_cols": ["Satış_Tutarı", "Kar"],
+        },
+    )
+    d_nb = j(res_nb)
+
+    assert_test(
+        "Bayes Faktörü (BF₁₀) & Naive Bayes Sınıflandırıcısı (/get_stats & /get_naive_bayes)",
+        res_bayes_stats.status_code == 200
+        and "bayes_bf10" in adv_bs
+        and adv_bs.get("bayes_bf10") is not None
+        and res_nb.status_code == 200
+        and d_nb.get("success") is True
+        and "accuracy" in d_nb
+        and "class_priors" in d_nb,
+        f"BF₁₀: {adv_bs.get('bayes_bf10')}, Kanıt: {adv_bs.get('bayes_evidence')}, NB Acc: {d_nb.get('accuracy')}",
+    )
+
+    # 27. Kaggle-Style Dirty Dataset Stress Test: Regression, Correlation, T-Test, ANOVA, Bayes
+    import numpy as np
+    np_rng = np.random.RandomState(42)
+    n_stress = 10000
+    stress_cats = np_rng.choice(["Kahve", "Pasta", "Salata", "Çay"], size=n_stress)
+    stress_orders = np_rng.choice(["Gel-Al", "Masa-Servis"], size=n_stress)
+    stress_qty = np_rng.randint(1, 6, size=n_stress).astype(object)
+    stress_price = np_rng.uniform(20.0, 120.0, size=n_stress).astype(object)
+    stress_total = (stress_qty * stress_price).astype(object)
+    stress_score = np.where(
+        stress_orders == "Masa-Servis",
+        np_rng.normal(85, 8, size=n_stress),
+        np_rng.normal(70, 10, size=n_stress),
+    ).astype(object)
+
+    # Inject dirty noise (currencies, errors, suffixes)
+    for d_i in range(0, n_stress, 35):
+        stress_total[d_i] = "ERROR"
+        stress_price[d_i] = "₺95,50"
+        stress_qty[d_i] = "3 adet"
+
+    stress_df = pd.DataFrame({
+        "Islem_ID": [f"TXN_{idx}" for idx in range(n_stress)],
+        "Kategori": stress_cats,
+        "Siparis_Turu": stress_orders,
+        "Miktar": stress_qty,
+        "Birim_Fiyat": stress_price,
+        "Toplam_Tutar": stress_total,
+        "Memnuniyet_Puani": stress_score,
+    })
+    stress_buf = io.BytesIO(stress_df.to_csv(index=False).encode("utf-8"))
+    res_up_kg = client.post(
+        "/upload",
+        data={"file": (stress_buf, "kaggle_dirty_stress.csv")},
+        content_type="multipart/form-data",
+    )
+    d_up_kg = j(res_up_kg)
+
+    # Clean the dirty data with Data Healer
+    client.post(
+        "/repair_column_anomalies",
+        json={"column": "__all__", "repair_mode": "smart_heal"},
+    )
+    client.post("/clean_data", json={"action": "fill_mean"})
+
+    # Test Regression & Correlation with Bayes Factor
+    res_kg_reg = client.post(
+        "/get_regression_studio_data",
+        json={
+            "x_col": "Miktar",
+            "y_col": "Toplam_Tutar",
+            "model_type": "linear",
+            "corr_method": "pearson",
+        },
+    )
+    d_kg_reg = j(res_kg_reg)
+
+    # Test T-Test with Bayes Factor on 2-group Siparis_Turu
+    res_kg_ttest = client.post(
+        "/get_stats",
+        json={
+            "columns": ["Memnuniyet_Puani"],
+            "x_col": "Siparis_Turu",
+        },
+    )
+    d_kg_ttest = j(res_kg_ttest)
+    adv_kg_t = (d_kg_ttest.get("advanced") or {}).get("Memnuniyet_Puani") or {}
+
+    # Test ANOVA with Bayes Factor on multi-group Kategori
+    res_kg_anova = client.post(
+        "/get_stats",
+        json={
+            "columns": ["Toplam_Tutar"],
+            "x_col": "Kategori",
+        },
+    )
+    d_kg_anova = j(res_kg_anova)
+    adv_kg_a = (d_kg_anova.get("advanced") or {}).get("Toplam_Tutar") or {}
+
+    assert_test(
+        "Kaggle Tipi Kirli Veri Stres Testi: Regresyon, Korelasyon, T-Test, ANOVA & Bayes Doğrulaması",
+        res_up_kg.status_code == 200
+        and d_up_kg.get("total_rows") == n_stress
+        and res_kg_reg.status_code == 200
+        and d_kg_reg.get("regression", {}).get("bayes_bf10") is not None
+        and res_kg_ttest.status_code == 200
+        and adv_kg_t.get("type") == "categorical_2"
+        and adv_kg_t.get("t_test_stat") is not None
+        and adv_kg_t.get("bayes_bf10") is not None
+        and res_kg_anova.status_code == 200
+        and adv_kg_a.get("type") == "categorical_n"
+        and adv_kg_a.get("anova_f") is not None
+        and adv_kg_a.get("bayes_bf10") is not None,
+        f"Reg R²: {d_kg_reg.get('regression', {}).get('r_squared')}, T-Stat: {adv_kg_t.get('t_test_stat')}, ANOVA F: {adv_kg_a.get('anova_f')}, BF₁₀: {adv_kg_a.get('bayes_bf10')}",
     )
 
     print("=" * 70)

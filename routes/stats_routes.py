@@ -16,6 +16,7 @@ from services.stats_service import (
     compute_advanced_stats,
     compute_column_statistics,
     compute_correlation_matrix,
+    compute_naive_bayes_classification,
     compute_robust_correlation,
     compute_robust_regression,
     generate_kpi_summary,
@@ -279,3 +280,29 @@ def get_regression_studio_data_route():
     except Exception as e:
         logger.exception("get_regression_studio_data hatası")
         return jsonify({"error": f"Regresyon stüdyosu hesaplanırken hata: {e}"}), 500
+
+
+@stats_bp.route("/get_naive_bayes", methods=["POST"])
+def get_naive_bayes():
+    """Fits Gaussian Naive Bayes classifier on selected features and categorical target column."""
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({"error": "Veri yok"}), 400
+
+    data = request.get_json(silent=True) or {}
+    target_col = data.get("target_col") or data.get("target")
+    feature_cols = data.get("feature_cols") or data.get("features", [])
+    filters = data.get("filters", [])
+
+    try:
+        active_df = apply_filters(global_df, filters)
+        result = compute_naive_bayes_classification(
+            active_df, feature_cols=feature_cols, target_col=target_col
+        )
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result)
+    except Exception as e:
+        logger.exception("get_naive_bayes hatası")
+        return jsonify({"error": f"Naive Bayes analizi sırasında hata: {e}"}), 500
+

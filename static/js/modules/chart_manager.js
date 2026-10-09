@@ -920,6 +920,13 @@ function renderStatsCards(data) {
                 <span style="font-size: 0.75rem; color: #c4b5fd; text-transform: uppercase;">Model Denklemi</span>
                 <strong style="color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; word-break: break-all;">${adv.regression || "-"}</strong>
               </div>
+              ${adv.bayes_bf10 !== null && adv.bayes_bf10 !== undefined ? `
+              <div class="b-metric" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: #c4b5fd; text-transform: uppercase;">Bayes Faktörü (BF₁₀)</span>
+                <strong style="color: #a78bfa; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.bayes_bf10}</strong>
+                <span style="font-size: 0.70rem; color: #94a3b8;">${adv.bayes_evidence || ""}</span>
+              </div>
+              ` : ""}
             </div>
           </div>
         `;
@@ -957,6 +964,13 @@ function renderStatsCards(data) {
                 <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
                 <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
               </div>
+              ${adv.bayes_bf10 !== null && adv.bayes_bf10 !== undefined ? `
+              <div class="b-metric" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: #c4b5fd; text-transform: uppercase;">Bayes Faktörü (BF₁₀)</span>
+                <strong style="color: #a78bfa; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.bayes_bf10}</strong>
+                <span style="font-size: 0.70rem; color: #94a3b8;">${adv.bayes_evidence || ""}</span>
+              </div>
+              ` : ""}
               ${bestGroupHtml}
               ${worstGroupHtml}
             </div>
@@ -996,6 +1010,13 @@ function renderStatsCards(data) {
                 <span style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">P Değeri</span>
                 <strong style="font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.p_value !== null && adv.p_value !== undefined ? (adv.p_value < 0.0001 ? "< 0.0001" : Number(adv.p_value).toFixed(4)) : "-"}</strong>
               </div>
+              ${adv.bayes_bf10 !== null && adv.bayes_bf10 !== undefined ? `
+              <div class="b-metric" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 0.75rem; color: #c4b5fd; text-transform: uppercase;">Bayes Faktörü (BF₁₀)</span>
+                <strong style="color: #a78bfa; font-size: 1.08rem; font-family: 'JetBrains Mono', monospace;">${adv.bayes_bf10}</strong>
+                <span style="font-size: 0.70rem; color: #94a3b8;">${adv.bayes_evidence || ""}</span>
+              </div>
+              ` : ""}
               ${bestGroupHtml}
               ${worstGroupHtml}
             </div>

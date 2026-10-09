@@ -29,6 +29,185 @@ def safe_float(val, default=None):
         return default
 
 
+def interpret_bayes_factor(bf10: float | None) -> str:
+    """
+    Interprets Bayes Factor BF₁₀ using Harold Jeffreys' (1961) canonical evidence scale.
+    """
+    if bf10 is None or not np.isfinite(bf10):
+        return "Belirsiz / Yetersiz Veri"
+    if bf10 >= 100.0:
+        return "Kesin / Çok Güçlü Kanıt (H₁)"
+    if bf10 >= 30.0:
+        return "Çok Güçlü Kanıt (H₁)"
+    if bf10 >= 10.0:
+        return "Güçlü Kanıt (H₁)"
+    if bf10 >= 3.0:
+        return "Orta Düzey Kanıt (H₁)"
+    if bf10 >= 1.0:
+        return "Zayıf / Anekdotsal Kanıt (H₁)"
+    if bf10 >= 0.33:
+        return "Zayıf Kanıt (H₀ Lehine)"
+    if bf10 >= 0.1:
+        return "Orta Düzey Kanıt (H₀ Lehine)"
+    return "Güçlü Kanıt (H₀ Lehine)"
+
+
+def compute_bayes_factor_ttest(t_stat: float | None, n1: int, n2: int) -> dict:
+    """
+    Computes Bayes Factor (BF₁₀) and posterior probability P(H₁|Data)
+    for two-sample Welch / Student T-Test using the Wagenmakers (2007) / Masson (2011) BIC posterior odds model.
+    """
+    if t_stat is None or not np.isfinite(t_stat):
+        return {"bf10": None, "p_h1": None, "evidence": "Hesaplanamadı"}
+    n = n1 + n2
+    if n < 4:
+        return {"bf10": None, "p_h1": None, "evidence": "Yetersiz örneklem"}
+    t2 = float(t_stat) ** 2
+    delta_bic = t2 - np.log(n)
+    delta_bic_clamped = min(max(delta_bic, -600.0), 600.0)
+    bf10 = float(np.exp(delta_bic_clamped / 2.0))
+    p_h1 = float(bf10 / (1.0 + bf10))
+    ev = interpret_bayes_factor(bf10)
+    return {
+        "bf10": round(bf10, 4) if bf10 < 10000 else float(f"{bf10:.4e}"),
+        "p_h1": round(p_h1, 4),
+        "evidence": ev,
+        "n1": n1,
+        "n2": n2,
+    }
+
+
+def compute_bayes_factor_anova(
+    f_stat: float | None, k_groups: int, n_total: int
+) -> dict:
+    """
+    Computes Bayes Factor (BF₁₀), partial eta-squared (η²), and P(H₁|Data)
+    for One-Way ANOVA using the Masson (2011) BIC model comparison formulation.
+    """
+    if f_stat is None or not np.isfinite(f_stat) or n_total <= k_groups or k_groups < 2:
+        return {"bf10": None, "p_h1": None, "eta2": None, "evidence": "Hesaplanamadı"}
+    df1 = k_groups - 1
+    df2 = n_total - k_groups
+    eta2 = float((df1 * f_stat) / (df1 * f_stat + df2))
+    eta2 = min(max(eta2, 0.0), 0.999999)
+    delta_bic = n_total * np.log(1.0 / (1.0 - eta2)) - df1 * np.log(n_total)
+    delta_bic_clamped = min(max(delta_bic, -600.0), 600.0)
+    bf10 = float(np.exp(delta_bic_clamped / 2.0))
+    p_h1 = float(bf10 / (1.0 + bf10))
+    ev = interpret_bayes_factor(bf10)
+    return {
+        "bf10": round(bf10, 4) if bf10 < 10000 else float(f"{bf10:.4e}"),
+        "p_h1": round(p_h1, 4),
+        "eta2": round(eta2, 4),
+        "evidence": ev,
+        "k_groups": k_groups,
+        "n_total": n_total,
+    }
+
+
+def compute_bayes_factor_regression(
+    r_squared: float | None, n_total: int, p_predictors: int = 1
+) -> dict:
+    """
+    Computes Bayes Factor (BF₁₀) and P(H₁|Data) for linear/curve regression and correlation
+    using the Wagenmakers (2007) BIC model comparison approximation.
+    """
+    if r_squared is None or not np.isfinite(r_squared) or n_total <= p_predictors + 1:
+        return {"bf10": None, "p_h1": None, "evidence": "Hesaplanamadı"}
+    r2 = min(max(float(r_squared), 0.0), 0.999999)
+    delta_bic = n_total * np.log(1.0 / (1.0 - r2)) - p_predictors * np.log(n_total)
+    delta_bic_clamped = min(max(delta_bic, -600.0), 600.0)
+    bf10 = float(np.exp(delta_bic_clamped / 2.0))
+    p_h1 = float(bf10 / (1.0 + bf10))
+    ev = interpret_bayes_factor(bf10)
+    return {
+        "bf10": round(bf10, 4) if bf10 < 10000 else float(f"{bf10:.4e}"),
+        "p_h1": round(p_h1, 4),
+        "evidence": ev,
+        "n_total": n_total,
+        "p_predictors": p_predictors,
+    }
+
+
+def compute_naive_bayes_classification(
+    df, feature_cols=None, target_col=None
+) -> dict:
+    """
+    Fits Gaussian Naive Bayes classifier on numeric feature columns to predict categorical target_col.
+    Handles NaN values and class distributions gracefully.
+    """
+    if df is None or df.empty or not target_col or target_col not in df.columns:
+        return {"error": "Geçerli bir hedef (target) sütun seçilmelidir."}
+
+    target_series = df[target_col].dropna().astype(str)
+    if target_series.nunique() < 2:
+        return {"error": "Hedef değişken en az 2 farklı sınıfa sahip olmalıdır."}
+
+    if not feature_cols:
+        feature_cols = [
+            c for c in df.select_dtypes(include=["number"]).columns if c != target_col
+        ][:8]
+    else:
+        feature_cols = [c for c in feature_cols if c in df.columns and c != target_col]
+
+    if not feature_cols:
+        return {
+            "error": "Naive Bayes analizi için en az bir sayısal özellik sütunu seçilmelidir."
+        }
+
+    sub = df[feature_cols + [target_col]].dropna()
+    if len(sub) < 8:
+        return {
+            "error": "Naive Bayes analizi için yeterli geçerli satır bulunamadı (en az 8 satır gereklidir)."
+        }
+
+    X = sub[feature_cols].apply(pd.to_numeric, errors="coerce").dropna()
+    y = sub.loc[X.index, target_col].astype(str)
+
+    try:
+        from sklearn.model_selection import cross_val_score
+        from sklearn.naive_bayes import GaussianNB
+
+        gnb = GaussianNB()
+        gnb.fit(X, y)
+        preds = gnb.predict(X)
+        acc = float(np.mean(preds == y))
+
+        cv_score = None
+        min_class_count = y.value_counts().min()
+        if min_class_count >= 3 and len(X) >= 15:
+            cv_folds = min(5, int(min_class_count))
+            cv_scores = cross_val_score(gnb, X, y, cv=cv_folds)
+            cv_score = round(float(np.mean(cv_scores)), 4)
+
+        classes = [str(c) for c in gnb.classes_]
+        priors = {
+            classes[i]: round(float(p), 4) for i, p in enumerate(gnb.class_prior_)
+        }
+        means_dict = {}
+        for c_idx, c_name in enumerate(classes):
+            means_dict[c_name] = {
+                feat: round(float(gnb.theta_[c_idx][f_idx]), 4)
+                for f_idx, feat in enumerate(feature_cols)
+            }
+
+        return {
+            "success": True,
+            "target_col": target_col,
+            "feature_cols": feature_cols,
+            "classes": classes,
+            "class_priors": priors,
+            "accuracy": round(acc, 4),
+            "cv_accuracy": cv_score,
+            "feature_means": means_dict,
+            "sample_size": len(X),
+            "bayes_type": "GaussianNB",
+        }
+    except Exception as e:
+        logger.exception("compute_naive_bayes_classification hatası")
+        return {"error": f"Naive Bayes modeli eğitilirken hata: {e}"}
+
+
 def apply_filters(df, filters):
     """
     Applies a list of categorical and numeric filters to a DataFrame.
@@ -141,12 +320,21 @@ def compute_robust_correlation(x_vals, y_vals, method="pearson"):
     else:
         strength = "İlişki Yok / İhmal Edilebilir"
 
+    r_val = float(coef) if coef is not None else 0.0
+    bayes_corr = compute_bayes_factor_regression(
+        r_val**2, len(x_clean), p_predictors=1
+    )
+
     return {
         "coef": round(coef, 4) if coef is not None else 0.0,
         "p_value": p_val,
         "method": method,
         "interpretation": strength,
         "sample_size": len(x_clean),
+        "bayes_factor": bayes_corr,
+        "bayes_bf10": bayes_corr.get("bf10"),
+        "bayes_evidence": bayes_corr.get("evidence"),
+        "bayes_p_h1": bayes_corr.get("p_h1"),
     }
 
 
@@ -384,6 +572,12 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
         ci_lower = [ci_lower[i] for i, m in enumerate(finite_mask) if m]
         ci_upper = [ci_upper[i] for i, m in enumerate(finite_mask) if m]
 
+    bayes_reg = compute_bayes_factor_regression(
+        float(r_squared) if r_squared is not None and np.isfinite(r_squared) else 0.0,
+        len(x_used),
+        p_predictors=max(n_params - 1, 1),
+    )
+
     return {
         "equation": eq_str,
         "r_squared": round(float(r_squared), 4)
@@ -396,6 +590,10 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
         "trend_y": trend_y,
         "ci_lower": ci_lower if len(ci_lower) == len(trend_x) else [],
         "ci_upper": ci_upper if len(ci_upper) == len(trend_x) else [],
+        "bayes_factor": bayes_reg,
+        "bayes_bf10": bayes_reg.get("bf10"),
+        "bayes_evidence": bayes_reg.get("evidence"),
+        "bayes_p_h1": bayes_reg.get("p_h1"),
     }
 
 
@@ -482,35 +680,65 @@ def compute_advanced_stats(
 ):
     """
     Performs deep comparative analysis:
-    - If X is numeric: Pearson/Spearman/Kendall correlation and curve regression.
-    - If X is categorical with 2 groups: Independent two-sample Student's T-Test.
-    - If X is categorical with >2 groups: One-way ANOVA F-Test.
+    - If X is numeric: Pearson/Spearman/Kendall correlation, curve regression, and Bayes Factor (BF₁₀).
+    - If X is categorical with 2 groups: Independent two-sample Student/Welch's T-Test and Bayes Factor (BF₁₀).
+    - If X is categorical with >2 groups: One-way ANOVA F-Test and Bayes Factor (BF₁₀).
+    Robust against dirty datasets (auto-coerces numbers, ignores placeholder error categories).
     """
     advanced = {}
     if not x_col or x_col not in active_df.columns:
         return advanced
 
+    # Check whether x_col is numeric or categorical, with dirty-data resilience
     is_x_num = pd.api.types.is_numeric_dtype(active_df[x_col])
+    x_coerced = pd.to_numeric(active_df[x_col], errors="coerce")
+    if not is_x_num:
+        valid_num_ratio = (
+            float(x_coerced.notna().sum() / len(active_df))
+            if len(active_df) > 0
+            else 0.0
+        )
+        if valid_num_ratio >= 0.55 and x_coerced.nunique() > 10:
+            is_x_num = True
 
     for y_col in cols:
-        if y_col not in active_df.columns or not pd.api.types.is_numeric_dtype(
-            active_df[y_col]
-        ):
+        if y_col not in active_df.columns:
             continue
 
+        y_is_num = pd.api.types.is_numeric_dtype(active_df[y_col])
+        y_coerced = pd.to_numeric(active_df[y_col], errors="coerce")
+        if not y_is_num:
+            valid_y_ratio = (
+                float(y_coerced.notna().sum() / len(active_df))
+                if len(active_df) > 0
+                else 0.0
+            )
+            if valid_y_ratio < 0.3 or y_coerced.notna().sum() < 3:
+                continue
+
         adv_info = {}
-        valid_df = active_df[[x_col, y_col]].dropna()
 
-        if len(valid_df) > 2:
-            if is_x_num:
-                x_vals = valid_df[x_col].values
-                y_vals = valid_df[y_col].values
+        if is_x_num:
+            valid_mask = (
+                x_coerced.notna()
+                & y_coerced.notna()
+                & np.isfinite(x_coerced)
+                & np.isfinite(y_coerced)
+            )
+            x_vals = x_coerced[valid_mask].to_numpy(dtype=float)
+            y_vals = y_coerced[valid_mask].to_numpy(dtype=float)
 
+            if len(x_vals) > 2:
                 corr_res = compute_robust_correlation(
                     x_vals, y_vals, method=corr_method
                 )
                 reg_res = compute_robust_regression(
                     x_vals, y_vals, model_type=reg_model
+                )
+                bayes_reg = reg_res.get(
+                    "bayes_factor"
+                ) or compute_bayes_factor_regression(
+                    reg_res.get("r_squared"), len(x_vals)
                 )
 
                 adv_info["correlation"] = corr_res["coef"]
@@ -523,66 +751,133 @@ def compute_advanced_stats(
                 adv_info["reg_model"] = reg_res["model_type"]
                 adv_info["sample_size"] = corr_res["sample_size"]
                 adv_info["type"] = "numeric"
-            else:
-                groups = [
-                    group[y_col].values
-                    for _, group in valid_df.groupby(x_col, observed=False)
-                    if len(group) > 1 and np.var(group[y_col].values) > 0
-                ]
+                adv_info["bayes_factor"] = bayes_reg
+                adv_info["bayes_bf10"] = bayes_reg.get("bf10")
+                adv_info["bayes_evidence"] = bayes_reg.get("evidence")
+                adv_info["bayes_p_h1"] = bayes_reg.get("p_h1")
+        else:
+            # Categorical X vs Numeric Y
+            x_raw = active_df[x_col]
+            y_clean_series = y_coerced
 
-                # Compute best and worst groups by group mean (for ANOVA / T-Test) and sum
+            # Filter out missing, placeholder or dirty category labels
+            ignored_placeholders = {
+                "nan",
+                "null",
+                "none",
+                "unknown",
+                "error",
+                "hata",
+                "boş",
+                "bos",
+                "yok",
+                "-",
+                "",
+            }
+
+            valid_mask = (
+                x_raw.notna() & y_clean_series.notna() & np.isfinite(y_clean_series)
+            )
+            x_valid = x_raw[valid_mask]
+            y_valid = y_clean_series[valid_mask]
+
+            group_dict = {}
+            for g_name, g_indices in x_valid.groupby(
+                x_valid, observed=False
+            ).groups.items():
+                g_str = str(g_name).strip()
+                if not g_str or g_str.lower() in ignored_placeholders:
+                    continue
+                g_vals = y_valid.loc[g_indices].to_numpy(dtype=float)
+                if len(g_vals) >= 2:
+                    group_dict[g_str] = g_vals
+
+            # If all valid groups were excluded or only 1, fallback to raw groupby
+            if len(group_dict) < 2:
+                group_dict = {}
+                for g_name, g_indices in x_valid.groupby(
+                    x_valid, observed=False
+                ).groups.items():
+                    g_str = str(g_name).strip()
+                    if g_str and g_str.lower() not in ("nan", "null", ""):
+                        g_vals = y_valid.loc[g_indices].to_numpy(dtype=float)
+                        if len(g_vals) >= 2:
+                            group_dict[g_str] = g_vals
+
+            group_names = list(group_dict.keys())
+            groups = list(group_dict.values())
+
+            # Group means and rankings
+            if group_names:
+                grp_means = {
+                    k: safe_float(np.mean(v), 0.0) for k, v in group_dict.items()
+                }
+                sorted_groups = sorted(
+                    grp_means.items(),
+                    key=lambda item: item[1] if item[1] is not None else -1e9,
+                    reverse=True,
+                )
+                adv_info["best_group"] = sorted_groups[0][0]
+                adv_info["best_val"] = sorted_groups[0][1]
+                adv_info["worst_group"] = sorted_groups[-1][0]
+                adv_info["worst_val"] = sorted_groups[-1][1]
+                adv_info["group_means"] = grp_means
+
+            if len(groups) == 2:
                 try:
-                    grouped_mean = (
-                        valid_df.groupby(x_col, observed=False)[y_col].mean().dropna()
+                    t_stat, p_val = sp_stats.ttest_ind(
+                        groups[0], groups[1], equal_var=False
                     )
-                    if not grouped_mean.empty:
-                        adv_info["best_group"] = str(grouped_mean.idxmax())
-                        adv_info["best_val"] = float(grouped_mean.max())
-                        adv_info["worst_group"] = str(grouped_mean.idxmin())
-                        adv_info["worst_val"] = float(grouped_mean.min())
-                except Exception as e_grp:  # noqa: BLE001
-                    logger.debug(f"Group aggregation error: {e_grp}")
+                    bayes_t = compute_bayes_factor_ttest(
+                        t_stat, len(groups[0]), len(groups[1])
+                    )
+                    adv_info["t_test_stat"] = safe_float(t_stat, None)
+                    adv_info["p_value"] = safe_float(p_val, None)
+                    adv_info["type"] = "categorical_2"
+                    adv_info["bayes_factor"] = bayes_t
+                    adv_info["bayes_bf10"] = bayes_t.get("bf10")
+                    adv_info["bayes_evidence"] = bayes_t.get("evidence")
+                    adv_info["bayes_p_h1"] = bayes_t.get("p_h1")
+                    adv_info["t_test"] = {
+                        "t_stat": safe_float(t_stat, None),
+                        "p_value": safe_float(p_val, None),
+                        "group_means": adv_info.get("group_means", {}),
+                        "groups": group_names,
+                        "bayes_factor": bayes_t,
+                        "bayes_bf10": bayes_t.get("bf10"),
+                        "bayes_evidence": bayes_t.get("evidence"),
+                    }
+                except Exception as e_ttest:
+                    logger.debug(f"T-Test error: {e_ttest}")
+            elif len(groups) > 2:
+                try:
+                    f_stat, p_val = sp_stats.f_oneway(*groups)
+                    n_tot = sum(len(g) for g in groups)
+                    bayes_anova = compute_bayes_factor_anova(
+                        f_stat, len(groups), n_tot
+                    )
+                    adv_info["anova_f"] = safe_float(f_stat, None)
+                    adv_info["p_value"] = safe_float(p_val, None)
+                    adv_info["type"] = "categorical_n"
+                    adv_info["bayes_factor"] = bayes_anova
+                    adv_info["bayes_bf10"] = bayes_anova.get("bf10")
+                    adv_info["bayes_evidence"] = bayes_anova.get("evidence")
+                    adv_info["bayes_p_h1"] = bayes_anova.get("p_h1")
+                    adv_info["anova"] = {
+                        "f_stat": safe_float(f_stat, None),
+                        "p_value": safe_float(p_val, None),
+                        "groups": group_names,
+                        "bayes_factor": bayes_anova,
+                        "bayes_bf10": bayes_anova.get("bf10"),
+                        "bayes_evidence": bayes_anova.get("evidence"),
+                    }
+                except Exception as e_anova:
+                    logger.debug(f"ANOVA error: {e_anova}")
+            else:
+                adv_info["type"] = "categorical_single"
 
-                if len(groups) == 2:
-                    try:
-                        t_stat, p_val = sp_stats.ttest_ind(
-                            groups[0], groups[1], equal_var=False
-                        )
-                        grp_means = {
-                            str(k): safe_float(v, 0.0)
-                            for k, v in valid_df.groupby(x_col, observed=False)[y_col]
-                            .mean()
-                            .items()
-                        }
-                        adv_info["t_test_stat"] = safe_float(t_stat, None)
-                        adv_info["p_value"] = safe_float(p_val, None)
-                        adv_info["group_means"] = grp_means
-                        adv_info["type"] = "categorical_2"
-                        adv_info["t_test"] = {
-                            "t_stat": safe_float(t_stat, None),
-                            "p_value": safe_float(p_val, None),
-                            "group_means": grp_means,
-                            "groups": list(grp_means.keys()),
-                        }
-                    except Exception as e_ttest:  # noqa: BLE001
-                        logger.debug(f"T-Test error: {e_ttest}")
-                elif len(groups) > 2:
-                    try:
-                        f_stat, p_val = sp_stats.f_oneway(*groups)
-                        adv_info["anova_f"] = safe_float(f_stat, None)
-                        adv_info["p_value"] = safe_float(p_val, None)
-                        adv_info["type"] = "categorical_n"
-                        adv_info["anova"] = {
-                            "f_stat": safe_float(f_stat, None),
-                            "p_value": safe_float(p_val, None),
-                        }
-                    except Exception as e_anova:  # noqa: BLE001
-                        logger.debug(f"ANOVA error: {e_anova}")
-                else:
-                    adv_info["type"] = "categorical_single"
-
-                adv_info["anova_best_group"] = adv_info.get("best_group")
-                adv_info["anova_low_group"] = adv_info.get("worst_group")
+            adv_info["anova_best_group"] = adv_info.get("best_group")
+            adv_info["anova_low_group"] = adv_info.get("worst_group")
 
         advanced[y_col] = adv_info
         if adv_info.get("type") == "numeric":
@@ -591,17 +886,26 @@ def compute_advanced_stats(
             advanced["correlation"] = adv_info.get("correlation")
             advanced["r_squared"] = adv_info.get("r_squared")
             advanced["p_value"] = adv_info.get("p_value")
+            advanced["bayes_factor"] = adv_info.get("bayes_factor")
+            advanced["bayes_bf10"] = adv_info.get("bayes_bf10")
+            advanced["bayes_evidence"] = adv_info.get("bayes_evidence")
         elif "anova" in adv_info:
             advanced["type"] = "categorical_n"
             advanced["anova"] = adv_info["anova"]
             advanced["anova_best_group"] = adv_info.get("best_group")
             advanced["anova_low_group"] = adv_info.get("worst_group")
+            advanced["bayes_factor"] = adv_info.get("bayes_factor")
+            advanced["bayes_bf10"] = adv_info.get("bayes_bf10")
+            advanced["bayes_evidence"] = adv_info.get("bayes_evidence")
         elif "t_test" in adv_info:
             advanced["type"] = "categorical_2"
             advanced["t_test"] = adv_info["t_test"]
             advanced["t_test_stat"] = adv_info["t_test"]["t_stat"]
             advanced["p_value"] = adv_info["t_test"]["p_value"]
             advanced["group_means"] = adv_info.get("group_means", {})
+            advanced["bayes_factor"] = adv_info.get("bayes_factor")
+            advanced["bayes_bf10"] = adv_info.get("bayes_bf10")
+            advanced["bayes_evidence"] = adv_info.get("bayes_evidence")
 
     return advanced
 

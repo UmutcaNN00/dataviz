@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Yapay_Zekâ-İzolasyon_Ormanı_%2B_Data_Healer-10b981?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="AI Isolation Forest">
   <img src="https://img.shields.io/badge/İstatistik-SciPy_1.11%2B_Hipotez_Lab-8b5cf6?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy">
   <img src="https://img.shields.io/badge/Görselleştirme-Plotly.js_50%2B_Tür-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
-  <img src="https://img.shields.io/badge/Doğrulama-25%2F25_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
+  <img src="https://img.shields.io/badge/Doğrulama-27%2F27_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
   <img src="https://img.shields.io/badge/Veri_Egemenliği-%25100_Yerel_(KVKK_Uyumlu)-ff4500?style=for-the-badge&logo=shield&logoColor=white" alt="100% Local">
   <img src="https://img.shields.io/badge/Lisans-MIT_Açık_Kaynak-yellow?style=for-the-badge" alt="MIT License">
 </p>
@@ -69,16 +69,16 @@ Büyük veri analitiği, günümüz akademik ve kurumsal karar destek sistemleri
   <img src="docs/images/studio_step3.png" alt="DataViz Grafik Stüdyosu" width="920">
 </p>
 
-### 7. Yatay İstatistik Kartları, Hipotez Testleri (ANOVA & T-Testi) & Akademik Yorumlayıcı
-> Merkezi eğilim ölçüleri, Tek Yönlü ANOVA ($F$), Bağımsız Örneklem T-Testi ($t$) hipotez testleri ve sadeleştirilmiş bilimsel yönetici özeti.
+### 7. Yatay İstatistik Kartları, Hipotez Testleri (ANOVA & T-Testi) & Bayes Faktörü ($BF_{10}$)
+> Merkezi eğilim ölçüleri, Tek Yönlü ANOVA ($F$), Bağımsız Örneklem T-Testi ($t$), Bayesian Kanıt Gücü ($BF_{10}$ Bayes Faktörü - JASP/Wagenmakers ölçeği) ve sadeleştirilmiş bilimsel yönetici özeti.
 <p align="center">
-  <img src="docs/images/stats_horizontal.png" alt="DataViz Yatay İstatistik ve Hipotez Analizi" width="920">
+  <img src="docs/images/anova_bayes_card.png" alt="DataViz Yatay İstatistik, ANOVA ve Bayes Faktörü Analizi" width="920">
 </p>
 
-### 8. Bilimsel Korelasyon & Regresyon Stüdyosu (%95 Güven Aralığı Bandı)
-> Pearson ($r$), Spearman ($\rho$), Kendall ($\tau$) ısı haritası; Doğrusal, Polinom (2./3. derece), Logaritmik ve Üstel OLS regresyon eğrileri.
+### 8. Bilimsel Korelasyon & Regresyon Stüdyosu (%95 Güven Aralığı Bandı & Bayes Faktörü)
+> Pearson ($r$), Spearman ($\rho$), Kendall ($\tau$) ısı haritası; Doğrusal, Polinom (2./3. derece), Logaritmik ve Üstel OLS regresyon eğrileri, Regresyon Bayes Faktörü ($BF_{10}$) ve Naive Bayes sınıflandırıcı modeli.
 <p align="center">
-  <img src="docs/images/regression.png" alt="DataViz Korelasyon ve Regresyon Stüdyosu" width="920">
+  <img src="docs/images/regression_bayes_studio.png" alt="DataViz Korelasyon, Regresyon ve Bayes Stüdyosu" width="920">
 </p>
 
 ### 9. Sürükle-Bırak Dinamik Pivot Matris & Isı Haritası
@@ -282,10 +282,10 @@ dataviz/
 │
 ├── app.py                          # Flask uygulama fabrikası ve JSON serileştirici (NaN/Inf korumalı)
 ├── requirements.txt                # Python bağımlılıkları (Flask, Polars, PyArrow, SciPy, Scikit-Learn, SQLAlchemy)
-├── DEMO_BASLAT.bat                 # Windows için tek tıkla başlatıcı
+├── Baslat.bat                      # Windows için tek tıkla otomatik sanal ortam ve başlatıcı
 ├── Dockerfile                      # Konteyner dağıtım tanımı
 ├── docker-compose.yml              # Docker Compose servis yapılandırması
-├── test_system_connectivity.py     # 25 adımlı uçtan uca (E2E) master entegrasyon test paketi
+├── test_system_connectivity.py     # 27 adımlı uçtan uca (E2E) master entegrasyon test paketi
 ├── generate_100m_dataset.py        # 100M satır sentetik stres benchmark veri seti üreteci
 ├── TUBITAK_2209A_Proje_Basvuru_Formu_DataViz.docx # Resmi TÜBİTAK 2209-A Proje Başvuru Formu
 │
@@ -299,13 +299,13 @@ dataviz/
 │   ├── data_routes.py              # /check_health, /repair_column_anomalies, /clean_data, /merge_datasets,
 │   │                               # /get_trust_report, /auto_heal_all_trust, /calculate_risk_score
 │   ├── chart_routes.py             # POST /get_chart_data (Sütun izdüşümlü), /get_column_unique_values
-│   ├── stats_routes.py             # /get_stats, /get_kpi_summary, /get_correlation_matrix, /get_regression_studio_data
+│   ├── stats_routes.py             # /get_stats, /get_kpi_summary, /get_correlation_matrix, /get_regression_studio_data, /get_naive_bayes
 │   └── export_routes.py            # /export_data (CSV/Excel/Parquet), /export_pivot_excel
 │
 ├── services/                       # İş Mantığı ve Veri İşleme Katmanı (Service Layer)
 │   ├── file_service.py             # Polars/PyArrow destekli hızlı dosya okuma, sayfa izolasyonu ve tip optimizasyonu
 │   ├── data_healer.py              # İzolasyon Ormanı anomali tespiti, birim temizleme ve sütun bazlı onarım
-│   ├── stats_service.py            # SciPy tabanlı ANOVA, T-Testi, Korelasyon, Regresyon (%95 GA) ve Pivot motoru
+│   ├── stats_service.py            # SciPy tabanlı ANOVA, T-Testi, Korelasyon, Regresyon (%95 GA), Bayes Faktörü (BF₁₀) ve Naive Bayes
 │   ├── ai_service.py               # İstatistiksel bulguları sade ve anlaşılır akademik yönetici diline çeviren yorumlayıcı
 │   └── export_service.py           # Polars/PyArrow hızlandırmalı Parquet, Excel ve CSV dışa aktarma servisi
 │
@@ -366,7 +366,7 @@ docker compose up -d --build
 # Tarayıcıda: http://localhost:5000
 ```
 
-### 🧪 Sistem Doğrulama Testi (25/25 Master Test)
+### 🧪 Sistem Doğrulama Testi (27/27 Master Test)
 
 Tüm mimari bileşenlerin, sıfır-kopyalama bellek motorunun, İzolasyon Ormanı onarıcısının ve istatistik servislerinin doğruluğunu tek komutla test edebilirsiniz:
 
