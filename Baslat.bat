@@ -52,13 +52,32 @@ for /d %%D in ("%ProgramFiles%\Python3*") do (
 )
 
 echo ========================================================================
-echo   [!] HATA: Bilgisayarinizda Python 3.10 veya daha yeni bulunamadi.
+echo   [!] BILGI: Bilgisayarinizda Python 3.10 veya daha yeni bulunamadi.
 echo ========================================================================
 echo.
 echo   DataViz platformunun calisabilmesi icin Python 3.10+ gereklidir.
 echo.
+where winget >nul 2>&1
+if %errorlevel% equ 0 (
+    echo   Windows Paket Yoneticisi (winget) tespit edildi!
+    echo   Python 3.11 otomatik olarak kurulabilir.
+    echo.
+    set /p "KUR_PYTHON=Python 3.11 otomatik kurulsun mu? (E/H): "
+    if /i "%KUR_PYTHON%"=="E" (
+        echo.
+        echo   Python 3.11 kuruluyor, lutfen acilan pencereleri onaylayin...
+        winget install -e --id Python.Python.3.11 --accept-package-agreements --accept-source-agreements
+        echo.
+        echo   [OK] Kurulum komutu tamamlandi.
+        echo   Yeni ortam degiskenlerinin taninmasi icin lutfen Baslat.bat dosyasini tekrar calistirin.
+        pause
+        exit /b 0
+    )
+)
+echo.
+echo   Manuel Kurulum Icin:
 echo   1. https://www.python.org/downloads/ adresinden Python indirin.
-echo   2. Kurulum ekraninda: Add python.exe to PATH secenegini ISARETLEYIN!
+echo   2. Kurulum ekraninda: "Add python.exe to PATH" secenegini ISARETLEYIN!
 echo   3. Kurulum bitince bu Baslat.bat dosyasini tekrar calistirin.
 echo.
 echo ========================================================================
