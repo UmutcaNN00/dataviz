@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Doğrulama-27%2F27_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
   <img src="https://img.shields.io/badge/Veri_Egemenliği-%25100_Yerel_(KVKK_Uyumlu)-ff4500?style=for-the-badge&logo=shield&logoColor=white" alt="100% Local">
   <img src="https://img.shields.io/badge/Lisans-MIT_Açık_Kaynak-yellow?style=for-the-badge" alt="MIT License">
+  <a href="https://github.com/UmutcaNN00/dataviz/releases/latest"><img src="https://img.shields.io/badge/İndir-DataViz_Portable.zip_(v1.0.0)-22c55e?style=for-the-badge&logo=windows&logoColor=white" alt="Download Portable"></a>
 </p>
 
 </div>
