@@ -283,6 +283,8 @@ dataviz/
 ├── app.py                          # Flask uygulama fabrikası ve JSON serileştirici (NaN/Inf korumalı)
 ├── requirements.txt                # Python bağımlılıkları (Flask, Polars, PyArrow, SciPy, Scikit-Learn, SQLAlchemy)
 ├── Baslat.bat                      # Windows için tek tıkla otomatik sanal ortam ve başlatıcı
+├── UYGULAMAYI_BASLAT.bat           # Alternatif tek tıkla başlatıcı kısayolu
+├── TASINABILIR_SURUM_KILAVUZU.txt  # Taşınabilir (Portable) sürüm kullanım kılavuzu
 ├── Dockerfile                      # Konteyner dağıtım tanımı
 ├── docker-compose.yml              # Docker Compose servis yapılandırması
 ├── test_system_connectivity.py     # 27 adımlı uçtan uca (E2E) master entegrasyon test paketi
@@ -338,7 +340,7 @@ dataviz/
 ## ⚡ Hızlı Başlangıç ve Kurulum
 
 ### Seçenek 1: Windows'ta Tek Tıkla Başlatma (Önerilen)
-Proje ana dizinindeki [`DEMO_BASLAT.bat`](DEMO_BASLAT.bat) dosyasına çift tıklayın. Sanal ortam otomatik hazırlanır ve tarayıcınızda `http://127.0.0.1:5000` açılır.
+Proje ana dizinindeki [`Baslat.bat`](Baslat.bat) veya [`UYGULAMAYI_BASLAT.bat`](UYGULAMAYI_BASLAT.bat) dosyasına çift tıklayın. Python tespiti, izole sanal ortam (`.venv`) ve kütüphaneler otomatik yapılandırılır; tarayıcınızda `http://127.0.0.1:5000` açılır.
 
 ### Seçenek 2: Terminal / Manuel Kurulum
 
