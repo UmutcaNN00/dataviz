@@ -140,39 +140,39 @@ Proje mimarisi ve çıktıları, ulusal teknoloji vizyon belgeleriyle birebir uy
 Platform; modülerlik, sürdürülebilirlik ve yüksek performansı güvence altına alan **4 katmanlı kurumsal mimari** prensibiyle inşa edilmiştir:
 
 ```mermaid
-graph TD
-    subgraph Katman 1: Sunum Katmanı [Presentation Layer - Web & UI]
-        UI1[Plotly.js WebGL 50+ Grafik Galerisi]
-        UI2[Reaktif Sürükle-Bırak Eksen Havuzu]
-        UI3[AI Güven Skoru & Karne Arayüzü]
-        UI4[Etkileşimli A4 PDF Raporlama Stüdyosu]
+flowchart TD
+    subgraph K1["Katman 1: Sunum Katmanı (Web & UI)"]
+        UI1["Plotly.js WebGL 50+ Grafik Galerisi"]
+        UI2["Reaktif Sürükle-Bırak Eksen Havuzu"]
+        UI3["AI Güven Skoru & Karne Arayüzü"]
+        UI4["Etkileşimli A4 PDF Raporlama Stüdyosu"]
     end
 
-    subgraph Katman 2: API ve Yönlendirme Katmanı [Controller Layer - Flask Blueprints]
-        BP1[upload_routes: Dosya & SQL Alımı]
-        BP2[data_routes: Güven Skoru & Healer]
-        BP3[chart_routes: Sütun İzdüşümlü Veri]
-        BP4[stats_routes: ANOVA / T-Test / Regresyon]
-        BP5[export_routes: Parquet / Excel / CSV]
+    subgraph K2["Katman 2: API ve Yönlendirme Katmanı (Flask Blueprints)"]
+        BP1["upload_routes: Dosya & SQL Alımı"]
+        BP2["data_routes: Güven Skoru & Healer"]
+        BP3["chart_routes: Sütun İzdüşümlü Veri"]
+        BP4["stats_routes: ANOVA / T-Test / Regresyon"]
+        BP5["export_routes: Parquet / Excel / CSV"]
     end
 
-    subgraph Katman 3: Servis ve Yapay Zekâ Katmanı [Service Layer - Business Logic]
-        SRV1[file_service: Polars / PyArrow Zero-Copy]
-        SRV2[data_healer: İzolasyon Ormanı & Tip Onarımı]
-        SRV3[stats_service: SciPy 1.11+ Hipotez Motoru]
-        SRV4[ai_service: Akademik Yönetici Yorumlayıcısı]
+    subgraph K3["Katman 3: Servis ve Yapay Zekâ Katmanı (Business Logic)"]
+        SRV1["file_service: Polars / PyArrow Zero-Copy"]
+        SRV2["data_healer: İzolasyon Ormanı & Tip Onarımı"]
+        SRV3["stats_service: SciPy 1.11+ Hipotez Motoru"]
+        SRV4["ai_service: Akademik Yönetici Yorumlayıcısı"]
     end
 
-    subgraph Katman 4: Depolama ve Bellek Katmanı [Storage Layer - 100% Localhost]
-        MEM1[Apache Arrow Sütunsal Bellek Formatı]
-        MEM2[In-Memory LRU Session Store]
-        MEM3[Apache Parquet ZSTD Sıkıştırma]
-        MEM4[127.0.0.1 Yerel Mimari / Sıfır Bulut Bağımlılığı]
+    subgraph K4["Katman 4: Depolama ve Bellek Katmanı (100% Localhost)"]
+        MEM1["Apache Arrow Sütunsal Bellek Formatı"]
+        MEM2["In-Memory LRU Session Store"]
+        MEM3["Apache Parquet ZSTD Sıkıştırma"]
+        MEM4["127.0.0.1 Yerel Mimari / Sıfır Bulut Bağımlılığı"]
     end
 
-    Katman 1 -->|Asenkron REST / JSON| Katman 2
-    Katman 2 -->|Servis Çağrıları| Katman 3
-    Katman 3 -->|Sıfır-Kopyalama Bellek İşaretçileri| Katman 4
+    K1 -->|Asenkron REST / JSON| K2
+    K2 -->|Servis Çağrıları| K3
+    K3 -->|Sıfır-Kopyalama Bellek İşaretçileri| K4
 ```
 
 ---
