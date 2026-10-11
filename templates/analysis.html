@@ -2749,47 +2749,79 @@
 
     <!-- ══════════ 4. BAĞIMSIZ TAM EKRAN PIVOT TABLO STÜDYOSU ══════════ -->
     <div id="screen-pivot-studio" class="wizard-screen hidden">
-      <header class="s2-header">
-        <div class="s2-header-left">
-          <a
-            href="/"
-            class="s1-logo"
-            style="font-size: 1.1rem; margin-right: 12px; margin-bottom: 0"
-            >⬡ DataViz</a
+      <header class="s2-header tableau-ribbon-header">
+        <div class="s2-header-top-row">
+          <div class="s2-header-left">
+            <span class="s2-file-badge">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span id="pivotFileName">veri.xlsx</span>
+            </span>
+            <span class="s2-status-pill">● Pivot Matris Modu</span>
+          </div>
+
+          <!-- Ortada Stüdyo Geçiş Sekmeleri -->
+          <div class="studio-mode-switcher">
+            <button type="button" class="sms-btn" id="btnPivotBackToCharts">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+              <span class="sms-label">Grafik Stüdyosu</span>
+            </button>
+            <button type="button" class="sms-btn active">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              <span class="sms-label">Pivot Matris Stüdyosu</span>
+            </button>
+          </div>
+
+          <div
+            class="s2-header-right"
+            style="display: flex; align-items: center; gap: 8px"
           >
-          <span class="s2-file-badge"
-            ><svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+            <button
+              type="button"
+              class="theme-toggle-btn theme-toggle-trigger"
+              id="themeToggleBtnPivot"
+              aria-label="Temayı Değiştir"
+              title="Karanlık / Aydınlık Tema"
             >
-              <path
-                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-              />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-            <span id="pivotFileName">veri.xlsx</span></span
-          >
-        </div>
-
-        <!-- Ortada Stüdyo Geçiş Butonları -->
-        <div class="studio-mode-switcher">
-          <button type="button" class="sms-btn" id="btnPivotBackToCharts">
-            📊 Grafik Stüdyosu
-          </button>
-          <button type="button" class="sms-btn active">
-            📑 Pivot Matris Stüdyosu
-          </button>
-        </div>
-
-        <div class="s2-header-right">
-          <button class="btn-ghost" id="btnPivotNewFile">Yeni Dosya</button>
+              <span class="theme-icon-sun">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+              </span>
+            </button>
+            <button class="btn-ghost" id="btnPivotNewFile">Yeni Dosya</button>
+          </div>
         </div>
       </header>
 
@@ -2821,13 +2853,12 @@
       <!-- PIVOT STUDIO 50/50 SPLIT LAYOUT -->
       <div class="s2-body-split">
         <!-- SOL YARI: HAVUZ VE BIRAKMA ALANLARI -->
-        <div class="s2-pane s2-left-pane">
+        <div class="s2-pane s2-left-pane left-style-tableau" id="pivot-left-pane">
           <div class="pane-header">
             <div>
-              <h3>1. Pivot Boyutlarını &amp; Değerlerini Belirleyin</h3>
+              <h3>Pivot Boyutları &amp; Değerleri</h3>
               <p>
-                Aşağıdaki havuzdan sütunları tutup Satır, Sütun ve Değer
-                kutularına bırakın veya tıklayın.
+                Sütunları Satır, Sütun ve Değer raflarına sürükleyin veya üzerine tıklayın.
               </p>
             </div>
           </div>
@@ -2836,12 +2867,24 @@
           <div class="s2-pool-container">
             <div class="pool-header-row">
               <div style="display: flex; align-items: center; gap: 8px">
-                <h4>Veri Havuzu</h4>
+                <h4 style="display: flex; align-items: center; gap: 6px">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  Veri Alanları
+                </h4>
                 <span id="pivotPoolCountBadge" class="pool-total-badge"
                   >0 Sütun</span
                 >
               </div>
-              <div style="display: flex; gap: 6px">
+              <div style="display: flex; align-items: center; gap: 6px">
+                <button
+                  type="button"
+                  class="btn-clear-all-axes"
+                  id="btnClearAllPivotAxes"
+                  title="Satır, Sütun ve Değerler raflarındaki tüm seçimleri temizle"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  Tümünü Temizle
+                </button>
                 <button
                   type="button"
                   class="btn-calc-col"
@@ -2906,34 +2949,66 @@
           <!-- Pivot Drop Zones -->
           <div class="s2-zones-container">
             <div class="dd-zone-wrapper">
-              <h4>
-                🟪 Satırlar (Rows)
-                <span class="zone-hint"
-                  >📌 Ana Kategori / Boyut: Bölge, Şehir, Ürün vb.</span
+              <div class="zone-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                  🟪 Satırlar (Rows)
+                  <span class="zone-hint" style="margin-left: 6px;">Bölge, Şehir, Ürün vb.</span>
+                </h4>
+                <button
+                  type="button"
+                  class="btn-clear-single-axis"
+                  id="btnClearPivotRows"
+                  title="Satırlar rafındaki tüm seçimleri temizle"
                 >
-              </h4>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  Temizle
+                </button>
+              </div>
               <div id="pivotRowZone" class="dd-zone" data-pivot-zone="row">
                 Sütunları Buraya Bırakın veya Havuzdan Tıklayın
               </div>
             </div>
+
             <div class="dd-zone-wrapper">
-              <h4>
-                🟦 Sütunlar (Columns - Opsiyonel)
-                <span class="zone-hint"
-                  >📌 Üst Kırılım: Ödeme Yöntemi, Yıl, Segment vb.</span
+              <div class="zone-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                  🟦 Sütunlar (Columns - Opsiyonel)
+                  <span class="zone-hint" style="margin-left: 6px;">Ödeme Yöntemi, Yıl, Segment vb.</span>
+                </h4>
+                <button
+                  type="button"
+                  class="btn-clear-single-axis"
+                  id="btnClearPivotCols"
+                  title="Sütunlar rafındaki tüm seçimleri temizle"
                 >
-              </h4>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  Temizle
+                </button>
+              </div>
               <div id="pivotColZone" class="dd-zone" data-pivot-zone="col">
                 Sütunları Buraya Bırakın (Opsiyonel)
               </div>
             </div>
+
             <div class="dd-zone-wrapper">
-              <h4>
-                🟧 Değerler / Metrikler (Values)
-                <span class="zone-hint"
-                  >📊 Sayısal Değerler: Ciro, Kâr, Adet vb.</span
+              <div class="zone-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                  🟧 Değerler / Metrikler (Values)
+                  <span class="zone-hint" style="margin-left: 6px;">Ciro, Kâr, Adet vb.</span>
+                </h4>
+                <button
+                  type="button"
+                  class="btn-clear-single-axis"
+                  id="btnClearPivotVals"
+                  title="Değerler rafındaki tüm seçimleri temizle"
                 >
-              </h4>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  Temizle
+                </button>
+              </div>
               <div id="pivotValZone" class="dd-zone" data-pivot-zone="val">
                 Sayısal Sütunları Buraya Bırakın
               </div>

@@ -17,6 +17,16 @@ function initPivotStudio() {
   const pivotPool = document.getElementById("pivotColPool");
   if (!pivotPool) return;
 
+  // Sol panel scroll pozisyonunu en üste alarak görünürlüğü düzelt
+  const leftPane = document.getElementById("pivot-left-pane");
+  if (leftPane) leftPane.scrollTop = 0;
+
+  // Dosya adı rozetini senkronize et
+  const fileNameEl = document.getElementById("pivotFileName");
+  if (fileNameEl && window.currentFileName) {
+    fileNameEl.textContent = window.currentFileName;
+  }
+
   // Mevcut veri setinde bulunmayan eski sütunları temizle
   pivotConfig.rows = (pivotConfig.rows || []).filter((c) =>
     globalColumns.includes(c),
@@ -28,30 +38,65 @@ function initPivotStudio() {
     numericColumns.includes(c),
   );
 
-  // Otomatik akıllı ilk varsayılanlar (Asla boş ve uyarı ile açılmasın)
-  if (pivotConfig.rows.length === 0) {
-    const defRow =
-      categoricalColumns.find((c) => /bolge|sehir|kategori|segment/i.test(c)) ||
-      categoricalColumns[0] ||
-      globalColumns[0];
-    if (defRow) pivotConfig.rows = [defRow];
-  }
-  if (pivotConfig.cols.length === 0 && categoricalColumns.length > 1) {
-    const defCol =
-      categoricalColumns.find(
-        (c) =>
-          !pivotConfig.rows.includes(c) &&
-          /odeme|kategori|tip|tur|yil/i.test(c),
-      ) || categoricalColumns.find((c) => !pivotConfig.rows.includes(c));
-    if (defCol) pivotConfig.cols = [defCol];
-  }
-  if (pivotConfig.values.length === 0) {
-    const defVal =
-      numericColumns.find((c) => /tutar|ciro|kar|satis|fiyat/i.test(c)) ||
-      numericColumns[0];
-    if (defVal) pivotConfig.values = [defVal];
+  // Otomatik akıllı ilk varsayılanlar (Eğer kullanıcı daha önce seçim yapmışsa veya temizlemişse zorlama yapma)
+  const isFirstLoad = !window._pivotEverInitialized;
+  window._pivotEverInitialized = true;
+
+  if (isFirstLoad) {
+    if (pivotConfig.rows.length === 0) {
+      const defRow =
+        categoricalColumns.find((c) => /bolge|sehir|kategori|segment/i.test(c)) ||
+        categoricalColumns[0] ||
+        globalColumns[0];
+      if (defRow) pivotConfig.rows = [defRow];
+    }
+    if (pivotConfig.cols.length === 0 && categoricalColumns.length > 1) {
+      const defCol =
+        categoricalColumns.find(
+          (c) =>
+            !pivotConfig.rows.includes(c) &&
+            /odeme|kategori|tip|tur|yil/i.test(c),
+        ) || categoricalColumns.find((c) => !pivotConfig.rows.includes(c));
+      if (defCol) pivotConfig.cols = [defCol];
+    }
+    if (pivotConfig.values.length === 0) {
+      const defVal =
+        numericColumns.find((c) => /tutar|ciro|kar|satis|fiyat/i.test(c)) ||
+        numericColumns[0];
+      if (defVal) pivotConfig.values = [defVal];
+    }
   }
 
+  renderPivotPoolStructured();
+  renderPivotDropZones();
+  refreshPivotStudio();
+}
+
+function clearPivotRows() {
+  pivotConfig.rows = [];
+  renderPivotPoolStructured();
+  renderPivotDropZones();
+  refreshPivotStudio();
+}
+
+function clearPivotCols() {
+  pivotConfig.cols = [];
+  renderPivotPoolStructured();
+  renderPivotDropZones();
+  refreshPivotStudio();
+}
+
+function clearPivotVals() {
+  pivotConfig.values = [];
+  renderPivotPoolStructured();
+  renderPivotDropZones();
+  refreshPivotStudio();
+}
+
+function clearAllPivotAxes() {
+  pivotConfig.rows = [];
+  pivotConfig.cols = [];
+  pivotConfig.values = [];
   renderPivotPoolStructured();
   renderPivotDropZones();
   refreshPivotStudio();
@@ -572,6 +617,12 @@ function initPivotStudioListeners() {
       document.getElementById("btnOpenMergeModal")?.click();
     });
 
+  // Pivot Eksen Temizleme Butonları (Tümünü Temizle, Satırlar, Sütunlar, Değerler)
+  document.getElementById("btnClearAllPivotAxes")?.addEventListener("click", clearAllPivotAxes);
+  document.getElementById("btnClearPivotRows")?.addEventListener("click", clearPivotRows);
+  document.getElementById("btnClearPivotCols")?.addEventListener("click", clearPivotCols);
+  document.getElementById("btnClearPivotVals")?.addEventListener("click", clearPivotVals);
+
   // Aggregation Function Select
   document.getElementById("pivotAggSelect")?.addEventListener("change", (e) => {
     pivotConfig.agg_func = e.target.value;
@@ -667,3 +718,7 @@ window.renderPivotPoolStructured = renderPivotPoolStructured;
 window.refreshPivotStudio = refreshPivotStudio;
 window.renderPivotMatrixStage = renderPivotMatrixStage;
 window.exportPivotExcel = exportPivotExcel;
+window.clearPivotRows = clearPivotRows;
+window.clearPivotCols = clearPivotCols;
+window.clearPivotVals = clearPivotVals;
+window.clearAllPivotAxes = clearAllPivotAxes;
