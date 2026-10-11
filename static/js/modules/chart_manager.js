@@ -306,6 +306,40 @@ function handleDropY(colName) {
   assignPillToZone(colName, "yZone");
 }
 
+function clearXAxis() {
+  const xZone = document.getElementById("xZone");
+  if (!xZone) return;
+  const pills = xZone.querySelectorAll(".col-pill");
+  pills.forEach((p) => returnPillToPool(p));
+  restoreZonePlaceholder(xZone);
+  updateAxisConfig();
+}
+
+function clearYAxis() {
+  const yZone = document.getElementById("yZone");
+  if (!yZone) return;
+  const pills = yZone.querySelectorAll(".col-pill");
+  pills.forEach((p) => returnPillToPool(p));
+  restoreZonePlaceholder(yZone);
+  updateAxisConfig();
+}
+
+function clearAllAxes() {
+  const xZone = document.getElementById("xZone");
+  const yZone = document.getElementById("yZone");
+  if (xZone) {
+    const pills = xZone.querySelectorAll(".col-pill");
+    pills.forEach((p) => returnPillToPool(p));
+    restoreZonePlaceholder(xZone);
+  }
+  if (yZone) {
+    const pills = yZone.querySelectorAll(".col-pill");
+    pills.forEach((p) => returnPillToPool(p));
+    restoreZonePlaceholder(yZone);
+  }
+  updateAxisConfig();
+}
+
 function updateAxisConfig() {
   const xPill = document.getElementById("xZone")?.querySelector(".col-pill");
   axisConfig.x = xPill ? xPill.dataset.col : null;
@@ -1124,6 +1158,11 @@ async function exportActiveDataset(format, triggerBtnId = null) {
 
 /* ── 8. EVENT LISTENERS INITIALIZATION ── */
 function initChartManagerListeners() {
+  // Eksen Temizleme Butonları (Tümünü Temizle, X Temizle, Y Temizle)
+  document.getElementById("btnClearAllAxes")?.addEventListener("click", clearAllAxes);
+  document.getElementById("btnClearXAxis")?.addEventListener("click", clearXAxis);
+  document.getElementById("btnClearYAxis")?.addEventListener("click", clearYAxis);
+
   // Pool search & filter
   document.getElementById("poolSearchInput")?.addEventListener("input", (e) => {
     currentPoolSearch = e.target.value.toLowerCase().trim();
@@ -1696,6 +1735,9 @@ window.restoreZonePlaceholder = restoreZonePlaceholder;
 window.assignPillToZone = assignPillToZone;
 window.handleDropX = handleDropX;
 window.handleDropY = handleDropY;
+window.clearAllAxes = clearAllAxes;
+window.clearXAxis = clearXAxis;
+window.clearYAxis = clearYAxis;
 window.updateAxisConfig = updateAxisConfig;
 window.renderChartGrid = renderChartGrid;
 window.evaluateCharts = evaluateCharts;

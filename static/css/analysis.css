@@ -7728,6 +7728,115 @@ body.light-theme .dd-zone,
   width: auto !important;
 }
 
+/* ═══════════════ EKSEN TEMİZLEME BUTONLARI (X, Y ve TÜMÜ) ═══════════════ */
+.btn-clear-all-axes {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.2;
+}
+
+.btn-clear-all-axes svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+  transition: transform 0.18s ease;
+}
+
+.btn-clear-all-axes:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #ef4444;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.18);
+}
+
+.btn-clear-all-axes:hover svg {
+  transform: scale(1.1);
+}
+
+.btn-clear-all-axes:active {
+  transform: translateY(0);
+}
+
+.btn-clear-single-axis {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.06);
+  color: #f87171;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.2;
+}
+
+.btn-clear-single-axis svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+  transition: transform 0.18s ease;
+}
+
+.btn-clear-single-axis:hover {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #ef4444;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
+}
+
+.btn-clear-single-axis:hover svg {
+  transform: scale(1.1);
+}
+
+.btn-clear-single-axis:active {
+  transform: translateY(0);
+}
+
+/* Açık Tema Uyumluluğu */
+[data-theme="light"] .btn-clear-all-axes,
+body.light-theme .btn-clear-all-axes {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+[data-theme="light"] .btn-clear-all-axes:hover,
+body.light-theme .btn-clear-all-axes:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="light"] .btn-clear-single-axis,
+body.light-theme .btn-clear-single-axis {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+[data-theme="light"] .btn-clear-single-axis:hover,
+body.light-theme .btn-clear-single-axis:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.1);
+}
+
+
 
 
 
