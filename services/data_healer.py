@@ -447,5 +447,32 @@ def clean_missing_data(
             _fill_categorical_columns(
                 df_clean, is_massive=is_massive, target_cols=cat_targets
             )
+    elif action in ("fill_mode", "mode"):
+        all_num_cols = df_clean.select_dtypes(include=["number"]).columns
+        num_cols = [single_col] if single_col in all_num_cols else ([] if single_col else list(all_num_cols))
+        for c in num_cols:
+            col_s = df_clean[c]
+            if col_s.isna().any():
+                modes = col_s.dropna().mode()
+                fill_v = modes.iloc[0] if len(modes) > 0 else (np.float32(0.0) if col_s.dtype == np.float32 else 0.0)
+                df_clean[c] = col_s.fillna(fill_v)
+        cat_targets = [single_col] if (single_col and single_col not in all_num_cols) else ([] if single_col else None)
+        if cat_targets is None or len(cat_targets) > 0:
+            cat_cols = [c for c in cat_targets if c in df_clean.columns] if cat_targets is not None else list(
+                df_clean.select_dtypes(include=["object", "category", "string"]).columns
+            )
+            for cc in cat_cols:
+                col_s = df_clean[cc]
+                if col_s.isna().any():
+                    modes = col_s.dropna().mode()
+                    fill_label = str(modes.iloc[0]) if len(modes) > 0 else "Bilinmiyor"
+                    if isinstance(col_s.dtype, pd.CategoricalDtype) and fill_label not in col_s.cat.categories:
+                        col_s = col_s.cat.add_categories([fill_label])
+                    df_clean[cc] = col_s.fillna(fill_label)
+    elif action in ("drop_duplicates", "deduplicate"):
+        if single_col:
+            df_clean = df_clean.drop_duplicates(subset=[single_col], ignore_index=True)
+        else:
+            df_clean = df_clean.drop_duplicates(ignore_index=True)
 
     return df_clean

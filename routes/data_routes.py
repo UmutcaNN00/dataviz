@@ -3,6 +3,7 @@ Data Routes Blueprint - Data Health, Anomaly Healing, Cleaning, Dataset Joins, a
 """
 
 import logging
+import math
 import re
 from typing import Any, cast
 
@@ -162,9 +163,16 @@ def clean_data():
         if get_baseline_trust() is None:
             set_baseline_trust(_compute_trust_snapshot(global_df))
 
-        cleaned_df = clean_missing_data(
-            global_df, action=action, target_column=target_column
-        )
+        if action in ("mice", "knn"):
+            from services.advanced_imputer import impute_missing_advanced
+            target_cols = [target_column] if target_column and target_column not in ("__all__", "all") else None
+            cleaned_df, imp_report = impute_missing_advanced(global_df, method=action, target_columns=target_cols)
+            if "error" in imp_report:
+                return jsonify({"error": imp_report["error"]}), 400
+        else:
+            cleaned_df = clean_missing_data(
+                global_df, action=action, target_column=target_column
+            )
         is_global_clean = not target_column or target_column in ("__all__", "all")
         if is_global_clean:
             if len(cleaned_df) <= 500_000:
@@ -225,6 +233,9 @@ def preview_second_file():
                 }
             ), 400
 
+        if df2 is None or df2.empty or len(df2.columns) == 0:
+            return jsonify({"error": "2. dosya boş veya geçerli veri içermiyor."}), 400
+
         df2.columns = pd.Index(_deduplicate_columns(df2.columns))
         set_df(df2, 2)
 
@@ -277,9 +288,15 @@ def preview_second_file():
                 "auto_key2": auto_key2,
             }
         )
+    except pd.errors.EmptyDataError:
+        logger.warning("preview_second_file: Boş 2. dosya yüklendi.")
+        return jsonify({"error": "Yüklenen 2. dosya tamamen boş veya veri içermiyor."}), 400
+    except ValueError as e:
+        logger.warning(f"preview_second_file doğrulama hatası: {e}")
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.exception("preview_second_file hatası")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"2. dosya işlenirken bir hata oluştu: {e}"}), 500
 
 
 @data_bp.route("/merge_datasets", methods=["POST"])
@@ -428,6 +445,7 @@ def merge_datasets():
 
 
 @data_bp.route("/add_calculated_column", methods=["POST"])
+@data_bp.route("/create_calculated_column", methods=["POST"])
 def add_calculated_column():
     """Generates a calculated column based on arithmetic operations between columns/scalars."""
     global_df = get_df(1)
@@ -435,16 +453,35 @@ def add_calculated_column():
         return jsonify({"error": "Veri yok"}), 400
 
     data = request.get_json(silent=True) or {}
-    new_col = (data.get("new_col_name") or data.get("new_column_name") or "").strip()
+    new_col = (
+        data.get("new_col_name")
+        or data.get("new_column_name")
+        or data.get("new_column")
+        or data.get("column_name")
+        or ""
+    ).strip()
+    formula = (data.get("formula") or "").strip()
     col1 = data.get("col1")
     op = data.get("op") or data.get("operator")
     col2 = data.get("col2")
     scalar = data.get("scalar")
 
+    if formula and not (col1 and op):
+        import re
+        m = re.match(r"^([a-zA-Z0-9_çğıöşüÇĞİÖŞÜ]+)\s*([\+\-\*\/\%\^])\s*([a-zA-Z0-9_\.çğıöşüÇĞİÖŞÜ]+)$", formula)
+        if m:
+            col1 = m.group(1).strip()
+            op = m.group(2).strip()
+            rhs = m.group(3).strip()
+            if rhs in global_df.columns:
+                col2 = rhs
+            else:
+                scalar = rhs
+
     if not new_col:
         return jsonify({"error": "Yeni sütun adı belirtilmelidir."}), 400
-    if col1 not in global_df.columns:
-        return jsonify({"error": "1. sütun bulunamadı."}), 400
+    if not col1 or col1 not in global_df.columns:
+        return jsonify({"error": f"1. sütun ('{col1}') bulunamadı."}), 400
 
     try:
         s1 = pd.to_numeric(global_df[col1], errors="coerce").fillna(0)
@@ -468,15 +505,30 @@ def add_calculated_column():
         elif op == "*":
             res = s1 * s2
         elif op == "/":
-            raw_div = np.where(s2 != 0, s1 / s2, 0.0)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                raw_div = np.where(s2 != 0, s1 / s2, 0.0)
             res = pd.Series(raw_div, index=global_df.index).replace(
                 [np.inf, -np.inf, np.nan], 0.0
             )
+        elif op in ("%", "mod"):
+            with np.errstate(divide="ignore", invalid="ignore"):
+                raw_mod = np.where(s2 != 0, s1 % s2, 0.0)
+            res = pd.Series(raw_mod, index=global_df.index).replace(
+                [np.inf, -np.inf, np.nan], 0.0
+            )
+        elif op in ("^", "**", "pow"):
+            with np.errstate(over="ignore", invalid="ignore"):
+                raw_pow = np.power(s1, s2)
+            res = pd.Series(raw_pow, index=global_df.index).replace(
+                [np.inf, -np.inf, np.nan], 0.0
+            )
         else:
-            return jsonify({"error": "Geçersiz işlem operatörü."}), 400
+            return jsonify({"error": f"Geçersiz işlem operatörü: '{op}'"}), 400
 
         global_df[new_col] = res
         set_df(global_df, 1)
+        set_baseline_trust(None)
+        set_is_cleaned(False)
 
         numeric_cols = global_df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = global_df.select_dtypes(
@@ -503,7 +555,7 @@ from sklearn.ensemble import IsolationForest
 def calculate_risk_score():
     """Calculates an AI-based Trust/Risk Score using Isolation Forest."""
     global_df = get_df(1)
-    if global_df is None:
+    if global_df is None or global_df.empty:
         return jsonify({"error": "Önce bir veri seti yükleyin."}), 400
 
     try:
@@ -582,6 +634,41 @@ def calculate_risk_score():
     except Exception as e:
         logger.exception("AI Risk Skoru hatası")
         return jsonify({"error": f"Hesaplama hatası: {str(e)}"}), 500
+
+
+@data_bp.route("/calculate_ai_trust_score", methods=["GET", "POST"])
+def calculate_ai_trust_score():
+    """
+    AI Güven Skoru ve Bütünleşik Sağlık Değerlendirme Uç Noktası.
+    Hem bütüncül veri güven karnesini (4 faktör) hem de AI anomali dağılımını hesaplar.
+    """
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({"error": "Önce bir veri seti yükleyin."}), 400
+
+    try:
+        trust_snap = _compute_trust_snapshot(global_df)
+        health_dict = _compute_health_dict(global_df)
+
+        has_ai_col = "Guven_Skoru_AI" in global_df.columns
+        mean_score = (
+            round(float(global_df["Guven_Skoru_AI"].mean()), 1)
+            if has_ai_col
+            else trust_snap["overall_score"]
+        )
+
+        return jsonify({
+            "success": True,
+            "overall_trust_score": trust_snap["overall_score"],
+            "mean_ai_score": mean_score,
+            "health": health_dict,
+            "trust_snapshot": trust_snap,
+            "has_Guven_Skoru_AI": has_ai_col,
+            "message": "AI Güven ve Sağlık Skoru başarıyla hesaplandı.",
+        })
+    except Exception as e:
+        logger.exception("calculate_ai_trust_score hatası")
+        return jsonify({"error": f"Güven skoru hesaplama hatası: {e}"}), 500
 
 
 def _compute_trust_snapshot(df: pd.DataFrame) -> dict[str, Any]:
@@ -992,3 +1079,511 @@ def auto_heal_all_trust():
     except Exception as e:
         logger.exception("auto_heal_all_trust hatası")
         return jsonify({"error": f"Otomatik veri onarma hatası: {e}"}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PROTOTİP 1: APACHE ARROW IPC SIFIR KOPYALAMA VERİ AKIŞI ENDPOINT'LERİ
+# ══════════════════════════════════════════════════════════════════════
+
+@data_bp.route("/get_arrow_data", methods=["GET", "POST"])
+def get_arrow_data():
+    """
+    Returns active dataset as binary Apache Arrow IPC Stream.
+    Bypasses JSON string serialization and enables zero-copy parsing in JS.
+    """
+    from flask import Response
+    from services.arrow_service import serialize_df_to_arrow_ipc
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    max_rows = request.args.get("max_rows", type=int) or (request.json.get("max_rows") if request.is_json else None)
+    binary_stream, meta = serialize_df_to_arrow_ipc(df, max_rows=max_rows)
+
+    response = Response(binary_stream, mimetype="application/vnd.apache.arrow.stream")
+    response.headers["X-Arrow-Rows"] = str(meta["num_rows"])
+    response.headers["X-Arrow-Cols"] = str(meta["num_columns"])
+    response.headers["X-Arrow-Bytes"] = str(meta["byte_size"])
+    response.headers["X-Serialization-Ms"] = str(meta["serialization_ms"])
+    response.headers["Content-Disposition"] = "inline; filename=dataset.arrow"
+    return response
+
+
+@data_bp.route("/benchmark_json_vs_arrow", methods=["GET", "POST"])
+def benchmark_json_vs_arrow():
+    """
+    Benchmarks JSON serialization vs Apache Arrow IPC streaming performance on active dataset.
+    """
+    from services.arrow_service import benchmark_serialization
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Önce bir dosya yükleyin veya örnek veri seçin."}), 400
+
+    sample_size = request.args.get("sample_size", default=25000, type=int)
+    results = benchmark_serialization(df, sample_size=sample_size)
+    return jsonify({"success": True, "benchmark": results})
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PROTOTİP 2: OPENREFINE METİN KÜMELEME & PARMAK İZİ (CLUSTERING)
+# ══════════════════════════════════════════════════════════════════════
+
+@data_bp.route("/find_text_clusters", methods=["GET", "POST"])
+def find_text_clusters():
+    """
+    Identifies spelling variations and duplicates in a categorical/text column using
+    Fingerprint, N-Gram, or Soundex clustering algorithms.
+    """
+    from services.clustering_service import find_clusters
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    data = request.get_json(silent=True) if request.method == "POST" else request.args
+    data = data or {}
+    col_name = data.get("column")
+    method = data.get("method", "fingerprint")
+    max_clusters = int(data.get("max_clusters", 50))
+
+    if not col_name or col_name not in df.columns:
+        return jsonify({"error": f"Geçersiz sütun adı: {col_name}"}), 400
+
+    try:
+        clusters = find_clusters(df, col_name, method=method, max_clusters=max_clusters)
+        return jsonify({
+            "success": True,
+            "column": col_name,
+            "method": method,
+            "cluster_count": len(clusters),
+            "clusters": clusters,
+        })
+    except Exception as e:
+        logger.exception("find_text_clusters hatası")
+        return jsonify({"error": f"Kümeleme hesaplama hatası: {e}"}), 500
+
+
+@data_bp.route("/merge_text_clusters", methods=["POST"])
+def merge_text_clusters():
+    """
+    Applies approved text merges, replacing variants with chosen canonical values.
+    """
+    from services.clustering_service import apply_cluster_merges
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    data = request.get_json(silent=True) or {}
+    col_name = data.get("column")
+    merges = data.get("merges", [])
+
+    if not col_name or col_name not in df.columns:
+        return jsonify({"error": f"Geçersiz sütun adı: {col_name}"}), 400
+    if not merges:
+        return jsonify({"error": "Birleştirilecek küme seçilmedi."}), 400
+
+    try:
+        healed_df, modified_count = apply_cluster_merges(df, col_name, merges)
+        set_df(healed_df, 1)
+
+        return jsonify({
+            "success": True,
+            "column": col_name,
+            "modified_rows": modified_count,
+            "message": f"{modified_count} satır başarıyla standartlaştırıldı.",
+        })
+    except Exception as e:
+        logger.exception("merge_text_clusters hatası")
+        return jsonify({"error": f"Kümeleme birleştirme hatası: {e}"}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PROTOTİP 3: SANAL TABLO (VIRTUAL GRID) LAZY-SLICE ENDPOINT'İ
+# ══════════════════════════════════════════════════════════════════════
+
+@data_bp.route("/get_table_slice", methods=["GET", "POST"])
+def get_table_slice():
+    """
+    Returns a requested window slice of the active dataset for 60 FPS virtualized rendering.
+    Accepts: { start: 0, limit: 50, sort_col: "X", sort_asc: true, search: "" }
+    Tüm geçersiz parametreleri ve karışık sütun sıralamalarını güvenle ele alır.
+    """
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    data = request.get_json(silent=True) if request.method == "POST" else request.args
+    data = data or {}
+
+    try:
+        start = max(0, int(data.get("start", 0)))
+    except (ValueError, TypeError):
+        start = 0
+
+    try:
+        limit = min(500, max(1, int(data.get("limit", 50))))
+    except (ValueError, TypeError):
+        limit = 50
+
+    sort_col = data.get("sort_col")
+    sort_asc = str(data.get("sort_asc", "true")).lower() in ("true", "1")
+    search = str(data.get("search") or "").strip().lower()
+
+    target_df = df
+
+    # Güvenli satır arama filtresi (tüm sütunlarda nan değerleri hariç arama)
+    if search:
+        search_cols = target_df.columns[:25]
+        mask = pd.Series(False, index=target_df.index)
+        for col in search_cols:
+            col_series = target_df[col]
+            notna_mask = col_series.notna()
+            if notna_mask.any():
+                col_matches = (
+                    col_series[notna_mask]
+                    .astype(str)
+                    .str.lower()
+                    .str.contains(search, regex=False, na=False)
+                )
+                mask |= col_matches.reindex(target_df.index, fill_value=False)
+        target_df = target_df[mask]
+
+    # Karışık tiplere karşı korumalı sütun sıralaması
+    if sort_col and sort_col in target_df.columns:
+        try:
+            target_df = target_df.sort_values(by=sort_col, ascending=sort_asc)
+        except TypeError:
+            target_df = target_df.sort_values(
+                by=sort_col, ascending=sort_asc, key=lambda s: s.astype(str)
+            )
+
+    total_filtered = len(target_df)
+    sliced = target_df.iloc[start : start + limit]
+
+    # Temiz ve JSON uyumlu serileştirme
+    records = []
+    for idx, row in sliced.iterrows():
+        row_dict = {"_row_id": int(idx) + 1}
+        for c in target_df.columns:
+            val = row[c]
+            if pd.isna(val):
+                row_dict[c] = None
+            elif isinstance(val, (np.floating, float)):
+                fval = float(val)
+                row_dict[c] = (
+                    None if (math.isnan(fval) or math.isinf(fval)) else round(fval, 4)
+                )
+            elif isinstance(val, (int, np.integer)) and not isinstance(val, bool):
+                row_dict[c] = int(val)
+            elif isinstance(val, (bool, np.bool_)):
+                row_dict[c] = bool(val)
+            else:
+                row_dict[c] = str(val)
+        records.append(row_dict)
+
+    return jsonify({
+        "success": True,
+        "total_rows": len(df),
+        "total_filtered": total_filtered,
+        "start": start,
+        "limit": limit,
+        "columns": df.columns.tolist(),
+        "rows": records,
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PROTOTİP 4: AÇIKLANABİLİR AI GÜVEN SKORU & ANOMALİ GEREKÇELERİ
+# ══════════════════════════════════════════════════════════════════════
+
+@data_bp.route("/get_explainable_anomalies", methods=["GET", "POST"])
+def get_explainable_anomalies():
+    """
+    Runs Explainable Isolation Forest and returns why top anomalous rows deviate from normal.
+    """
+    from services.anomaly_explainer import explain_dataset_anomalies
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    top_n = request.args.get("top_n", default=30, type=int)
+    results = explain_dataset_anomalies(df, top_n=top_n)
+    return jsonify({"success": True, "anomaly_report": results})
+
+
+# ══════════════════════════════════════════════════════════════════════
+# İLERİ ARKA PLAN OPTİMİZASYON ENDPOINT'LERİ (6 ÇEKİRDEK MÜHENDİSLİK)
+# ══════════════════════════════════════════════════════════════════════
+
+@data_bp.route("/optimize_memory", methods=["GET", "POST"])
+def optimize_memory_route():
+    """
+    Downcasts numeric types (int64->uint8/int16, float64->float32) and
+    converts low-cardinality strings to categorical to reduce RAM footprint by 60-80%.
+    """
+    from services.memory_service import optimize_dataframe_memory
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    opt_df, metrics = optimize_dataframe_memory(df)
+    set_df(opt_df, 1)
+
+    return jsonify({
+        "success": True,
+        "metrics": metrics,
+        "message": f"Bellek %{metrics['savings_percentage']} oranında optimize edildi ({metrics['start_memory_mb']} MB -> {metrics['end_memory_mb']} MB).",
+    })
+
+
+@data_bp.route("/recover_dirty_types", methods=["GET", "POST"])
+def recover_dirty_types_route():
+    """
+    Identifies object/string columns with currency symbols, percentages, or dirty separators
+    and safely coerces them back to numeric types with high confidence.
+    """
+    from services.type_coercion_service import recover_dirty_numeric_columns
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    recovered_df, report = recover_dirty_numeric_columns(df)
+    if report:
+        set_df(recovered_df, 1)
+
+    return jsonify({
+        "success": True,
+        "recovered_columns_count": len(report),
+        "report": report,
+        "message": f"{len(report)} kirli sütun başarıyla sayısal tipe kurtarıldı." if report else "Kurtarılacak kirli sayısal sütun bulunamadı, tipler zaten tutarlı.",
+    })
+
+
+@data_bp.route("/clean_data_advanced", methods=["POST"])
+def clean_data_advanced_route():
+    """
+    Multivariate Missing Data Imputation using MICE (Iterative Chained Equations) or KNN.
+    Preserves multivariate correlation and statistical fidelity.
+    """
+    from services.advanced_imputer import impute_missing_advanced
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    data = request.get_json(silent=True) or {}
+    method = data.get("method", "mice")
+    columns = data.get("columns")
+
+    imputed_df, report = impute_missing_advanced(df, method=method, target_columns=columns)
+    if "error" in report:
+        return jsonify(report), 400
+
+    set_df(imputed_df, 1)
+    return jsonify(report)
+
+
+@data_bp.route("/fast_fuzzy_join", methods=["POST"])
+def fast_fuzzy_join_route():
+    """
+    High-speed fuzzy merging using N-Gram Inverted Index blocking.
+    Reduces O(N x M) Cartesian comparison down to O(N) execution time.
+    """
+    from services.fast_fuzzy_join import fast_fuzzy_merge
+
+    df1 = get_df(1)
+    df2 = get_df(2)
+    if df1 is None or df2 is None:
+        return jsonify({"error": "Lütfen önce 1. ve 2. veri setlerini yükleyin."}), 400
+
+    data = request.get_json(silent=True) or {}
+    key1 = data.get("key1")
+    key2 = data.get("key2")
+    try:
+        threshold = float(data.get("threshold", 0.70))
+        if threshold < 0.0 or threshold > 1.0:
+            threshold = 0.70
+    except (ValueError, TypeError):
+        threshold = 0.70
+
+    how = str(data.get("how", "inner")).lower().strip()
+    if how not in ("inner", "left"):
+        how = "inner"
+
+    if not key1 or not key2:
+        return jsonify({"error": "key1 ve key2 parametreleri zorunludur."}), 400
+
+    merged_df, metrics = fast_fuzzy_merge(df1, df2, key1, key2, threshold=threshold, how=how)
+    if "error" in metrics:
+        return jsonify(metrics), 400
+
+    merged_df.columns = pd.Index(_deduplicate_columns(merged_df.columns))
+    set_df(merged_df, 1)
+    set_baseline_trust(None)
+    set_is_cleaned(False)
+    return jsonify({
+        "success": True,
+        "metrics": metrics,
+        "new_row_count": len(merged_df),
+        "columns": merged_df.columns.tolist()[:20],
+    })
+
+
+@data_bp.route("/detect_ensemble_anomalies", methods=["GET", "POST"])
+def detect_ensemble_anomalies_route():
+    """
+    Ensemble Hybrid Anomaly Detection via Consensus Voting:
+    Isolation Forest + Local Outlier Factor (LOF) + Robust Z-Score / Covariance.
+    Filters out false positives and provides consensus-validated outliers.
+    """
+    from services.ensemble_anomaly_service import detect_ensemble_anomalies
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    contamination = request.args.get("contamination", default=0.04, type=float)
+    top_n = request.args.get("top_n", default=30, type=int)
+
+    result = detect_ensemble_anomalies(df, contamination=contamination, top_n=top_n)
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify({"success": True, "ensemble_report": result})
+
+
+@data_bp.route("/evaluate_data_contracts", methods=["GET", "POST"])
+def evaluate_data_contracts_route():
+    """
+    Vectorized C-Level Data Contracts validation engine (Great Expectations paradigm).
+    Evaluates range, positivity, uniqueness, and null tolerances in <20ms.
+    """
+    from services.data_contracts_service import evaluate_data_contracts
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    contracts = None
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        contracts = data.get("custom_contracts")
+
+    report = evaluate_data_contracts(df, custom_contracts=contracts)
+    return jsonify({"success": True, "contracts_report": report})
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 2. DALGA İLERİ DÜZEY MÜHENDİSLİK OPTİMİZASYON ENDPOINT'LERİ
+# ══════════════════════════════════════════════════════════════════════
+
+@data_bp.route("/run_morsel_stats", methods=["GET", "POST"])
+def run_morsel_stats_route():
+    """
+    Executes DuckDB-style Morsel-Driven parallel processing across all CPU cores.
+    """
+    from services.morsel_parallel_engine import parallel_morsel_stats
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    morsel_size = request.args.get("morsel_size", default=30000, type=int)
+    res = parallel_morsel_stats(df, morsel_size=morsel_size)
+    if "error" in res:
+        return jsonify(res), 400
+    return jsonify(res)
+
+
+@data_bp.route("/persist_mmap_cache", methods=["GET", "POST"])
+def persist_mmap_cache_route():
+    """
+    Persists active dataset to Zero-Copy OS Page Cache memory-mapped file (ClickHouse/Snowflake).
+    """
+    from services.memory_mapped_cache import mmap_cache
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    res = mmap_cache.persist_to_mmap(df, dataset_id="active_mmap")
+    return jsonify(res)
+
+
+@data_bp.route("/filter_predicate_pushdown", methods=["POST"])
+def filter_predicate_pushdown_route():
+    """
+    Executes SIMD-accelerated Predicate Pushdown filtering without memory copying (Polars architecture).
+    """
+    from services.predicate_pushdown_engine import execute_predicate_pushdown
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    data = request.get_json(silent=True) or {}
+    predicates = data.get("predicates", [])
+    try:
+        limit = int(data.get("limit", 50))
+    except (ValueError, TypeError):
+        limit = 50
+    try:
+        offset = int(data.get("offset", 0))
+    except (ValueError, TypeError):
+        offset = 0
+
+    res = execute_predicate_pushdown(df, predicates=predicates, limit=limit, offset=offset)
+    if "error" in res:
+        return jsonify(res), 400
+    return jsonify(res)
+
+
+@data_bp.route("/parse_smart_dates", methods=["GET", "POST"])
+def parse_smart_dates_route():
+    """
+    Entropy-based multi-format fast deterministic datetime parser.
+    """
+    from services.datetime_parser_engine import detect_and_parse_datetime_columns
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    parsed_df, report = detect_and_parse_datetime_columns(df)
+    if report:
+        set_df(parsed_df, 1)
+
+    return jsonify({
+        "success": True,
+        "recovered_date_columns": len(report),
+        "report": report,
+        "message": f"{len(report)} tarih sütunu deterministik formatlarla başarıyla kurtarıldı." if report else "Dönüştürülecek tarih formatlı metin sütunu bulunamadı.",
+    })
+
+
+@data_bp.route("/run_approximate_query", methods=["GET", "POST"])
+def run_approximate_query_route():
+    """
+    HyperLogLog (HLL) cardinality estimation & single-pass streaming quantiles (Snowflake architecture).
+    """
+    from services.approximate_query_engine import compute_approximate_metrics
+
+    df = get_df(1)
+    if df is None:
+        return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
+
+    res = compute_approximate_metrics(df)
+    if "error" in res:
+        return jsonify(res), 400
+    return jsonify(res)
+
+
+
+
+

@@ -17,6 +17,7 @@ from services.export_service import (
     export_dataframe,
     export_pivot_to_excel,
 )
+from services.report_service import generate_academic_pdf_report
 from services.file_service import (
     clean_dataframe,
     read_csv_safely,
@@ -32,6 +33,9 @@ from services.stats_service import (
     compute_bayes_factor_ttest,
     compute_column_statistics,
     compute_correlation_matrix,
+    compute_hypothesis_tests,
+    compute_logistic_regression,
+    compute_multiple_linear_regression,
     compute_naive_bayes_classification,
     compute_pivot_data,
     compute_robust_correlation,
@@ -51,6 +55,9 @@ __all__ = [
     "compute_bayes_factor_ttest",
     "compute_column_statistics",
     "compute_correlation_matrix",
+    "compute_hypothesis_tests",
+    "compute_logistic_regression",
+    "compute_multiple_linear_regression",
     "compute_naive_bayes_classification",
     "compute_pivot_data",
     "compute_robust_correlation",
@@ -59,6 +66,7 @@ __all__ = [
     "export_dataframe",
     "export_pivot_to_excel",
     "generate_academic_insight",
+    "generate_academic_pdf_report",
     "generate_kpi_summary",
     "generate_rule_based_insight",
     "interpret_bayes_factor",

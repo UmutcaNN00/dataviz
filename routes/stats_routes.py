@@ -16,7 +16,11 @@ from services.stats_service import (
     compute_advanced_stats,
     compute_column_statistics,
     compute_correlation_matrix,
+    compute_hypothesis_tests,
+    compute_logistic_regression,
+    compute_multiple_linear_regression,
     compute_naive_bayes_classification,
+    compute_pivot_data,
     compute_robust_correlation,
     compute_robust_regression,
     generate_kpi_summary,
@@ -305,4 +309,118 @@ def get_naive_bayes():
     except Exception as e:
         logger.exception("get_naive_bayes hatası")
         return jsonify({"error": f"Naive Bayes analizi sırasında hata: {e}"}), 500
+
+
+@stats_bp.route("/get_multiple_regression", methods=["POST"])
+def get_multiple_regression():
+    """Calculates Multiple Linear OLS Regression with singular matrix / multicollinearity resilience."""
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({"error": "Lütfen önce bir veri seti yükleyin."}), 400
+
+    data = request.get_json(silent=True) or {}
+    target_col = data.get("target_col") or data.get("y_col") or data.get("target") or data.get("y")
+    feature_cols = data.get("feature_cols") or data.get("x_cols") or data.get("features") or data.get("x") or []
+    if isinstance(feature_cols, str):
+        feature_cols = [feature_cols]
+    filters = data.get("filters", [])
+    fit_intercept = bool(data.get("fit_intercept", True))
+
+    try:
+        active_df = apply_filters(global_df, filters)
+        res = compute_multiple_linear_regression(
+            active_df,
+            feature_cols=feature_cols,
+            target_col=target_col,
+            fit_intercept=fit_intercept,
+        )
+        if "error" in res:
+            return jsonify(res), 400
+        return jsonify(res)
+    except Exception as e:
+        logger.exception("get_multiple_regression hatası")
+        return jsonify({"error": f"Çoklu regresyon analizi sırasında hata: {e}"}), 500
+
+
+@stats_bp.route("/get_logistic_regression", methods=["POST"])
+def get_logistic_regression():
+    """Calculates Logistic Regression for classification tasks."""
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({"error": "Lütfen önce bir veri seti yükleyin."}), 400
+
+    data = request.get_json(silent=True) or {}
+    target_col = data.get("target_col") or data.get("y_col") or data.get("target") or data.get("y")
+    feature_cols = data.get("feature_cols") or data.get("x_cols") or data.get("features") or data.get("x") or []
+    if isinstance(feature_cols, str):
+        feature_cols = [feature_cols]
+    filters = data.get("filters", [])
+    max_iter = int(data.get("max_iter", 1000))
+
+    try:
+        active_df = apply_filters(global_df, filters)
+        res = compute_logistic_regression(
+            active_df,
+            feature_cols=feature_cols,
+            target_col=target_col,
+            max_iter=max_iter,
+        )
+        if "error" in res:
+            return jsonify(res), 400
+        return jsonify(res)
+    except Exception as e:
+        logger.exception("get_logistic_regression hatası")
+        return jsonify({"error": f"Lojistik regresyon analizi sırasında hata: {e}"}), 500
+
+
+@stats_bp.route("/get_hypothesis_tests", methods=["POST"])
+def get_hypothesis_tests():
+    """Calculates comprehensive hypothesis tests (Welch/Student T, Mann-Whitney U, ANOVA, Kruskal-Wallis, Levene, Shapiro-Wilk)."""
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({"error": "Lütfen önce bir veri seti yükleyin."}), 400
+
+    data = request.get_json(silent=True) or {}
+    group_col = data.get("group_col") or data.get("x_col") or data.get("group") or data.get("x") or data.get("cat_col") or data.get("category_col")
+    value_col = data.get("value_col") or data.get("y_col") or data.get("value") or data.get("y") or data.get("num_col") or data.get("numeric_col")
+    filters = data.get("filters", [])
+
+    try:
+        active_df = apply_filters(global_df, filters)
+        res = compute_hypothesis_tests(active_df, group_col=group_col, value_col=value_col)
+        if "error" in res:
+            return jsonify(res), 400
+        return jsonify(res)
+    except Exception as e:
+        logger.exception("get_hypothesis_tests hatası")
+        return jsonify({"error": f"Hipotez testleri hesaplanırken hata: {e}"}), 500
+
+
+@stats_bp.route("/pivot_data", methods=["POST"])
+@stats_bp.route("/get_pivot_data", methods=["POST"])
+def pivot_data_route():
+    """Alias for pivot data computation directly under stats blueprint."""
+    global_df = get_df(1)
+    if global_df is None or global_df.empty:
+        return jsonify({"error": "Lütfen önce bir veri seti yükleyin."}), 400
+
+    data = request.get_json(silent=True) or {}
+    rows = data.get("rows", [])
+    cols = data.get("cols", [])
+    values = data.get("values", [])
+    agg_func = data.get("agg_func", "sum")
+    filters = data.get("filters", [])
+
+    try:
+        active_df = apply_filters(global_df, filters)
+        pivot_data = compute_pivot_data(
+            active_df, rows=rows, cols=cols, values=values, agg_func=agg_func
+        )
+        return jsonify(pivot_data)
+    except ValueError as e_val:
+        return jsonify({"error": str(e_val)}), 400
+    except Exception as e:
+        logger.exception("Pivot tablosu hesaplanırken hata")
+        return jsonify({"error": f"Pivot tablosu hesaplanırken hata oluştu: {e}"}), 500
+
 

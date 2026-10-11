@@ -7,6 +7,7 @@ import csv
 import io
 import logging
 import os
+import re
 from typing import Any
 
 import numpy as np
@@ -18,13 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 def _deduplicate_columns(columns: Any) -> list[str]:
-    """Normalizes BOM/whitespace, replaces blank/Unnamed headers, and guarantees unique column names."""
+    """Normalizes BOM/whitespace/newlines, replaces blank/Unnamed/NaN headers, and guarantees unique column names."""
     cleaned_cols: list[str] = []
     seen_counts: dict[str, int] = {}
     used_names: set[str] = set()
     for i, col in enumerate(columns):
-        col_str = str(col).replace("\ufeff", "").strip()
-        if not col_str or col_str.startswith("Unnamed:") or col_str.lower() == "nan":
+        if col is None:
+            col_str = ""
+        else:
+            col_str = re.sub(r"[\r\n\t]+", " ", str(col)).replace("\ufeff", "").strip()
+        if not col_str or col_str.startswith("Unnamed:") or col_str.lower() in ("nan", "none", "null"):
             col_str = f"Sütun_{i + 1}"
         base_name = col_str
         if base_name in used_names:

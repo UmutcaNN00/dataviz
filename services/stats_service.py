@@ -273,8 +273,11 @@ def compute_robust_correlation(x_vals, y_vals, method="pearson"):
 
     if (
         len(x_clean) < 3
+        or len(y_clean) < 3
         or np.all(x_clean == x_clean[0])
         or np.all(y_clean == y_clean[0])
+        or float(np.std(x_clean)) <= 1e-12
+        or float(np.std(y_clean)) <= 1e-12
     ):
         return {
             "coef": 0.0,
@@ -658,20 +661,77 @@ def compute_correlation_matrix(active_df, num_cols=None, method="pearson"):
 def compute_column_statistics(df, columns):
     """
     Computes summary descriptive statistics for the requested numerical columns.
+    Includes count, missing, mean, median, min, max, std, skewness, kurtosis,
+    and Jarque-Bera normality test statistics with graceful fallback for edge cases.
     """
     stats = {}
+    if df is None or df.empty or not columns:
+        return stats
+
     for col in columns:
-        if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
-            s = df[col]
-            stats[col] = {
-                "count": int(s.count()),
-                "missing": int(s.isna().sum()),
-                "mean": safe_float(s.mean(), None),
-                "median": safe_float(s.median(), None),
-                "min": safe_float(s.min(), None),
-                "max": safe_float(s.max(), None),
-                "std": safe_float(s.std(), None),
-            }
+        if col not in df.columns:
+            continue
+
+        raw_series = df[col]
+        s = pd.to_numeric(raw_series, errors="coerce")
+        clean = s.dropna().to_numpy(dtype=float)
+        clean = clean[np.isfinite(clean)]
+        n_valid = len(clean)
+
+        mean_val = safe_float(s.mean(), None)
+        median_val = safe_float(s.median(), None)
+        min_val = safe_float(s.min(), None)
+        max_val = safe_float(s.max(), None)
+        std_val = safe_float(s.std(), None)
+
+        # Skewness & Kurtosis
+        skew_val = None
+        kurt_val = None
+        if n_valid >= 3 and std_val is not None and std_val > 0:
+            try:
+                skew_val = safe_float(sp_stats.skew(clean, bias=False), None)
+            except Exception:
+                skew_val = None
+
+        if n_valid >= 4 and std_val is not None and std_val > 0:
+            try:
+                kurt_val = safe_float(sp_stats.kurtosis(clean, bias=False), None)
+            except Exception:
+                kurt_val = None
+
+        # Jarque-Bera Normality Test
+        jb_stat = None
+        jb_p = None
+        if n_valid >= 4 and std_val is not None and std_val > 0:
+            try:
+                jb_res = sp_stats.jarque_bera(clean)
+                jb_stat = safe_float(
+                    getattr(jb_res, "statistic", jb_res[0]), None
+                )
+                jb_p = safe_float(
+                    getattr(jb_res, "pvalue", jb_res[1]), None
+                )
+            except Exception:
+                jb_stat, jb_p = None, None
+
+        stats[col] = {
+            "count": int(s.count()),
+            "missing": int(s.isna().sum()),
+            "mean": mean_val,
+            "median": median_val,
+            "min": min_val,
+            "max": max_val,
+            "std": std_val,
+            "skewness": skew_val,
+            "kurtosis": kurt_val,
+            "jarque_bera_stat": jb_stat,
+            "jarque_bera_p": jb_p,
+            "jarque_bera": {
+                "statistic": jb_stat,
+                "p_value": jb_p,
+                "is_normal": bool(jb_p > 0.05) if jb_p is not None else None,
+            },
+        }
     return stats
 
 
@@ -824,6 +884,7 @@ def compute_advanced_stats(
                 adv_info["group_means"] = grp_means
 
             if len(groups) == 2:
+                # 1. Welch T-Test (Parametrik)
                 try:
                     t_stat, p_val = sp_stats.ttest_ind(
                         groups[0], groups[1], equal_var=False
@@ -849,7 +910,32 @@ def compute_advanced_stats(
                     }
                 except Exception as e_ttest:
                     logger.debug(f"T-Test error: {e_ttest}")
+                    adv_info["t_test_stat"] = None
+                    adv_info["p_value"] = None
+
+                # 2. Mann-Whitney U Test (Parametrik Olmayan)
+                try:
+                    mw_res = sp_stats.mannwhitneyu(
+                        groups[0], groups[1], alternative="two-sided"
+                    )
+                    mw_stat = safe_float(
+                        getattr(mw_res, "statistic", mw_res[0]), None
+                    )
+                    mw_p = safe_float(getattr(mw_res, "pvalue", mw_res[1]), None)
+                    adv_info["mann_whitney_u"] = mw_stat
+                    adv_info["mann_whitney_p"] = mw_p
+                    adv_info["mann_whitney"] = {
+                        "u_stat": mw_stat,
+                        "p_value": mw_p,
+                    }
+                except Exception as e_mw:
+                    logger.debug(f"Mann-Whitney U error: {e_mw}")
+                    adv_info["mann_whitney_u"] = None
+                    adv_info["mann_whitney_p"] = None
+                    adv_info["mann_whitney"] = {"u_stat": None, "p_value": None}
+
             elif len(groups) > 2:
+                # 1. One-Way ANOVA (Parametrik)
                 try:
                     f_stat, p_val = sp_stats.f_oneway(*groups)
                     n_tot = sum(len(g) for g in groups)
@@ -873,6 +959,33 @@ def compute_advanced_stats(
                     }
                 except Exception as e_anova:
                     logger.debug(f"ANOVA error: {e_anova}")
+                    adv_info["anova_f"] = None
+                    adv_info["p_value"] = None
+
+                # 2. Kruskal-Wallis H Test (Parametrik Olmayan)
+                try:
+                    all_vals = np.concatenate(groups)
+                    if len(np.unique(all_vals)) > 1:
+                        kw_res = sp_stats.kruskal(*groups)
+                        kw_stat = safe_float(
+                            getattr(kw_res, "statistic", kw_res[0]), None
+                        )
+                        kw_p = safe_float(
+                            getattr(kw_res, "pvalue", kw_res[1]), None
+                        )
+                    else:
+                        kw_stat, kw_p = None, None
+                    adv_info["kruskal_h"] = kw_stat
+                    adv_info["kruskal_p"] = kw_p
+                    adv_info["kruskal_wallis"] = {
+                        "h_stat": kw_stat,
+                        "p_value": kw_p,
+                    }
+                except Exception as e_kw:
+                    logger.debug(f"Kruskal-Wallis error: {e_kw}")
+                    adv_info["kruskal_h"] = None
+                    adv_info["kruskal_p"] = None
+                    adv_info["kruskal_wallis"] = {"h_stat": None, "p_value": None}
             else:
                 adv_info["type"] = "categorical_single"
 
@@ -892,6 +1005,9 @@ def compute_advanced_stats(
         elif "anova" in adv_info:
             advanced["type"] = "categorical_n"
             advanced["anova"] = adv_info["anova"]
+            advanced["kruskal_wallis"] = adv_info.get("kruskal_wallis", {})
+            advanced["kruskal_h"] = adv_info.get("kruskal_h")
+            advanced["kruskal_p"] = adv_info.get("kruskal_p")
             advanced["anova_best_group"] = adv_info.get("best_group")
             advanced["anova_low_group"] = adv_info.get("worst_group")
             advanced["bayes_factor"] = adv_info.get("bayes_factor")
@@ -901,6 +1017,9 @@ def compute_advanced_stats(
             advanced["type"] = "categorical_2"
             advanced["t_test"] = adv_info["t_test"]
             advanced["t_test_stat"] = adv_info["t_test"]["t_stat"]
+            advanced["mann_whitney"] = adv_info.get("mann_whitney", {})
+            advanced["mann_whitney_u"] = adv_info.get("mann_whitney_u")
+            advanced["mann_whitney_p"] = adv_info.get("mann_whitney_p")
             advanced["p_value"] = adv_info["t_test"]["p_value"]
             advanced["group_means"] = adv_info.get("group_means", {})
             advanced["bayes_factor"] = adv_info.get("bayes_factor")
@@ -1096,17 +1215,32 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
     chosen_agg = agg_map.get(agg_func, "sum")
 
     proj_cols = list(dict.fromkeys(valid_rows + valid_cols + valid_values))
-    pt = pd.pivot_table(
-        active_df[proj_cols],
-        index=valid_rows if valid_rows else None,
-        columns=valid_cols if valid_cols else None,
-        values=valid_values,
-        aggfunc=chosen_agg,
-        fill_value=0,
-        margins=True,
-        margins_name="Genel Toplam",
-        observed=True,
-    )
+    try:
+        pt = pd.pivot_table(
+            active_df[proj_cols],
+            index=valid_rows if valid_rows else None,
+            columns=valid_cols if valid_cols else None,
+            values=valid_values,
+            aggfunc=chosen_agg,
+            fill_value=0,
+            margins=True,
+            margins_name="Genel Toplam",
+            observed=False,
+        )
+    except Exception as e_pt:
+        logger.warning(
+            f"Margins=True ile pivot table hatası, margins=False deneniyor: {e_pt}"
+        )
+        pt = pd.pivot_table(
+            active_df[proj_cols],
+            index=valid_rows if valid_rows else None,
+            columns=valid_cols if valid_cols else None,
+            values=valid_values,
+            aggfunc=chosen_agg,
+            fill_value=0,
+            margins=False,
+            observed=False,
+        )
 
     if isinstance(pt.columns, pd.MultiIndex):
         raw_headers = pt.columns.tolist()
@@ -1176,3 +1310,413 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
         "value_metrics": valid_values,
         "agg_func": agg_func,
     }
+
+
+def compute_multiple_linear_regression(
+    df, feature_cols, target_col, fit_intercept=True
+) -> dict:
+    """
+    Fits an Ordinary Least Squares (OLS) Multiple Linear Regression model
+    with strict singular matrix (multicollinearity) resilience using Moore-Penrose pseudo-inverse.
+    Returns R², Adjusted R², F-statistic, p-value, standard errors, t-statistics,
+    p-values for each coefficient, and Variance Inflation Factor (VIF) / Multicollinearity warning.
+    """
+    if df is None or df.empty or not target_col or not feature_cols:
+        return {"error": "Geçerli bağımlı ve bağımsız değişkenler seçilmelidir."}
+
+    if target_col not in df.columns:
+        return {"error": f"Hedef sütun ({target_col}) veri setinde bulunamadı."}
+
+    valid_feats = [
+        c for c in feature_cols if c in df.columns and c != target_col
+    ]
+    if not valid_feats:
+        return {"error": "En az bir geçerli bağımsız (özellik) değişken seçilmelidir."}
+
+    sub = df[valid_feats + [target_col]].dropna()
+    if sub.empty:
+        return {"error": "Seçilen sütunlarda geçerli (boş olmayan) veri satırı bulunamadı."}
+
+    X_df = sub[valid_feats].apply(pd.to_numeric, errors="coerce")
+    y_ser = pd.to_numeric(sub[target_col], errors="coerce")
+    valid_mask = X_df.notna().all(axis=1) & y_ser.notna() & np.isfinite(y_ser)
+    for c in valid_feats:
+        valid_mask &= np.isfinite(X_df[c])
+
+    X_clean = X_df.loc[valid_mask].to_numpy(dtype=float)
+    y_clean = y_ser.loc[valid_mask].to_numpy(dtype=float)
+
+    n_samples, n_features = X_clean.shape
+    if n_samples <= n_features + (1 if fit_intercept else 0):
+        return {
+            "error": f"Gözlem sayısı ({n_samples}), serbestlik derecesi için yetersiz (en az {n_features + 2} geçerli satır gereklidir)."
+        }
+
+    if np.isclose(float(np.std(y_clean)), 0.0):
+        return {"error": "Hedef değişken sabit değerlidir (sıfır varyans), regresyon kurulamaz."}
+
+    try:
+        if fit_intercept:
+            X_design = np.column_stack([np.ones(n_samples), X_clean])
+            feature_names = ["(Sabit Terim / Intercept)"] + valid_feats
+        else:
+            X_design = X_clean
+            feature_names = list(valid_feats)
+
+        p_params = X_design.shape[1]
+        df_resid = max(n_samples - p_params, 1)
+
+        # Singülerlik ve Çoklu Doğrusallık Denetimi
+        rank = int(np.linalg.matrix_rank(X_design))
+        cond_number = safe_float(np.linalg.cond(X_design), 1e15)
+        is_singular = rank < p_params or (cond_number is not None and cond_number > 1e10)
+
+        # OLS Çözümü: pinv (Moore-Penrose) ile singüler matris çökmesi engellenir
+        XtX = X_design.T @ X_design
+        XtX_inv = np.linalg.pinv(XtX)
+        beta = XtX_inv @ (X_design.T @ y_clean)
+
+        y_pred = X_design @ beta
+        residuals = y_clean - y_pred
+        ss_res = float(np.sum(residuals**2))
+        ss_tot = float(np.sum((y_clean - np.mean(y_clean)) ** 2))
+
+        r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+        r_squared = min(max(r_squared, 0.0), 1.0)
+
+        adj_r2 = 1.0 - ((1.0 - r_squared) * (n_samples - 1) / max(df_resid, 1))
+        adj_r2 = min(max(adj_r2, 0.0), 1.0)
+
+        s2 = ss_res / df_resid
+        se_est = float(np.sqrt(max(s2, 0.0)))
+
+        cov_beta = s2 * XtX_inv
+        se_beta = np.sqrt(np.maximum(np.diag(cov_beta), 1e-15))
+        t_stats = beta / se_beta
+        p_values = [
+            safe_float(2.0 * (1.0 - sp_stats.t.cdf(abs(t), df=df_resid)), 1.0)
+            for t in t_stats
+        ]
+
+        k_predictors = p_params - 1 if fit_intercept else p_params
+        if ss_res > 0 and k_predictors > 0:
+            f_stat = ((ss_tot - ss_res) / k_predictors) / (ss_res / df_resid)
+            f_pval = safe_float(1.0 - sp_stats.f.cdf(f_stat, k_predictors, df_resid), None)
+            f_stat_val = safe_float(f_stat, None)
+        else:
+            f_stat_val = None
+            f_pval = None
+
+        # VIF (Variance Inflation Factor)
+        vif_dict = {}
+        for idx, feat in enumerate(valid_feats):
+            if n_features == 1:
+                vif_dict[feat] = 1.0
+            else:
+                try:
+                    other_feats = [c for c in valid_feats if c != feat]
+                    X_other = np.column_stack([np.ones(n_samples), sub[other_feats].to_numpy(dtype=float)])
+                    beta_other = np.linalg.pinv(X_other.T @ X_other) @ (X_other.T @ X_clean[:, idx])
+                    ss_feat_res = np.sum((X_clean[:, idx] - X_other @ beta_other)**2)
+                    ss_feat_tot = max(np.sum((X_clean[:, idx] - np.mean(X_clean[:, idx]))**2), 1e-12)
+                    r2_other = 1.0 - (ss_feat_res / ss_feat_tot)
+                    vif_val = 1.0 / max(1.0 - min(max(r2_other, 0.0), 0.9999), 1e-6)
+                    vif_dict[feat] = round(float(vif_val), 2)
+                except Exception:
+                    vif_dict[feat] = None
+
+        coefficients_list = []
+        for idx, name in enumerate(feature_names):
+            coefficients_list.append({
+                "feature": name,
+                "coef": round(float(beta[idx]), 4),
+                "std_err": round(float(se_beta[idx]), 4),
+                "t_stat": round(float(t_stats[idx]), 4),
+                "p_value": p_values[idx],
+                "vif": vif_dict.get(name),
+                "is_significant": bool(p_values[idx] < 0.05) if p_values[idx] is not None else False
+            })
+
+        terms = []
+        for item in coefficients_list:
+            feat_name = item["feature"]
+            c_val = item["coef"]
+            sign = "+" if c_val >= 0 else "-"
+            if "(Sabit Terim" in feat_name:
+                terms.append(f"{c_val:.4f}")
+            else:
+                terms.append(f"{sign} {abs(c_val):.4f}·{feat_name}")
+        equation_str = f"{target_col} = " + " ".join(terms)
+
+        multicollinearity_msg = (
+            "Yüksek çoklu doğrusallık veya singüler matris tespit edildi; Moore-Penrose genelleştirilmiş ters matris ile stabil çözüm üretildi."
+            if is_singular
+            else "Çoklu doğrusallık riski bulunmamaktadır (matris tam mertebedir)."
+        )
+
+        return {
+            "success": True,
+            "target_col": target_col,
+            "feature_cols": valid_feats,
+            "sample_size": n_samples,
+            "r_squared": round(float(r_squared), 4),
+            "adj_r_squared": round(float(adj_r2), 4),
+            "std_error": round(float(se_est), 4),
+            "f_statistic": round(float(f_stat_val), 4) if f_stat_val is not None else None,
+            "p_value": f_pval,
+            "equation": equation_str,
+            "coefficients": coefficients_list,
+            "vif": vif_dict,
+            "is_singular": is_singular,
+            "condition_number": round(float(cond_number), 2) if cond_number is not None else None,
+            "multicollinearity_note": multicollinearity_msg,
+        }
+    except Exception as e:
+        logger.exception("compute_multiple_linear_regression hatası")
+        return {"error": f"Çoklu regresyon hesaplanırken hata oluştu: {e}"}
+
+
+def compute_logistic_regression(
+    df, feature_cols, target_col, max_iter=1000
+) -> dict:
+    """
+    Fits a Logistic Regression classifier (Binary or Multinomial) on numeric feature columns.
+    Returns accuracy, confusion matrix, class distribution, odds ratios, and coefficients.
+    """
+    if df is None or df.empty or not target_col or not feature_cols:
+        return {"error": "Geçerli bağımlı ve bağımsız değişkenler seçilmelidir."}
+
+    if target_col not in df.columns:
+        return {"error": f"Hedef sütun ({target_col}) veri setinde bulunamadı."}
+
+    valid_feats = [
+        c for c in feature_cols if c in df.columns and c != target_col
+    ]
+    if not valid_feats:
+        return {"error": "En az bir geçerli sayısal özellik sütunu seçilmelidir."}
+
+    sub = df[valid_feats + [target_col]].dropna()
+    if len(sub) < 8:
+        return {"error": "Lojistik regresyon için yeterli geçerli satır bulunamadı (en az 8 satır gereklidir)."}
+
+    X_df = sub[valid_feats].apply(pd.to_numeric, errors="coerce")
+    y_ser = sub[target_col].astype(str)
+    valid_mask = X_df.notna().all(axis=1) & y_ser.notna()
+
+    X_clean = X_df.loc[valid_mask].to_numpy(dtype=float)
+    y_clean = y_ser.loc[valid_mask].to_numpy()
+
+    unique_classes, class_counts = np.unique(y_clean, return_counts=True)
+    if len(unique_classes) < 2:
+        return {"error": "Lojistik regresyon için hedef değişken en az 2 farklı sınıfa sahip olmalıdır."}
+
+    if min(class_counts) < 2:
+        return {"error": "Hedef değişkendeki her bir sınıf en az 2 gözlem içermelidir."}
+
+    try:
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.metrics import accuracy_score, confusion_matrix
+
+        model = LogisticRegression(max_iter=max_iter, solver="lbfgs")
+        model.fit(X_clean, y_clean)
+        preds = model.predict(X_clean)
+        acc = float(accuracy_score(y_clean, preds))
+        cm = confusion_matrix(y_clean, preds, labels=unique_classes).tolist()
+
+        classes_list = [str(c) for c in unique_classes]
+        coef_dict = {}
+        odds_ratios = {}
+
+        if len(unique_classes) == 2:
+            raw_coef = model.coef_[0]
+            for idx, feat in enumerate(valid_feats):
+                c_val = float(raw_coef[idx])
+                coef_dict[feat] = round(c_val, 4)
+                odds_ratios[feat] = round(float(np.exp(c_val)), 4) if abs(c_val) < 20 else None
+            intercept_val = round(float(model.intercept_[0]), 4)
+        else:
+            for c_idx, c_name in enumerate(classes_list):
+                coef_dict[c_name] = {
+                    feat: round(float(model.coef_[c_idx][f_idx]), 4)
+                    for f_idx, feat in enumerate(valid_feats)
+                }
+            intercept_val = [round(float(b), 4) for b in model.intercept_]
+
+        return {
+            "success": True,
+            "model_type": "Binary" if len(unique_classes) == 2 else "Multinomial",
+            "target_col": target_col,
+            "feature_cols": valid_feats,
+            "classes": classes_list,
+            "class_counts": {str(k): int(v) for k, v in zip(unique_classes, class_counts)},
+            "sample_size": len(X_clean),
+            "accuracy": round(acc, 4),
+            "confusion_matrix": cm,
+            "coefficients": coef_dict,
+            "odds_ratios": odds_ratios if len(unique_classes) == 2 else None,
+            "intercept": intercept_val,
+        }
+    except Exception as e:
+        logger.exception("compute_logistic_regression hatası")
+        return {"error": f"Lojistik regresyon modeli eğitilirken hata: {e}"}
+
+
+def compute_hypothesis_tests(df, group_col, value_col) -> dict:
+    """
+    Performs comprehensive hypothesis testing between a categorical grouping variable
+    and a numeric continuous variable:
+    - 2 groups: Independent Student & Welch T-Tests, Mann-Whitney U, Levene's variance homogeneity.
+    - >2 groups: One-Way ANOVA, Kruskal-Wallis H, Levene's test.
+    Includes normality checks (Shapiro-Wilk) and Turkish APA interpretation.
+    """
+    if df is None or df.empty or not group_col or not value_col:
+        return {"error": "Geçerli bir grup sütunu ve sayısal değer sütunu seçilmelidir."}
+
+    if group_col not in df.columns or value_col not in df.columns:
+        return {"error": f"Sütunlar bulunamadı: {group_col}, {value_col}"}
+
+    sub = df[[group_col, value_col]].dropna()
+    sub_val = pd.to_numeric(sub[value_col], errors="coerce")
+    valid_mask = sub_val.notna() & np.isfinite(sub_val) & sub[group_col].notna()
+
+    clean_df = sub.loc[valid_mask].copy()
+    clean_df["_val"] = sub_val.loc[valid_mask]
+    clean_df["_grp"] = clean_df[group_col].astype(str).str.strip()
+    clean_df = clean_df[~clean_df["_grp"].str.lower().isin(["nan", "null", "none", ""])]
+
+    grouped = {
+        name: grp["_val"].to_numpy(dtype=float)
+        for name, grp in clean_df.groupby("_grp")
+        if len(grp) >= 2
+    }
+
+    group_names = list(grouped.keys())
+    if len(group_names) < 2:
+        return {"error": "Hipotez testi için en az 2 geçerli grup bulunmalıdır (her grupta en az 2 gözlem olmalıdır)."}
+
+    group_arrays = [grouped[name] for name in group_names]
+    n_total = sum(len(a) for a in group_arrays)
+
+    group_summaries = {}
+    for name in group_names:
+        arr = grouped[name]
+        sw_stat, sw_p = None, None
+        if len(arr) >= 3 and np.std(arr) > 0:
+            try:
+                sw_res = sp_stats.shapiro(arr)
+                sw_stat = safe_float(getattr(sw_res, "statistic", sw_res[0]), None)
+                sw_p = safe_float(getattr(sw_res, "pvalue", sw_res[1]), None)
+            except Exception:
+                sw_stat, sw_p = None, None
+
+        group_summaries[name] = {
+            "n": len(arr),
+            "mean": safe_float(np.mean(arr), 0.0),
+            "std": safe_float(np.std(arr, ddof=1), 0.0) if len(arr) > 1 else 0.0,
+            "median": safe_float(np.median(arr), 0.0),
+            "shapiro_p": sw_p,
+            "is_normal": bool(sw_p > 0.05) if sw_p is not None else None,
+        }
+
+    levene_stat, levene_p = None, None
+    try:
+        lev_res = sp_stats.levene(*group_arrays)
+        levene_stat = safe_float(getattr(lev_res, "statistic", lev_res[0]), None)
+        levene_p = safe_float(getattr(lev_res, "pvalue", lev_res[1]), None)
+    except Exception as e_lev:
+        logger.debug(f"Levene test hatası: {e_lev}")
+
+    results = {
+        "success": True,
+        "group_col": group_col,
+        "value_col": value_col,
+        "group_names": group_names,
+        "n_groups": len(group_names),
+        "total_sample_size": n_total,
+        "group_summaries": group_summaries,
+        "levene_test": {
+            "statistic": levene_stat,
+            "p_value": levene_p,
+            "equal_variance": bool(levene_p > 0.05) if levene_p is not None else None,
+        },
+    }
+
+    if len(group_names) == 2:
+        g1, g2 = group_arrays[0], group_arrays[1]
+        n1, n2 = len(g1), len(g2)
+        try:
+            t_welch_res = sp_stats.ttest_ind(g1, g2, equal_var=False)
+            t_welch_stat = safe_float(getattr(t_welch_res, "statistic", t_welch_res[0]), None)
+            t_welch_p = safe_float(getattr(t_welch_res, "pvalue", t_welch_res[1]), None)
+        except Exception:
+            t_welch_stat, t_welch_p = None, None
+
+        try:
+            t_stud_res = sp_stats.ttest_ind(g1, g2, equal_var=True)
+            t_stud_stat = safe_float(getattr(t_stud_res, "statistic", t_stud_res[0]), None)
+            t_stud_p = safe_float(getattr(t_stud_res, "pvalue", t_stud_res[1]), None)
+        except Exception:
+            t_stud_stat, t_stud_p = None, None
+
+        try:
+            mw_res = sp_stats.mannwhitneyu(g1, g2, alternative="two-sided")
+            mw_stat = safe_float(getattr(mw_res, "statistic", mw_res[0]), None)
+            mw_p = safe_float(getattr(mw_res, "pvalue", mw_res[1]), None)
+        except Exception:
+            mw_stat, mw_p = None, None
+
+        bf_t = compute_bayes_factor_ttest(t_welch_stat, n1, n2)
+
+        results["test_type"] = "two_group_comparison"
+        results["welch_t_test"] = {"t_stat": t_welch_stat, "p_value": t_welch_p}
+        results["student_t_test"] = {"t_stat": t_stud_stat, "p_value": t_stud_p}
+        results["mann_whitney_u"] = {"u_stat": mw_stat, "p_value": mw_p}
+        results["bayes_factor"] = bf_t
+
+        sig = (t_welch_p is not None and t_welch_p < 0.05) or (mw_p is not None and mw_p < 0.05)
+        results["is_significant"] = sig
+        results["interpretation"] = (
+            f"{group_names[0]} ve {group_names[1]} grupları arasında {value_col} açısından "
+            f"istatistiksel olarak anlamlı bir fark saptanmıştır (Welch t = {t_welch_stat}, p = {t_welch_p}; Mann-Whitney U = {mw_stat}, p = {mw_p})."
+            if sig
+            else f"{group_names[0]} ve {group_names[1]} grupları arasında {value_col} açısından "
+            f"istatistiksel olarak anlamlı bir fark bulunamamıştır (p ≥ 0.05)."
+        )
+
+    else:
+        try:
+            f_res = sp_stats.f_oneway(*group_arrays)
+            f_stat = safe_float(getattr(f_res, "statistic", f_res[0]), None)
+            f_p = safe_float(getattr(f_res, "pvalue", f_res[1]), None)
+        except Exception:
+            f_stat, f_p = None, None
+
+        try:
+            all_vals = np.concatenate(group_arrays)
+            if len(np.unique(all_vals)) > 1:
+                kw_res = sp_stats.kruskal(*group_arrays)
+                kw_stat = safe_float(getattr(kw_res, "statistic", kw_res[0]), None)
+                kw_p = safe_float(getattr(kw_res, "pvalue", kw_res[1]), None)
+            else:
+                kw_stat, kw_p = None, None
+        except Exception:
+            kw_stat, kw_p = None, None
+
+        bf_anova = compute_bayes_factor_anova(f_stat, len(group_names), n_total)
+
+        results["test_type"] = "multi_group_comparison"
+        results["anova"] = {"f_stat": f_stat, "p_value": f_p}
+        results["kruskal_wallis"] = {"h_stat": kw_stat, "p_value": kw_p}
+        results["bayes_factor"] = bf_anova
+
+        sig = (f_p is not None and f_p < 0.05) or (kw_p is not None and kw_p < 0.05)
+        results["is_significant"] = sig
+        results["interpretation"] = (
+            f"{len(group_names)} grup arasında {value_col} değişkeni bakımından "
+            f"istatistiksel olarak anlamlı bir fark bulunmaktadır (ANOVA F = {f_stat}, p = {f_p}; Kruskal-Wallis H = {kw_stat}, p = {kw_p})."
+            if sig
+            else f"{len(group_names)} grup arasında {value_col} değişkeni bakımından "
+            f"istatistiksel olarak anlamlı bir fark saptanmamıştır (p ≥ 0.05)."
+        )
+
+    return results

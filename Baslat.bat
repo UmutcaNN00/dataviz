@@ -103,6 +103,13 @@ exit /b 1
 echo [OK] Python bulundu: %PY_CMD%
 
 :: 2. Sanal Ortam Kontrolu (.venv)
+if exist "%~dp0..\dataviz\.venv\Scripts\python.exe" (
+    echo [OK] Paylasimli sanal ortam tespit edildi: ..\dataviz\.venv
+    set "VENV_DIR=%~dp0..\dataviz\.venv"
+    set "VENV_PY=%~dp0..\dataviz\.venv\Scripts\python.exe"
+    goto :venv_hazir
+)
+
 set "VENV_DIR=%~dp0.venv"
 set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
 
@@ -156,7 +163,7 @@ echo [OK] Kutuphaneler eksiksiz ve hazir.
 if not exist "uploads" mkdir "uploads"
 
 :: 4. Port Tespiti ve Port Cakismasi Korumasi
-set "PORT=5000"
+set "PORT=5001"
 if exist ".env" (
     for /f "tokens=1,2 delims==" %%a in (.env) do (
         if "%%a"=="PORT" set "PORT=%%b"

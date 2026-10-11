@@ -125,17 +125,32 @@ def export_pivot_to_excel(
     safe_agg = allowed_aggs.get(str(agg_func).lower().strip(), "sum")
 
     proj_cols = list(dict.fromkeys(valid_rows + valid_cols + valid_values))
-    pt = pd.pivot_table(
-        active_df[proj_cols],
-        index=valid_rows if valid_rows else None,
-        columns=valid_cols if valid_cols else None,
-        values=valid_values,
-        aggfunc=safe_agg,
-        fill_value=0,
-        margins=True,
-        margins_name="Genel Toplam",
-        observed=True,
-    )
+    try:
+        pt = pd.pivot_table(
+            active_df[proj_cols],
+            index=valid_rows if valid_rows else None,
+            columns=valid_cols if valid_cols else None,
+            values=valid_values,
+            aggfunc=safe_agg,
+            fill_value=0,
+            margins=True,
+            margins_name="Genel Toplam",
+            observed=False,
+        )
+    except Exception as e_pt:
+        logger.warning(
+            f"Excel margins=True ile pivot table hatası, margins=False deneniyor: {e_pt}"
+        )
+        pt = pd.pivot_table(
+            active_df[proj_cols],
+            index=valid_rows if valid_rows else None,
+            columns=valid_cols if valid_cols else None,
+            values=valid_values,
+            aggfunc=safe_agg,
+            fill_value=0,
+            margins=False,
+            observed=False,
+        )
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:

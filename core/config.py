@@ -4,6 +4,13 @@ Configuration Constants for DataViz Platform
 
 import os
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), ".env"))
+except ImportError:
+    pass
+
 # Base directory
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 

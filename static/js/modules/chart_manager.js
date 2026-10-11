@@ -108,7 +108,7 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
     pill.dataset.origin = isJoin ? "joined" : isCalc ? "calc" : "file1";
     pill.dataset.section = `pills_${sectionId}`;
 
-    let typeTag = isNum ? "#" : "T";
+    let typeTag = isNum ? "#" : "Abc";
     let tagBadge = "";
     if (isJoin) {
       tagBadge = `<span class="join-tag-badge">🔗 Dosya 2</span>`;
@@ -116,8 +116,30 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
       tagBadge = `<span style="color:var(--purple); font-weight:800; font-size:0.75rem; margin-right:2px;">fx</span>`;
     }
 
-    pill.innerHTML = `${tagBadge}<span style="opacity:0.65; font-size:0.75rem; font-weight:800;">${typeTag}</span> <span>${col}</span>
-                      <div class="pill-remove">×</div>`;
+    let clusterBtn = !isNum
+      ? `<button type="button" class="btn-quick-axis btn-quick-cluster" title="Yazım Hatalarını ve Varyasyonları Kümele (OpenRefine)" data-col="${col}" style="color:#c084fc;">🔤</button>`
+      : "";
+
+    pill.innerHTML = `
+      <span class="pill-type-badge ${isNum ? 'num' : 'cat'}">${typeTag}</span>
+      <span class="pill-name">${col}</span>
+      ${tagBadge}
+      <div class="pill-quick-actions">
+        ${clusterBtn}
+        <button type="button" class="btn-quick-axis btn-quick-x" title="X Eksenine Ata" data-axis="x">+X</button>
+        <button type="button" class="btn-quick-axis btn-quick-y" title="Y Eksenine Ata" data-axis="y">+Y</button>
+      </div>
+      <div class="pill-remove">×</div>`;
+
+    const clusterBtnEl = pill.querySelector(".btn-quick-cluster");
+    if (clusterBtnEl) {
+      clusterBtnEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (typeof window.openTextClusteringModal === "function") {
+          window.openTextClusteringModal(col);
+        }
+      });
+    }
 
     pill.addEventListener("dragstart", (e) => {
       pill.classList.add("dragging");
@@ -125,8 +147,9 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
     });
     pill.addEventListener("dragend", () => pill.classList.remove("dragging"));
 
-    // Tıklama ile hızlı atama
-    pill.addEventListener("click", () => {
+    // Tıklama ile hızlı atama (+X / +Y butonları haricinde tüm gövde)
+    pill.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-quick-axis") || e.target.closest(".pill-remove")) return;
       if (pill.classList.contains("in-zone")) return;
 
       const xZone = document.getElementById("xZone");
@@ -135,6 +158,18 @@ function renderPoolSection(parentContainer, titleText, cols, sectionId) {
       } else {
         assignPillToZone(col, "yZone");
       }
+    });
+
+    pill.querySelectorAll(".btn-quick-axis").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const axis = btn.dataset.axis;
+        if (axis === "x") {
+          assignPillToZone(col, "xZone");
+        } else {
+          assignPillToZone(col, "yZone");
+        }
+      });
     });
 
     pill.querySelector(".pill-remove")?.addEventListener("click", (e) => {

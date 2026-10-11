@@ -140,6 +140,10 @@ def load_sample():
         df = get_df(1)
         if df is None:
             return jsonify({"error": "Örnek veri oluşturulamadı."}), 500
+
+        from services.memory_service import auto_optimize_ingested_df
+        df = auto_optimize_ingested_df(df)
+        set_df(df, 1)
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
             include=["object", "category", "bool", "string"]

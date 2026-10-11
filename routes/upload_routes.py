@@ -73,6 +73,8 @@ def upload():
             ), 400
 
         df.columns = pd.Index(_deduplicate_columns(df.columns))
+        from services.memory_service import auto_optimize_ingested_df
+        df = auto_optimize_ingested_df(df)
         set_df(df, 1)
         set_df(None, 2)
         set_baseline_trust(None)
@@ -152,7 +154,10 @@ def switch_sheet():
             ), 400
 
         df.columns = pd.Index(_deduplicate_columns(df.columns))
+        from services.memory_service import auto_optimize_ingested_df
+        df = auto_optimize_ingested_df(df)
         set_df(df, 1)
+        set_df(None, 2)
         set_baseline_trust(None)
         set_is_cleaned(False)
 
@@ -208,6 +213,8 @@ def fetch_sql():
             return jsonify({"error": "Sorgu calisti ancak bos veri dondu."}), 400
 
         df.columns = pd.Index(_deduplicate_columns(df.columns))
+        from services.memory_service import auto_optimize_ingested_df
+        df = auto_optimize_ingested_df(df)
         set_df(df, 1)
         set_excel_data(None, [])
         set_df(None, 2)

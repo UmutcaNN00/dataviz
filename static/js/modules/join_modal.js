@@ -13,10 +13,15 @@ function openDataMergeModal() {
   const btnExecuteMerge = document.getElementById("btnExecuteMerge");
   const dataMergeModal = document.getElementById("dataMergeModal");
 
+  const mergeJoinType = document.getElementById("mergeJoinType");
+  const fuzzyThresholdGroup = document.getElementById("fuzzyThresholdGroup");
+
   if (mergeFileInput) mergeFileInput.value = "";
   if (mergeFileStatus) mergeFileStatus.style.display = "none";
   if (mergeConfigArea) mergeConfigArea.classList.add("hidden");
   if (btnExecuteMerge) btnExecuteMerge.disabled = true;
+  if (mergeJoinType) mergeJoinType.value = "left";
+  if (fuzzyThresholdGroup) fuzzyThresholdGroup.classList.add("hidden");
   dataMergeModal?.classList.remove("hidden");
 }
 
@@ -87,57 +92,139 @@ async function executeMerge() {
   const key2Val = mergeKey2Select ? mergeKey2Select.value : "";
   if (!key1Val || !key2Val) return;
 
+  const joinType = mergeJoinType ? mergeJoinType.value : "left";
+
   if (btnExecuteMerge) {
     btnExecuteMerge.disabled = true;
     btnExecuteMerge.textContent = "⏳ Birleştiriliyor...";
   }
 
-  const fd = new FormData();
-  if (selectedFile2) fd.append("file2", selectedFile2);
-  fd.append("key1", key1Val);
-  fd.append("key2", key2Val);
-  fd.append("join_type", mergeJoinType ? mergeJoinType.value : "left");
-
   try {
-    const res = await fetch("/merge_datasets", { method: "POST", body: fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Birleştirme işlemi başarısız");
+    if (joinType === "fast_fuzzy") {
+      // ⚡ Hızlı Bulanık Eşleştirme (Fast Fuzzy - LSH / Inverted Index Blocking)
+      const thresholdInput = document.getElementById("fuzzyThresholdInput");
+      const threshold = thresholdInput
+        ? parseFloat(thresholdInput.value) / 100.0
+        : 0.7;
 
-    numericColumns = data.numeric_columns || [];
-    categoricalColumns = data.categorical_columns || [];
-    globalColumns = [...categoricalColumns, ...numericColumns];
+      const res = await fetch("/fast_fuzzy_join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key1: key1Val,
+          key2: key2Val,
+          threshold: threshold,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Hızlı bulanık birleştirme başarısız");
+      }
 
-    window.numericColumns = numericColumns;
-    window.categoricalColumns = categoricalColumns;
-    window.globalColumns = globalColumns;
+      const metrics = data.metrics || {};
+      const newCols = data.columns || [];
 
-    (data.new_joined_columns || []).forEach((c) => {
-      if (!joinedColumns.includes(c)) joinedColumns.push(c);
-    });
-    window.joinedColumns = joinedColumns;
+      // Sağlık ve sütun tiplerini senkronize et
+      try {
+        const hRes = await fetch("/check_health", { cache: "no-store" });
+        const hData = await hRes.json();
+        if (hRes.ok) {
+          numericColumns = hData.numeric_columns || [];
+          categoricalColumns = hData.categorical_columns || [];
+          globalColumns = [...categoricalColumns, ...numericColumns];
+          window.numericColumns = numericColumns;
+          window.categoricalColumns = categoricalColumns;
+          window.globalColumns = globalColumns;
+        }
+      } catch (_) {
+        globalColumns = newCols;
+        window.globalColumns = globalColumns;
+      }
 
-    activeFilters = [];
-    window.activeFilters = activeFilters;
-    if (typeof renderActiveFilterChips === "function")
-      renderActiveFilterChips();
+      dataMergeModal?.classList.add("hidden");
+      if (typeof initDragDropPool === "function") initDragDropPool(true);
+      if (typeof renderPivotPoolStructured === "function")
+        renderPivotPoolStructured();
+      if (typeof renderChartGrid === "function") renderChartGrid("all");
+      if (typeof evaluateCharts === "function") evaluateCharts();
+      if (typeof window.populateRegColumnSelects === "function")
+        window.populateRegColumnSelects();
+      if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
+      if (
+        currentChartData &&
+        currentPlotType &&
+        typeof refreshActiveChart === "function"
+      ) {
+        refreshActiveChart();
+      }
 
-    dataMergeModal?.classList.add("hidden");
-    if (typeof initDragDropPool === "function") initDragDropPool(true);
-    if (typeof renderPivotPoolStructured === "function")
-      renderPivotPoolStructured();
-    if (typeof window.populateRegColumnSelects === "function")
-      window.populateRegColumnSelects();
-    if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
-    if (
-      currentChartData &&
-      currentPlotType &&
-      typeof refreshActiveChart === "function"
-    )
-      refreshActiveChart();
+      const summaryMsg =
+        `⚡ Hızlı Bulanık Eşleştirme (Fast Fuzzy) Başarıyla Tamamlandı!\n\n` +
+        `⏱️ İşlem Süresi: ${metrics.elapsed_ms || 0} ms\n` +
+        `🎯 Eşleşen Benzersiz Anahtar: ${metrics.matched_unique_keys || 0}\n` +
+        `📊 Birleştirilen Toplam Satır: ${data.new_row_count || 0}\n` +
+        `🚀 Hesaplama Tasarrufu: %${metrics.computation_reduction_pct || 0}\n\n` +
+        `Yeni sütunlar veri havuzuna ve tablonuza eklendi.`;
 
-    alert(
-      `🎉 2. dosya başarıyla birleştirildi!\nToplam: ${data.total_rows} satır, ${data.total_cols} sütun.\nEklenen yeni sütunlar veri havuzunda '🔗' ikonu ile gösterilmektedir.`,
-    );
+      if (typeof window.showDataPrepToast === "function") {
+        window.showDataPrepToast({
+          title: "⚡ Hızlı Bulanık Birleştirme Tamamlandı!",
+          message: `${metrics.matched_unique_keys || 0} anahtar eşleştirildi (%${metrics.computation_reduction_pct || 0} hesaplama tasarrufu, ${metrics.elapsed_ms || 0} ms).`,
+          type: "success",
+          icon: "⚡",
+          duration: 7000,
+        });
+      }
+
+      alert(summaryMsg);
+    } else {
+      // Standart Tablo Birleştirme (Left / Inner / Outer)
+      const fd = new FormData();
+      if (selectedFile2) fd.append("file2", selectedFile2);
+      fd.append("key1", key1Val);
+      fd.append("key2", key2Val);
+      fd.append("join_type", joinType);
+
+      const res = await fetch("/merge_datasets", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Birleştirme işlemi başarısız");
+
+      numericColumns = data.numeric_columns || [];
+      categoricalColumns = data.categorical_columns || [];
+      globalColumns = [...categoricalColumns, ...numericColumns];
+
+      window.numericColumns = numericColumns;
+      window.categoricalColumns = categoricalColumns;
+      window.globalColumns = globalColumns;
+
+      (data.new_joined_columns || []).forEach((c) => {
+        if (!joinedColumns.includes(c)) joinedColumns.push(c);
+      });
+      window.joinedColumns = joinedColumns;
+
+      activeFilters = [];
+      window.activeFilters = activeFilters;
+      if (typeof renderActiveFilterChips === "function")
+        renderActiveFilterChips();
+
+      dataMergeModal?.classList.add("hidden");
+      if (typeof initDragDropPool === "function") initDragDropPool(true);
+      if (typeof renderPivotPoolStructured === "function")
+        renderPivotPoolStructured();
+      if (typeof window.populateRegColumnSelects === "function")
+        window.populateRegColumnSelects();
+      if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
+      if (
+        currentChartData &&
+        currentPlotType &&
+        typeof refreshActiveChart === "function"
+      )
+        refreshActiveChart();
+
+      alert(
+        `🎉 2. dosya başarıyla birleştirildi!\nToplam: ${data.total_rows} satır, ${data.total_cols} sütun.\nEklenen yeni sütunlar veri havuzunda '🔗' ikonu ile gösterilmektedir.`,
+      );
+    }
   } catch (err) {
     alert("Birleştirme başarısız: " + err.message);
   } finally {
@@ -206,6 +293,27 @@ function initJoinModalListeners() {
   });
 
   btnExecuteMerge?.addEventListener("click", executeMerge);
+
+  // Hızlı Bulanık Eşleştirme (Fast Fuzzy) Seçim ve Eşik Dinleyicileri
+  const mergeJoinType = document.getElementById("mergeJoinType");
+  const fuzzyThresholdGroup = document.getElementById("fuzzyThresholdGroup");
+  const fuzzyThresholdInput = document.getElementById("fuzzyThresholdInput");
+  const fuzzyThresholdBadge = document.getElementById("fuzzyThresholdBadge");
+
+  mergeJoinType?.addEventListener("change", (e) => {
+    if (e.target.value === "fast_fuzzy") {
+      fuzzyThresholdGroup?.classList.remove("hidden");
+    } else {
+      fuzzyThresholdGroup?.classList.add("hidden");
+    }
+  });
+
+  fuzzyThresholdInput?.addEventListener("input", (e) => {
+    const val = e.target.value;
+    if (fuzzyThresholdBadge) {
+      fuzzyThresholdBadge.textContent = `%${val} (${(val / 100).toFixed(2)})`;
+    }
+  });
 }
 
 if (document.readyState === "loading") {

@@ -14,6 +14,7 @@ function showScreen(num) {
     "step3-dashboard",
     "screen-pivot-studio",
     "screen-trust-studio",
+    "screen-proto-studio",
   ];
   const screens = ids.map((id) => document.getElementById(id));
   screens.forEach(
@@ -25,6 +26,8 @@ function showScreen(num) {
     activeIdx = 3;
   } else if (num === "trust" || num === 5) {
     activeIdx = 4;
+  } else if (num === "proto" || num === 6) {
+    activeIdx = 5;
   } else {
     activeIdx = num - 1;
     lastScreenBeforeTrust = num;
@@ -829,6 +832,82 @@ document.addEventListener("DOMContentLoaded", () => {
           showToast("Lütfen önce bir grafik çizin", "error");
       }
     });
+
+  // Parquet Dışa Aktarma Dinleyicileri
+  const triggerParquetDownload = async () => {
+    try {
+      if (typeof showToast === "function")
+        showToast("Parquet dosyası hazırlanıyor...", "info");
+      const res = await fetch("/export_parquet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filters: window.activeFilters || [] }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Parquet indirilemedi");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Aktarilan_Veri.parquet";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      if (typeof showToast === "function")
+        showToast("Parquet başarıyla indirildi!", "success");
+    } catch (e) {
+      if (typeof showToast === "function")
+        showToast("Hata: " + e.message, "error");
+    }
+  };
+
+  document
+    .getElementById("btnQuickExportParquet")
+    ?.addEventListener("click", triggerParquetDownload);
+  document
+    .getElementById("downloadParquetBtn")
+    ?.addEventListener("click", triggerParquetDownload);
+
+  // Akademik TÜBİTAK PDF Raporu İndir
+  window.downloadAcademicPdfReport = async () => {
+    try {
+      if (typeof showToast === "function")
+        showToast("Akademik TÜBİTAK PDF raporu oluşturuluyor...", "info");
+      const res = await fetch("/export_academic_pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "TÜBİTAK & Akademik Veri Analiz Raporu",
+          subtitle:
+            "Betimsel İstatistikler, Hipotez Testleri ve Regresyon Modellemesi",
+          x_col: window.axisConfig?.x,
+          y_cols: window.axisConfig?.y || [],
+          filters: window.activeFilters || [],
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "PDF oluşturulamadı");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Tubitak_Akademik_Rapor_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      if (typeof showToast === "function")
+        showToast("Akademik PDF başarıyla indirildi!", "success");
+    } catch (e) {
+      if (typeof showToast === "function")
+        showToast("PDF Hatası: " + e.message, "error");
+    }
+  };
 });
 
 /// --- SQL Bağlantı ve AI Güven Skoru Modülleri ---
@@ -1311,11 +1390,114 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function fetchAndRenderDataContracts() {
+    const listEl = document.getElementById("trustContractRulesList");
+    if (!listEl) return;
+    try {
+      const res = await fetch("/evaluate_data_contracts");
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Sözleşme değerlendirilemedi.");
+      renderTrustContractsCard(data.contracts_report);
+    } catch (err) {
+      if (listEl) {
+        listEl.innerHTML = `<div class="tch-loading" style="color: #f87171;">Hata: ${err.message}</div>`;
+      }
+    }
+  }
+  window.fetchAndRenderDataContracts = fetchAndRenderDataContracts;
+
+  function renderTrustContractsCard(rep) {
+    if (!rep) return;
+
+    // Karne Rozeti
+    const badgeEl = document.getElementById("trustContractGradeBadge");
+    const letterEl = document.getElementById("tchGradeLetter");
+    const textEl = document.getElementById("tchGradeText");
+    const scoreEl = document.getElementById("trustContractScoreVal");
+    const elapsedEl = document.getElementById("trustContractElapsedVal");
+
+    const grade = rep.grade || "B";
+    if (letterEl) letterEl.textContent = grade;
+    if (textEl) textEl.textContent = rep.grade_description || "Veri Sağlığı";
+    if (scoreEl) scoreEl.textContent = `%${rep.compliance_score}`;
+    if (elapsedEl) elapsedEl.textContent = `${rep.elapsed_ms} ms`;
+
+    if (badgeEl) {
+      badgeEl.className = `tch-grade-badge grade-${grade.toLowerCase().charAt(0)}`;
+    }
+
+    // Metrikler
+    const totRulesEl = document.getElementById("tchTotalRulesVal");
+    const passRulesEl = document.getElementById("tchPassedRulesVal");
+    const failRulesEl = document.getElementById("tchFailedRulesVal");
+    const totViolEl = document.getElementById("tchTotalViolationsVal");
+
+    if (totRulesEl) totRulesEl.textContent = rep.total_rules_evaluated || 0;
+    if (passRulesEl) passRulesEl.textContent = rep.passed_rules_count || 0;
+    if (failRulesEl) failRulesEl.textContent = rep.failed_rules_count || 0;
+    if (totViolEl) totViolEl.textContent = (rep.total_violations_found || 0).toLocaleString();
+
+    // Kurallar Listesi
+    const listEl = document.getElementById("trustContractRulesList");
+    if (!listEl) return;
+
+    const rules = rep.rules || [];
+    if (rules.length === 0) {
+      listEl.innerHTML = `<div class="tch-loading">Değerlendirilen kural bulunamadı.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = rules.map((r) => {
+      const isPassed = r.passed;
+      const statusText = isPassed ? "✓ GEÇTİ" : "✗ İHLAL EDİLDİ";
+      const statusClass = isPassed ? "passed" : "violated";
+      const sampleRows = r.sample_violation_rows || [];
+
+      return `
+        <div class="tch-rule-card ${statusClass}">
+          <div class="tch-rule-info">
+            <div class="tch-rule-name">
+              <span>${r.rule_name}</span>
+              <span class="tch-rule-col-tag">${r.column}</span>
+            </div>
+            <div class="tch-rule-desc">${r.description}</div>
+            ${!isPassed && r.violations_count > 0 ? `
+              <div class="tch-rule-violations">
+                <span>⚠️ Toplam <strong>${r.violations_count.toLocaleString()} satır</strong> (%${r.violation_pct}) ihlal tespit edildi.</span>
+                ${sampleRows.length > 0 ? `
+                  <div style="display: flex; gap: 4px; align-items: center; margin-left: 8px;">
+                    <small>Örnek Satırlar:</small>
+                    ${sampleRows.map(idx => `<span class="tch-violation-tag">Satır #${idx}</span>`).join("")}
+                  </div>
+                ` : ""}
+              </div>
+            ` : ""}
+          </div>
+          <div class="tch-rule-status">
+            <span class="tch-rule-status-badge ${statusClass}">
+              ${statusText} ${!isPassed ? `(${r.violations_count} satır)` : ""}
+            </span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  window.renderTrustContractsCard = renderTrustContractsCard;
+
   async function fetchAndRenderTrustReport() {
-    const res = await fetch("/get_trust_report");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Güven raporu alınamadı.");
-    renderTrustStudio(data);
+    const [trustRes, contractsRes] = await Promise.allSettled([
+      fetch("/get_trust_report").then(r => r.json()),
+      fetch("/evaluate_data_contracts").then(r => r.json())
+    ]);
+
+    let data = null;
+    if (trustRes.status === "fulfilled" && !trustRes.value.error) {
+      data = trustRes.value;
+      renderTrustStudio(data);
+    }
+    if (contractsRes.status === "fulfilled" && contractsRes.value.success) {
+      renderTrustContractsCard(contractsRes.value.contracts_report);
+    }
     return data;
   }
   window.fetchAndRenderTrustReport = fetchAndRenderTrustReport;
@@ -1457,6 +1639,32 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+  document.getElementById("btnReevaluateContracts")?.addEventListener("click", async () => {
+    const btn = document.getElementById("btnReevaluateContracts");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "⏳ Denetleniyor...";
+    }
+    await fetchAndRenderDataContracts();
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔄 Sözleşmeleri Denetle";
+    }
+  });
+
+  // Next-Gen Mühendislik Laboratuvarı Geçişleri
+  function openProtoStudio() {
+    showScreen("proto");
+    if (window.prototypeHub) {
+      window.prototypeHub.switchTab(window.prototypeHub.activeTab || "arrow");
+    }
+  }
+  document.getElementById("btnProtoLabTop")?.addEventListener("click", openProtoStudio);
+  document.getElementById("btnOpenProtoLabQuick")?.addEventListener("click", openProtoStudio);
+  document.getElementById("btnProtoBackToStudio")?.addEventListener("click", () => {
+    showScreen(2);
+  });
+
   ["btnCloseDataPrepModal", "dpSkipBtn"].forEach((id) => {
     document.getElementById(id)?.addEventListener("click", () => {
       const ts = document.getElementById("screen-trust-studio");
@@ -1521,7 +1729,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Update active Plotly chart with theme colors if rendered
     try {
-      const chartBox = document.getElementById("mainMegaChart");
+      const chartBox =
+        document.getElementById("chartArea") ||
+        document.getElementById("mainMegaChart");
       if (chartBox && chartBox.data && window.Plotly) {
         const isLight = theme === "light";
         const bg = isLight ? "#ffffff" : "transparent";
