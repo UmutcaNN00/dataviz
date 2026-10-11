@@ -390,46 +390,27 @@ function evaluateCharts() {
   let rec = [],
     dis = [];
 
-  const isXDate = hasX && /tarih|date|zaman|ay|yıl|gün/i.test(axisConfig.x);
+  const isXDate = hasX && /tarih|date|zaman|ay|yıl|gün|year|month|day/i.test(axisConfig.x);
   const isXNum = hasX && numericColumns.includes(axisConfig.x);
-  const hasFinance = globalColumns.some((c) =>
-    /open|açılış|high|yüksek|low|düşük|close|kapanış|fiyat/i.test(c),
-  );
 
   if (hasX) {
     if (yCount === 0) {
       if (isXNum) {
-        rec = ["histogram", "box", "violin", "strip"];
-        dis = [
-          "scatter3d",
-          "surface",
-          "candlestick",
-          "ohlc",
-          "bubble",
-          "line3d",
-        ];
+        rec = ["histogram", "box", "violin"];
+        dis = ["scatter3d", "bubble", "line3d", "radar"];
       } else {
         rec = ["bar", "horizontalbar", "pie", "donut", "treemap"];
-        dis = [
-          "scatter3d",
-          "surface",
-          "candlestick",
-          "ohlc",
-          "bubble",
-          "line3d",
-        ];
+        dis = ["scatter3d", "bubble", "line3d", "line", "spline", "area"];
       }
     } else if (yCount === 1) {
       if (isXDate) {
-        rec = ["line", "spline", "step", "area", "bar", "waterfall"];
-        if (hasFinance) rec.push("candlestick", "ohlc");
-        dis = ["pie", "donut", "sunburst", "radar", "scatter3d", "ternary"];
+        rec = ["line", "spline", "step", "area", "waterfall", "bar"];
+        dis = ["pie", "donut", "sunburst", "radar", "scatter3d"];
       } else if (isXNum) {
         rec = [
           "scatter",
           "bubble",
           "line",
-          "bar",
           "histogram",
           "density2d",
           "histogram2d",
@@ -440,31 +421,26 @@ function evaluateCharts() {
           "sunburst",
           "treemap",
           "funnel",
-          "candlestick",
-          "ohlc",
         ];
       } else {
         rec = [
           "bar",
           "horizontalbar",
+          "lollipop",
           "pie",
           "donut",
-          "radar",
           "treemap",
           "sunburst",
           "funnel",
-          "dotplot",
           "waterfall",
+          "gauge",
           "bullet",
-          "errorbar",
         ];
         dis = [
           "line3d",
-          "surface",
-          "candlestick",
-          "ohlc",
           "scatter3d",
-          "ternary",
+          "density2d",
+          "histogram2d",
         ];
       }
     } else if (yCount >= 2) {
@@ -475,10 +451,8 @@ function evaluateCharts() {
           "stackedarea",
           "groupedbar",
           "stackedbar",
-          "candlestick",
-          "ohlc",
         ];
-        dis = ["pie", "donut", "funnelarea", "ternary"];
+        dis = ["pie", "donut", "funnel", "gauge"];
       } else if (isXNum) {
         if (1 + yCount === 3) {
           rec = [
@@ -486,40 +460,33 @@ function evaluateCharts() {
             "bubble",
             "scatter3d",
             "line3d",
-            "surface",
-            "contour",
-            "ternary",
           ];
         } else {
-          rec = ["scattermatrix", "parcoords", "heatmap", "surface", "contour"];
+          rec = ["scattermatrix", "parcoords", "heatmap", "groupedbar"];
         }
-        dis = ["pie", "donut", "sunburst", "funnel"];
+        dis = ["pie", "donut", "sunburst", "funnel", "gauge"];
       } else {
         rec = [
           "groupedbar",
           "stackedbar",
           "radar",
           "heatmap",
-          "parcats",
           "sunburst",
-          "icicle",
-          "sankey",
+          "treemap",
         ];
-        dis = ["line3d", "surface", "candlestick", "ohlc", "scatter3d"];
+        dis = ["line3d", "scatter3d", "density2d"];
       }
     }
   } else {
     if (yCount === 1) {
-      rec = ["histogram", "box", "violin", "strip", "rug", "bullet"];
+      rec = ["histogram", "box", "violin", "bullet", "gauge"];
       dis = [
         "pie",
         "donut",
         "sunburst",
         "treemap",
         "scatter3d",
-        "surface",
-        "candlestick",
-        "ohlc",
+        "line3d",
       ];
     } else if (yCount >= 2) {
       rec = [
@@ -533,7 +500,7 @@ function evaluateCharts() {
         "box",
         "violin",
       ];
-      dis = ["pie", "donut", "funnelarea", "candlestick", "ohlc"];
+      dis = ["pie", "donut", "funnel", "gauge"];
     }
   }
 
@@ -1243,13 +1210,10 @@ function initChartManagerListeners() {
 
       if (xMatch && yMatch) {
         setTimeout(() => {
-          if (
-            tpl === "finance" &&
-            document.querySelector('.chart-card[data-id="candlestick"]')
-          ) {
+          if (tpl === "finance") {
             if (typeof goToStep3 === "function") goToStep3("line", "Çizgi");
           } else {
-            if (typeof goToStep3 === "function") goToStep3("bar", "Çubuk");
+            if (typeof goToStep3 === "function") goToStep3("bar", "Dikey Çubuk");
           }
         }, 600);
       }

@@ -65,19 +65,11 @@ def get_chart_data():
         "bubble",
         "scatter3d",
         "line3d",
-        "scattergeo",
         "scattermatrix",
         "density2d",
-        "rug",
-        "strip",
         "parcoords",
-        "parcats",
-        "candlestick",
-        "ohlc",
-        "dumbbell",
-        "ternary",
     ]
-    corr_charts = ["heatmap", "surface", "contour", "carpet", "contourcarpet"]
+    corr_charts = ["heatmap"]
 
     # Column projection: only copy the columns needed for this chart (saves ~90% RAM on 10M-100M rows)
     if chart_type in corr_charts and len(y_cols) < 2:
