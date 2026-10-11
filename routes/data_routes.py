@@ -30,6 +30,7 @@ from services.file_service import (
     read_csv_safely,
     read_excel_safely,
     read_parquet_safely,
+    read_spss_safely,
 )
 
 logger = logging.getLogger(__name__)
@@ -226,10 +227,12 @@ def preview_second_file():
             df2 = read_csv_safely(file2)
         elif filename2.endswith((".xls", ".xlsx")):
             df2, _, _, _ = read_excel_safely(file2)
+        elif filename2.endswith((".sav", ".zsav")):
+            df2 = read_spss_safely(file2)
         else:
             return jsonify(
                 {
-                    "error": "Desteklenmeyen dosya formatı. Lütfen .parquet, .csv veya .xlsx dosyası yükleyin."
+                    "error": "Desteklenmeyen dosya formatı. Lütfen .parquet, .csv, .xlsx veya .sav dosyası yükleyin."
                 }
             ), 400
 
