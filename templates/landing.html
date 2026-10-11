@@ -3,228 +3,252 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DataViz — Yüksek Performanslı Veri Analitiği & İstatistik Platformu</title>
+    <title>DataViz</title>
     <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* ══════════════════════════════════════════════════════════ */
-      /* 💎 TEMEL TİPOGRAFİ VE DEĞİŞKENLER                         */
-      /* ══════════════════════════════════════════════════════════ */
       body {
-        font-family: "Plus Jakarta Sans", "Inter", -apple-system, sans-serif;
-        background-color: #030712;
-        color: #f8fafc;
-        overflow-x: hidden;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "SF Pro Display",
+          "SF Pro Text",
+          system-ui,
+          sans-serif;
+        background-color: #000000;
+        color: #f5f5f7;
       }
       .font-mono {
         font-family: "JetBrains Mono", monospace;
       }
 
-      /* ══════════════════════════════════════════════════════════ */
-      /* 🌌 REACT-BITS: AURORA BOREALIS ANİMASYONU (KONSEPT 1)     */
-      /* ══════════════════════════════════════════════════════════ */
-      .aurora-bg {
-        position: absolute;
-        top: -150px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 140vw;
-        height: 650px;
-        background: radial-gradient(ellipse at 50% 30%, rgba(56, 189, 248, 0.22) 0%, rgba(99, 102, 241, 0.18) 35%, rgba(168, 85, 247, 0.12) 60%, transparent 80%);
-        filter: blur(80px);
-        pointer-events: none;
-        z-index: 0;
-        animation: aurora-shift 12s ease-in-out infinite alternate;
-      }
-      @keyframes aurora-shift {
-        0% { transform: translateX(-50%) rotate(0deg) scale(1); }
-        50% { transform: translateX(-48%) rotate(2deg) scale(1.08); }
-        100% { transform: translateX(-52%) rotate(-2deg) scale(0.96); }
-      }
-
-      /* ══════════════════════════════════════════════════════════ */
-      /* ✨ REACT-BITS: SHINY TEXT (PARILDAYAN METİN ANİMASYONU)    */
-      /* ══════════════════════════════════════════════════════════ */
-      .shiny-text {
-        background: linear-gradient(110deg, #94a3b8 20%, #ffffff 50%, #94a3b8 80%);
-        background-size: 200% 100%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: shiny-shimmer 3.5s linear infinite;
-      }
-      @keyframes shiny-shimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-
-      /* ══════════════════════════════════════════════════════════ */
-      /* 🔦 REACT-BITS: SPOTLIGHT CARD (MOUSE HOVER RADYAL GLOW)    */
-      /* ══════════════════════════════════════════════════════════ */
-      .spotlight-card {
-        position: relative;
-        background: rgba(15, 23, 42, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
-        overflow: hidden;
-        backdrop-filter: blur(20px);
-        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
-      }
-      .spotlight-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(800px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(56, 189, 248, 0.12), transparent 40%);
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.35s ease;
-      }
-      .spotlight-card:hover::before {
-        opacity: 1;
-      }
-      .spotlight-card:hover {
-        border-color: rgba(56, 189, 248, 0.3);
-        transform: translateY(-2px);
-      }
-
-      /* ══════════════════════════════════════════════════════════ */
-      /* ⚡ REACT-BITS: BORDER GLOW (DÖNEN LAZER KENARLIK)          */
-      /* ══════════════════════════════════════════════════════════ */
-      .border-glow-wrapper {
-        position: relative;
-        border-radius: 22px;
-        padding: 1.5px;
-        background: linear-gradient(135deg, rgba(56, 189, 248, 0.5), rgba(129, 140, 248, 0.2), rgba(168, 85, 247, 0.5));
-        background-size: 200% 200%;
-        animation: border-rotate 6s ease infinite;
-      }
-      @keyframes border-rotate {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-
-      /* ══════════════════════════════════════════════════════════ */
-      /* 🎛️ FLOATING CONCEPT SWITCHER                               */
-      /* ══════════════════════════════════════════════════════════ */
-      .concept-switcher-bar {
-        background: rgba(10, 15, 30, 0.88);
+      /* Apple Titanium Glass */
+      .apple-glass {
+        background: rgba(22, 22, 24, 0.75);
         backdrop-filter: blur(25px);
         -webkit-backdrop-filter: blur(25px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15);
-      }
-      .concept-btn {
-        padding: 6px 14px;
-        font-size: 11px;
-        font-weight: 700;
-        border-radius: 9999px;
-        color: #94a3b8;
-        background: transparent;
-        border: 1px solid transparent;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .concept-btn:hover {
-        color: #ffffff;
-        background: rgba(255, 255, 255, 0.08);
-      }
-      .concept-btn.active {
-        background: linear-gradient(135deg, #0284c7, #2563eb);
-        color: #ffffff;
-        border-color: rgba(56, 189, 248, 0.5);
-        box-shadow: 0 2px 14px rgba(37, 99, 235, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.09);
       }
 
-      /* ══════════════════════════════════════════════════════════ */
-      /* 📁 MODERN CANLI DROPZONE                                   */
-      /* ══════════════════════════════════════════════════════════ */
-      .dropzone-terminal {
-        border: 2px dashed rgba(56, 189, 248, 0.3);
-        background: rgba(13, 20, 38, 0.7);
-        border-radius: 20px;
-        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        cursor: pointer;
+      .apple-card {
+        background: #101012;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      .dropzone-terminal:hover,
-      .dropzone-terminal.dragover {
-        border-color: #38bdf8;
-        background: rgba(56, 189, 248, 0.08);
-        box-shadow: 0 0 35px rgba(56, 189, 248, 0.22);
-        transform: scale(1.008);
+      .apple-card:hover {
+        border-color: rgba(255, 255, 255, 0.18);
+        background: #141417;
       }
 
-      /* ══════════════════════════════════════════════════════════ */
-      /* ☀️ AYDINLIK TEMA (LIGHT MODE)                              */
-      /* ══════════════════════════════════════════════════════════ */
+      .apple-pill-active {
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      /* Subdued Specular Reflection */
+      .specular-glow {
+        background: radial-gradient(
+          circle at 50% 0%,
+          rgba(255, 255, 255, 0.08),
+          transparent 70%
+        );
+      }
+
+      /* Light Theme (Kurumsal Temiz Slate) */
       html[data-theme="light"] body {
         background-color: #f8fafc !important;
         color: #0f172a !important;
       }
-      html[data-theme="light"] .aurora-bg {
-        background: radial-gradient(ellipse at 50% 30%, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.12) 35%, transparent 70%);
+      html[data-theme="light"] nav {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-color: #e2e8f0 !important;
       }
-      html[data-theme="light"] .shiny-text {
-        background: linear-gradient(110deg, #0f172a 20%, #3b82f6 50%, #0f172a 80%);
-        background-size: 200% 100%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+      html[data-theme="light"] nav a {
+        color: #475569 !important;
       }
-      html[data-theme="light"] .spotlight-card {
-        background: #ffffff !important;
+      html[data-theme="light"] nav a:hover {
+        color: #0f172a !important;
+      }
+      html[data-theme="light"] .apple-glass {
+        background: rgba(255, 255, 255, 0.92) !important;
         border-color: #e2e8f0 !important;
         box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
       }
-      html[data-theme="light"] .spotlight-card:hover {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 12px 30px rgba(59, 130, 246, 0.12);
-      }
-      html[data-theme="light"] .dropzone-terminal {
+      html[data-theme="light"] .apple-card {
         background: #ffffff !important;
-        border-color: #93c5fd !important;
-        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
       }
-      html[data-theme="light"] .dropzone-terminal:hover,
-      html[data-theme="light"] .dropzone-terminal.dragover {
-        background: #eff6ff !important;
-        border-color: #2563eb !important;
+      html[data-theme="light"] .apple-card:hover {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+        box-shadow: 0 10px 30px rgba(2, 132, 199, 0.1);
       }
-      html[data-theme="light"] .concept-switcher-bar {
-        background: rgba(255, 255, 255, 0.94) !important;
-        border-color: #cbd5e1 !important;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1) !important;
+      /* Typography in Light Mode */
+      html[data-theme="light"] h1,
+      html[data-theme="light"] h2,
+      html[data-theme="light"] h3,
+      html[data-theme="light"] h4 {
+        color: #0f172a !important;
       }
-      html[data-theme="light"] .concept-btn {
+      html[data-theme="light"] .text-\[\#86868b\] {
         color: #64748b !important;
       }
-      html[data-theme="light"] .concept-btn:hover {
-        color: #0f172a !important;
-        background: #f1f5f9 !important;
+      html[data-theme="light"] .text-\[\#424245\] {
+        color: #94a3b8 !important;
       }
-      html[data-theme="light"] .concept-btn.active {
-        background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+      html[data-theme="light"] .border-white\/\[0\.08\],
+      html[data-theme="light"] .border-white\/\[0\.09\],
+      html[data-theme="light"] .border-white\/\[0\.12\],
+      html[data-theme="light"] .border-white\/\[0\.15\] {
+        border-color: #e2e8f0 !important;
+      }
+      html[data-theme="light"] .bg-white\/\[0\.03\],
+      html[data-theme="light"] .bg-white\/\[0\.06\],
+      html[data-theme="light"] .bg-white\/\[0\.08\] {
+        background-color: #f1f5f9 !important;
+      }
+      html[data-theme="light"] .apple-pill-active {
+        background: #0284c7 !important;
         color: #ffffff !important;
-      }
-      html[data-theme="light"] h1, html[data-theme="light"] h2, html[data-theme="light"] h3, html[data-theme="light"] h4 {
-        color: #0f172a !important;
-      }
-      html[data-theme="light"] .text-slate-400 {
-        color: #64748b !important;
+        border-color: #0284c7 !important;
       }
 
-      /* Geçiş Animasyonu */
-      .concept-view {
-        animation: concept-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      /* Hero CTA Buttons in Light Mode */
+      html[data-theme="light"] a[href*="analysis"] {
+        background: #0284c7 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3) !important;
       }
-      @keyframes concept-fade {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
+      html[data-theme="light"] a[href*="analysis"]:hover {
+        background: #0369a1 !important;
+      }
+      html[data-theme="light"] a[href="#showcase"] {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+      }
+      html[data-theme="light"] a[href="#showcase"]:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+      }
+
+      /* Silent specs ribbon in Light Mode */
+      html[data-theme="light"] .font-mono span.font-semibold {
+        color: #0f172a !important;
+      }
+
+      /* Showcase Mac Window in Light Mode */
+      html[data-theme="light"] #showcase > div {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08) !important;
+      }
+      html[data-theme="light"] #showcase .h-10 {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+      }
+      html[data-theme="light"] #showcase .h-10 span {
+        color: #64748b !important;
+      }
+      html[data-theme="light"] #showcase .h-10 .w-2\.5 {
+        background: #cbd5e1 !important;
+      }
+      html[data-theme="light"] #showcase .space-y-8 {
+        background: #ffffff !important;
+      }
+      html[data-theme="light"] #showcase #appleKpiGrid > div {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+      }
+      html[data-theme="light"] #showcase #appleKpiGrid span.text-2xl {
+        color: #0f172a !important;
+      }
+      html[data-theme="light"] #showcase #appleKpiGrid span.text-sm {
+        color: #0f172a !important;
+      }
+      html[data-theme="light"] #showcase #appleKpiGrid span[id$="Title"] {
+        color: #64748b !important;
+      }
+      html[data-theme="light"] #showcase #appleKpiGrid span[id$="Sub"] {
+        color: #64748b !important;
+      }
+      html[data-theme="light"] #showcase .min-h-\[300px\] {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+      }
+      html[data-theme="light"] #showcase #chartLabel {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+      }
+      html[data-theme="light"] #showcase line[stroke="#ffffff"] {
+        stroke: #0284c7 !important;
+      }
+      html[data-theme="light"] #showcase line[stroke="#2c2c2e"] {
+        stroke: #cbd5e1 !important;
+      }
+      html[data-theme="light"] #showcase circle[fill="#f5f5f7"] {
+        fill: #0284c7 !important;
+      }
+      html[data-theme="light"] #showcase #appleInsightParagraph {
+        color: #475569 !important;
+      }
+      html[data-theme="light"] #showcase #appleInsightParagraph strong {
+        color: #0f172a !important;
+      }
+      html[data-theme="light"] #showcase .flex.bg-\[\#000000\] {
+        background: #f1f5f9 !important;
+        border-color: #e2e8f0 !important;
+      }
+      html[data-theme="light"] #showcase #btnAppleAnova {
+        color: #64748b !important;
+      }
+      html[data-theme="light"] #showcase #btnAppleAnova:hover {
+        color: #0f172a !important;
+      }
+
+      /* Theme Toggle Button Style in Landing */
+      .theme-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #f5f5f7;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      html[data-theme="light"] .theme-toggle-btn {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #0f172a;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      }
+      .theme-toggle-btn:hover {
+        transform: scale(1.06);
+      }
+      .theme-toggle-btn .theme-icon-sun {
+        display: none;
+      }
+      .theme-toggle-btn .theme-icon-moon {
+        display: flex;
+      }
+      html[data-theme="light"] .theme-toggle-btn .theme-icon-sun {
+        display: flex;
+        color: #d97706;
+      }
+      html[data-theme="light"] .theme-toggle-btn .theme-icon-moon {
+        display: none;
       }
     </style>
     <script>
@@ -240,858 +264,661 @@
       })();
     </script>
   </head>
-  <body class="min-h-screen relative">
-
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- 🎛️ CANLI TASARIM KONSEPT DEĞİŞTİRME ÇUBUĞU (SWITCHER)      -->
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <header class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1.5 rounded-full concept-switcher-bar max-w-[96vw] overflow-x-auto">
-      <div class="flex items-center gap-1.5 px-3 py-1 bg-sky-500/10 rounded-full text-sky-400 text-[11px] font-extrabold flex-shrink-0">
-        <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-        <span>Önizleme:</span>
-      </div>
-
-      <div class="flex items-center gap-1 flex-shrink-0">
-        <button type="button" class="concept-btn active" data-concept="1" onclick="switchConcept(1)">
-          <span>🌌 1. Aurora Bento Platformu</span>
-          <span class="px-1.5 py-0.2 text-[9px] rounded-full bg-sky-400/20 text-sky-300 font-mono">Önerilen</span>
-        </button>
-        <button type="button" class="concept-btn" data-concept="2" onclick="switchConcept(2)">
-          <span>🏛️ 2. Obsidian Enterprise Hub</span>
-        </button>
-        <button type="button" class="concept-btn" data-concept="3" onclick="switchConcept(3)">
-          <span>🔬 3. Titanium Cyber-Lab (Particles)</span>
-        </button>
-        <button type="button" class="concept-btn" data-concept="4" onclick="switchConcept(4)">
-          <span>⚡ 4. 50/50 Studio Direct Terminal</span>
-        </button>
-      </div>
-
-      <div class="w-px h-5 bg-white/20 mx-1 flex-shrink-0"></div>
-
-      <!-- Tema Değiştirme Butonu -->
-      <button
-        type="button"
-        class="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-slate-200 transition-all flex-shrink-0"
-        id="themeToggleBtnLanding"
-        title="Karanlık / Aydınlık Tema"
+  <body
+    class="bg-black text-[#f5f5f7] min-h-screen antialiased selection:bg-white selection:text-black"
+  >
+    <!-- Minimal Apple Top Nav -->
+    <header class="sticky top-0 z-50 apple-glass border-b border-white/[0.08]">
+      <div
+        class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between text-xs font-normal"
       >
-        <svg class="dark:hidden w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="hidden dark:block w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-
-      <!-- Doğrudan Stüdyoyu Aç Butonu -->
-      <a
-        href="{{ url_for('main.analysis') }}"
-        class="px-4 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-[11px] transition-all flex-shrink-0 flex items-center gap-1 shadow-lg shadow-emerald-900/30"
-      >
-        <span>Stüdyo</span> →
-      </a>
-    </header>
-
-    <!-- Ortak Gizli Dosya Girişi -->
-    <input type="file" id="globalLandingFileInput" accept=".xlsx,.xls,.csv,.parquet,.sav,.zsav" class="hidden" />
-
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- 🌌 KONSEPT 1: AURORA BENTO WORKBENCH (ÖNERİLEN ⭐)         -->
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <main id="concept-view-1" class="concept-view relative pt-24 pb-20 overflow-hidden">
-      <!-- Aurora Arka Plan Işığı -->
-      <div class="aurora-bg"></div>
-
-      <div class="max-w-6xl mx-auto px-6 relative z-10">
-        <!-- Hero Başlık & Rozet -->
-        <div class="text-center pt-8 pb-10">
-          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-bold mb-6 backdrop-blur-md">
-            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
-            SPSS (.sav), Parquet, Excel & CSV • 27 Doğrulanmış Grafik Türü
-          </div>
-
-          <h1 class="text-4xl sm:text-7xl font-black tracking-tight text-white leading-[1.08] mb-5">
-            Verinizi Anında Keşfedin.<br />
-            <span class="shiny-text font-extrabold">Sıfır Bulut. Saf Hız.</span>
-          </h1>
-
-          <p class="text-base sm:text-xl text-slate-400 max-w-3xl mx-auto font-normal leading-relaxed">
-            Milyonlarca satırı tarayıcınızda <strong>%100 yerel gizlilikle</strong> analiz edin.
-            Polars SIMD motoru, çok boyutlu <strong>Canlı Pivot Matrisi</strong> ve akademik SciPy istatistikleri.
-          </p>
-        </div>
-
-        <!-- BENTO GRID HERO & DROPZONE -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-14">
-          <!-- BENTO KUTU 1: MERKEZİ ENTEGRE CANLI DROPZONE (8 Kolon) -->
-          <div class="lg:col-span-8 border-glow-wrapper">
-            <div
-              class="dropzone-terminal p-8 sm:p-10 h-full flex flex-col justify-between text-center relative"
-              onclick="triggerGlobalFileSelect()"
-              ondragover="handleDragOver(event)"
-              ondragleave="handleDragLeave(event)"
-              ondrop="handleDrop(event)"
-            >
-              <div>
-                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shadow-lg shadow-sky-500/20">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-
-                <h3 class="text-2xl font-extrabold text-white mb-2 tracking-tight">
-                  Veri Dosyanızı Buraya Bırakın
-                </h3>
-                <p class="text-xs sm:text-sm text-slate-400 mb-6">
-                  veya bilgisayarınızdan seçmek için <span class="text-sky-400 font-bold underline underline-offset-4">tıklayın</span>
-                </p>
-
-                <div class="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
-                  <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    .SAV (SPSS Anket)
-                  </span>
-                  <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
-                    .PARQUET (PyArrow)
-                  </span>
-                  <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-green-500/15 text-green-400 border border-green-500/30">
-                    .XLSX (Excel Tablo)
-                  </span>
-                  <span class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                    .CSV (Polars Hızlı)
-                  </span>
-                </div>
-              </div>
-
-              <!-- Hızlı Başlangıç Demo Butonları -->
-              <div class="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span class="text-slate-400 font-semibold">🧪 Tek Tıkla Canlı Demo:</span>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onclick="event.stopPropagation(); loadDemoDataset('academic')"
-                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 transition-all font-semibold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <span>📑 Anket (.sav)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onclick="event.stopPropagation(); loadDemoDataset('sales')"
-                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 transition-all font-semibold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <span>📊 Satış (.xlsx)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onclick="event.stopPropagation(); loadDemoDataset('test')"
-                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 transition-all font-semibold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <span>📈 Seri (.csv)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- BENTO KUTU 2: HIZ & GİZLİLİK GÖSTERGESİ (4 Kolon) -->
-          <div class="lg:col-span-4 flex flex-col gap-5">
-            <div class="spotlight-card p-6 flex-1 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between text-xs font-bold text-sky-400 font-mono mb-3">
-                  <span>POLARS 0.20 SIMD</span>
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">AKTİF</span>
-                </div>
-                <h4 class="text-xl font-extrabold text-white mb-2">10 Milyon Satır Hızı</h4>
-                <p class="text-xs text-slate-400 leading-relaxed">
-                  PyArrow zero-copy bellek yönetimiyle gigabaytlarca veri saniyeler içinde taranır, bellek kilitlenmesi yaşanmaz.
-                </p>
-              </div>
-              <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between font-mono text-[11px] text-slate-400">
-                <span>Zero-Copy Arrow</span>
-                <span class="text-emerald-400 font-bold">~0.4 ms Filtre</span>
-              </div>
-            </div>
-
-            <div class="spotlight-card p-6 flex-1 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between text-xs font-bold text-amber-400 font-mono mb-3">
-                  <span>GİZLİLİK SEVİYESİ</span>
-                  <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">%100 YEREL</span>
-                </div>
-                <h4 class="text-xl font-extrabold text-white mb-2">Sıfır Bulut Bağımlılığı</h4>
-                <p class="text-xs text-slate-400 leading-relaxed">
-                  Verileriniz sunucuya aktarılmaz, yerel makinenizde işlenir. KVKK ve akademik gizlilik taahhüdü altındadır.
-                </p>
-              </div>
-              <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between font-mono text-[11px] text-slate-400">
-                <span>Localhost Only</span>
-                <span class="text-sky-400 font-bold">Tam Çevrimdışı</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- BENTO GRID ALT SÜTUNLAR: YETENEK VİTRİNİ -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <!-- Sütun 1: 27 Grafik -->
-          <div class="spotlight-card p-7">
-            <div class="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-4 text-xl">
-              📊
-            </div>
-            <h4 class="text-lg font-bold text-white mb-2">27 Onaylı A-Sınıfı Grafik</h4>
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">
-              Rastgele yapay grafikler yok. Dağılım, Pearson Korelasyon Matrisi, OLS Regresyonu, Kutu & Keman, 3D ve Zaman serileri doğrudan gerçek verinizle çizilir.
-            </p>
-            <div class="text-[11px] font-mono text-sky-400">
-              ✓ Sahte Veri Yok • %100 Deterministik
-            </div>
-          </div>
-
-          <!-- Sütun 2: Pivot Matris -->
-          <div class="spotlight-card p-7">
-            <div class="w-12 h-12 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 text-xl">
-              📑
-            </div>
-            <h4 class="text-lg font-bold text-white mb-2">Canlı Pivot Matris Stüdyosu</h4>
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">
-              Tableau tarzı Satırlar, Sütunlar ve Değerler raflarıyla çok boyutlu çapraz özet tablolar. Dinamik Isı Haritası (Heatmap) ve tek tıkla Excel indirme.
-            </p>
-            <div class="text-[11px] font-mono text-purple-400">
-              ✓ Çapraz Tablo • Excel (.xlsx) • TSV Kopyala
-            </div>
-          </div>
-
-          <!-- Sütun 3: SPSS & TÜBİTAK -->
-          <div class="spotlight-card p-7">
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 text-xl">
-              🎓
-            </div>
-            <h4 class="text-lg font-bold text-white mb-2">SPSS (.sav) & TÜBİTAK 2209-A</h4>
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">
-              Sosyal bilimler anket etiketleri doğrudan okunur. SciPy istatistikleri ve APA 7 formatında tez/proje uyumlu vektörel A4 PDF rapor üretimi.
-            </p>
-            <div class="text-[11px] font-mono text-emerald-400">
-              ✓ SciPy 1.11 • pyreadstat • APA 7 Çıktı
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- 🏛️ KONSEPT 2: OBSIDIAN ENTERPRISE HUB (LINEAR STYLE)      -->
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <main id="concept-view-2" class="concept-view pt-24 pb-20 hidden">
-      <div class="max-w-6xl mx-auto px-6">
-        <div class="text-center pt-8 pb-12">
-          <span class="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold mb-4 inline-block">
-            KURUMSAL ANALİTİK & KARAR DESTEK SİSTEMİ
-          </span>
-          <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight mb-4">
-            Doğrulanmış Kararlar İçin Kesintisiz Akış
-          </h1>
-          <p class="text-base text-slate-400 max-w-2xl mx-auto">
-            Dağınık Excel sayfalarını ve ağır kurumsal yazılımları geride bırakın. Üç adımda kurumsal içgörülere ulaşın.
-          </p>
-        </div>
-
-        <!-- 3 ADIMLI KURUMSAL İŞ AKIŞI -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div class="spotlight-card p-8 border-t-4 border-t-emerald-500">
-            <span class="text-4xl font-black text-emerald-400 font-mono block mb-3">01</span>
-            <h3 class="text-lg font-bold text-white mb-2">Güvenli İçe Aktarma</h3>
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">
-              Excel, CSV, SPSS veya Parquet dosyalarını tip kaybetmeden yükleyin. Bozuk karakterler ve eksik değerler otomatik raporlanır.
-            </p>
-            <span class="text-[11px] font-mono text-emerald-400">Polars Auto-Inference</span>
-          </div>
-
-          <div class="spotlight-card p-8 border-t-4 border-t-sky-500">
-            <span class="text-4xl font-black text-sky-400 font-mono block mb-3">02</span>
-            <h3 class="text-lg font-bold text-white mb-2">Eşleştirme ve Modelleme</h3>
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">
-              X ve Y eksenlerini raflara bırakın. 27 A-sınıfı grafik türü arasından veri tiplerinize en uygun analitik sunum anında listelenir.
-            </p>
-            <span class="text-[11px] font-mono text-sky-400">27 Onaylı Grafik Kataloğu</span>
-          </div>
-
-          <div class="spotlight-card p-8 border-t-4 border-t-purple-500">
-            <span class="text-4xl font-black text-purple-400 font-mono block mb-3">03</span>
-            <h3 class="text-lg font-bold text-white mb-2">Belgeleme ve İhracat</h3>
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">
-              Yönetici özetini inceleyin, canlı Pivot tablolarını kaydedin ve sunuma hazır yüksek çözünürlüklü A4 PDF raporu indirin.
-            </p>
-            <span class="text-[11px] font-mono text-purple-400">A4 PDF & Temiz Parquet</span>
-          </div>
-        </div>
-
-        <!-- YÜKLEME VE BAŞLATMA TERMİNALİ -->
-        <div class="max-w-2xl mx-auto spotlight-card p-8 text-center">
-          <h3 class="text-xl font-bold text-white mb-1">Kurumsal Dosyanızı Yükleyin</h3>
-          <p class="text-xs text-slate-400 mb-6">Sürükleyip bırakın veya demo veriyle stüdyoyu keşfedin:</p>
-
-          <div
-            class="dropzone-terminal p-8 mb-6"
-            onclick="triggerGlobalFileSelect()"
-            ondragover="handleDragOver(event)"
-            ondragleave="handleDragLeave(event)"
-            ondrop="handleDrop(event)"
+        <div class="flex items-center gap-6">
+          <a
+            href="/"
+            class="font-semibold text-white tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div class="text-base font-bold text-white mb-1">Dosya Seçin veya Sürükleyin</div>
-            <div class="text-xs text-slate-400">.xlsx, .csv, .parquet, .sav, .zsav</div>
-          </div>
-
-          <div class="flex items-center justify-center gap-4">
-            <a
-              href="{{ url_for('main.analysis') }}"
-              class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg"
-            >
-              Stüdyoyu Başlat →
-            </a>
-            <button
-              type="button"
-              onclick="loadDemoDataset('sales')"
-              class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 font-medium text-xs transition-all"
-            >
-              🧪 Örnek Satış Verisi
-            </button>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- 🔬 KONSEPT 3: TITANIUM CYBER-LAB (CANLI PARTICLE CANVAS)   -->
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <main id="concept-view-3" class="concept-view pt-24 pb-20 hidden relative">
-      <!-- Canlı İnteraktif Parçacık Tuvali (Canvas) -->
-      <canvas id="particlesCanvas" class="absolute inset-0 pointer-events-none z-0 opacity-40"></canvas>
-
-      <div class="max-w-5xl mx-auto px-6 relative z-10">
-        <div class="text-center pt-8 pb-10">
-          <span class="px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold mb-4 inline-block">
-            PARAMETRİK İSTATİSTİK LABORATUVARI
-          </span>
-          <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight mb-4">
-            İnteraktif Hipotez Simülatörü
-          </h1>
-          <p class="text-base text-slate-400 max-w-2xl mx-auto">
-            Aşağıdaki parametrelerle oynayarak DataViz model motorunun gerçek zamanlı matematiksel tepkisini test edin:
-          </p>
-        </div>
-
-        <!-- MAC STUDIO FRAME ÇERÇEVESİ -->
-        <div class="spotlight-card p-4 sm:p-6 mb-10 shadow-2xl">
-          <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span class="text-xs text-slate-400 font-mono ml-2">SciPy 1.11 Interactive Kernel</span>
-            </div>
-
-            <!-- İnteraktif Sekme Seçici -->
-            <div class="flex bg-black/60 p-1 rounded-full border border-white/10">
-              <button
-                type="button"
-                onclick="switchLabMode('reg')"
-                id="labBtnReg"
-                class="px-3 py-1 rounded-full text-xs font-bold bg-blue-600 text-white transition-all"
-              >
-                OLS Regresyon
-              </button>
-              <button
-                type="button"
-                onclick="switchLabMode('anova')"
-                id="labBtnAnova"
-                class="px-3 py-1 rounded-full text-xs font-bold text-slate-400 hover:text-white transition-all"
-              >
-                ANOVA Varyans
-              </button>
-              <button
-                type="button"
-                onclick="switchLabMode('corr')"
-                id="labBtnCorr"
-                class="px-3 py-1 rounded-full text-xs font-bold text-slate-400 hover:text-white transition-all"
-              >
-                Korelasyon Isı Haritası
-              </button>
-            </div>
-          </div>
-
-          <!-- Canlı Metrik Kutuları -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono mb-6">
-            <div class="p-4 rounded-xl bg-slate-900/90 border border-white/10">
-              <span id="labStat1Title" class="text-[11px] text-slate-400 block mb-1">Pearson (r)</span>
-              <span id="labStat1Val" class="text-2xl font-bold text-sky-400 block">0.8842</span>
-              <span id="labStat1Sub" class="text-[10px] text-emerald-400">Güçlü Doğrusal Bağ</span>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-900/90 border border-white/10">
-              <span id="labStat2Title" class="text-[11px] text-slate-400 block mb-1">Açıklayıcılık (R²)</span>
-              <span id="labStat2Val" class="text-2xl font-bold text-white block">0.7818</span>
-              <span id="labStat2Sub" class="text-[10px] text-slate-400">%78.2 Varyans</span>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-900/90 border border-white/10">
-              <span id="labStat3Title" class="text-[11px] text-slate-400 block mb-1">p-Değeri</span>
-              <span id="labStat3Val" class="text-2xl font-bold text-emerald-400 block">&lt; 0.0001</span>
-              <span id="labStat3Sub" class="text-[10px] text-emerald-400">Kesin Anlamlı</span>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-900/90 border border-white/10">
-              <span id="labStat4Title" class="text-[11px] text-slate-400 block mb-1">Model Denklemi</span>
-              <span id="labStat4Val" class="text-sm font-bold text-purple-400 block mt-1">y = 0.84x + b</span>
-              <span id="labStat4Sub" class="text-[10px] text-slate-400">SciPy Lineer Fit</span>
-            </div>
-          </div>
-
-          <!-- SVG Vektörel Projeksiyon -->
-          <div class="p-5 rounded-2xl bg-black border border-white/10 min-h-[220px]">
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-3">
-              <span id="labChartTitle" class="font-bold text-white">Maliyet vs Kâr Doğrusal Modeli</span>
-              <span class="font-mono text-sky-400 text-[11px]">Canlı Vektörel Tuval</span>
-            </div>
-
-            <svg id="labSvgCanvas" class="w-full h-44 overflow-visible" viewBox="0 0 600 170">
-              <line x1="30" y1="150" x2="570" y2="150" stroke="#334155" stroke-width="1" />
-              <line x1="30" y1="15" x2="30" y2="150" stroke="#334155" stroke-width="1" />
-              <line x1="50" y1="135" x2="540" y2="30" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-              <circle cx="70" cy="130" r="4" fill="#ffffff" />
-              <circle cx="130" cy="115" r="4" fill="#ffffff" />
-              <circle cx="190" cy="105" r="4" fill="#ffffff" />
-              <circle cx="250" cy="90" r="4" fill="#ffffff" />
-              <circle cx="310" cy="78" r="4" fill="#ffffff" />
-              <circle cx="370" cy="65" r="4" fill="#ffffff" />
-              <circle cx="430" cy="52" r="4" fill="#ffffff" />
-              <circle cx="490" cy="42" r="4" fill="#ffffff" />
-              <circle cx="530" cy="32" r="4" fill="#ffffff" />
+            <svg class="w-4 h-4 fill-current text-white" viewBox="0 0 170 170">
+              <path
+                d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.85-11.93-14.42-6.52-10.02-11.53-20.91-15.03-32.66-3.5-11.75-5.25-22.95-5.25-33.6 0-14.36 3.69-26.31 11.07-35.84 7.38-9.53 16.71-14.38 27.99-14.56 4.35 0 9.29 1.15 14.82 3.46 5.53 2.31 9.4 3.53 11.61 3.67 1.84-.14 5.78-1.39 11.83-3.74 6.05-2.35 10.9-3.46 14.54-3.32 10.88.58 19.82 4.67 26.83 12.28-9.58 5.79-14.28 13.91-14.1 24.36.19 8.16 3.32 15.11 9.38 20.84 6.06 5.73 13.25 9.04 21.56 9.94-2.12 6.53-4.66 13.25-7.62 20.16zm-26.7-111.45c0 6.08-2.29 11.89-6.87 17.43-4.58 5.54-10.23 9.17-16.94 10.89-.35-1.52-.52-2.98-.52-4.38 0-5.87 2.4-11.77 7.21-17.7 4.81-5.93 10.51-9.54 17.12-10.84 0 1.54 0 3.07 0 4.6z"
+              />
             </svg>
-          </div>
-
-          <div id="labInsightBox" class="mt-4 p-4 rounded-xl bg-blue-950/40 border border-blue-500/25 text-xs text-slate-300">
-            💡 <strong>İstatistikçi Yorumu:</strong> Maliyet ile Kâr arasında r = 0.8842 ile yüksek korelasyon mevcuttur. SciPy OLS regresyonu modelin anlamlılığını kesinleştirmiştir.
-          </div>
+            <span class="tracking-wide text-sm font-medium">DataViz</span>
+          </a>
+          <nav class="hidden md:flex items-center gap-5 text-[#86868b]">
+            <a href="#overview" class="hover:text-white transition-colors"
+              >Genel Bakış</a
+            >
+            <a href="#engine" class="hover:text-white transition-colors"
+              >Polars Motoru</a
+            >
+            <a href="#showcase" class="hover:text-white transition-colors"
+              >Hipotez Laboratuvarı</a
+            >
+            <a href="#workflow" class="hover:text-white transition-colors"
+              >İş Akışı</a
+            >
+          </nav>
         </div>
 
-        <div class="text-center">
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="theme-toggle-btn"
+            id="themeToggleBtnLanding"
+            aria-label="Temayı Değiştir"
+            title="Karanlık / Aydınlık Tema"
+          >
+            <span class="theme-icon-sun">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span class="theme-icon-moon">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                ></path>
+              </svg>
+            </span>
+          </button>
           <a
             href="{{ url_for('main.analysis') }}"
-            class="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-extrabold text-sm shadow-xl transition-all"
+            class="px-3.5 py-1 rounded-full bg-white hover:bg-[#e5e5e7] text-black font-medium transition-all text-xs"
           >
-            <span>Kendi Verinizi Stüdyoya Yükleyin</span> →
+            Stüdyoyu Aç
           </a>
         </div>
       </div>
-    </main>
+    </header>
 
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- ⚡ KONSEPT 4: 50/50 DIRECT STUDIO TERMINAL                  -->
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <main id="concept-view-4" class="concept-view pt-24 pb-20 hidden">
-      <div class="max-w-6xl mx-auto px-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          <!-- SOL PANEL: YÜKLEME VE VERİ KAYNAKLARI -->
-          <div class="spotlight-card p-8 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 mb-3 text-sky-400 font-bold text-xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                SİSTEM ÇEVRİMİÇİ • POLARS READY
-              </div>
-              <h2 class="text-3xl font-black text-white mb-2">Veri Kaynağı Seçin</h2>
-              <p class="text-xs text-slate-400 mb-6">
-                İşlemek istediğiniz yerel dosyayı bırakın veya hazır akademik şablonla anında stüdyoya uçun.
-              </p>
+    <!-- HERO SECTION -->
+    <section
+      id="overview"
+      class="relative pt-28 pb-20 px-6 text-center specular-glow overflow-hidden"
+    >
+      <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Subdued Pro Eyebrow -->
+        <p
+          class="text-xs uppercase tracking-[0.2em] font-semibold text-[#86868b]"
+        >
+          Kurumsal &amp; Bilimsel İstatistik
+        </p>
 
-              <div
-                class="dropzone-terminal p-8 text-center mb-6"
-                onclick="triggerGlobalFileSelect()"
-                ondragover="handleDragOver(event)"
-                ondragleave="handleDragLeave(event)"
-                ondrop="handleDrop(event)"
+        <!-- Apple-Grade Title -->
+        <h1
+          class="text-5xl sm:text-7xl lg:text-8xl font-semibold tracking-[-0.035em] text-white leading-[1.05]"
+        >
+          Akıl almaz hız.<br />
+          <span class="text-[#86868b]">Kusursuz sadelik.</span>
+        </h1>
+
+        <!-- Apple-Grade Paragraph -->
+        <p
+          class="text-lg sm:text-xl text-[#86868b] max-w-2xl mx-auto font-normal leading-relaxed pt-2"
+        >
+          Karmaşık göstergeleri, gereksiz renk cümbüşünü ve bulut gecikmelerini
+          geride bırakın.
+        </p>
+
+        <!-- Primary Action -->
+        <div class="pt-4 flex items-center justify-center gap-4">
+          <a
+            href="{{ url_for('main.analysis') }}"
+            class="px-7 py-3 rounded-full bg-white hover:bg-[#e5e5e7] text-black font-semibold text-sm transition-all shadow-sm"
+          >
+            Analiz Stüdyosunu Başlat
+          </a>
+          <a
+            href="#showcase"
+            class="px-6 py-3 rounded-full bg-[#1c1c1e] hover:bg-[#2c2c2e] text-[#f5f5f7] font-medium text-sm transition-all border border-white/10"
+          >
+            Özellikleri İncele ↓
+          </a>
+        </div>
+
+        <!-- Silent Specifications Ribbon -->
+        <div
+          class="pt-16 max-w-2xl mx-auto flex items-center justify-between border-t border-white/[0.08] text-xs text-[#86868b] font-mono"
+        >
+          <div>
+            <span class="text-white font-semibold block text-sm">50+</span>
+            <span>Grafikler</span>
+          </div>
+          <div class="w-px h-8 bg-white/[0.08]"></div>
+          <div>
+            <span class="text-white font-semibold block text-sm"
+              >5,000,000+</span
+            >
+            <span>Satır Kapasitesi</span>
+          </div>
+          <div class="w-px h-8 bg-white/[0.08]"></div>
+          <div>
+            <span class="text-white font-semibold block text-sm">Yerel</span>
+            <span>Sıfır Bulut Bağımlılığı</span>
+          </div>
+          <div class="w-px h-8 bg-white/[0.08]"></div>
+          <div>
+            <span class="text-white font-semibold block text-sm"
+              >SciPy 1.11</span
+            >
+            <span>Bilimsel Doğruluk</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPLE-STYLE PRODUCT SHOWCASE (Dark Titanium Studio Preview) -->
+    <section id="showcase" class="max-w-5xl mx-auto px-6 pb-32">
+      <div
+        class="rounded-3xl border border-white/[0.12] bg-[#0c0c0e] p-2 shadow-2xl relative"
+      >
+        <!-- Studio Frame Header -->
+        <div
+          class="h-10 px-4 flex items-center justify-between border-b border-white/[0.06] bg-[#141417] rounded-t-[22px]"
+        >
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-[#3a3a3c]"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-[#3a3a3c]"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-[#3a3a3c]"></div>
+            <span class="text-[11px] text-[#6e6e73] font-mono ml-2"
+              >DataViz Studio — OLS Regresyon &amp; Korelasyon</span
+            >
+          </div>
+
+          <!-- Apple Segmented Control (Minimalist Switcher) -->
+          <div
+            class="flex bg-[#000000] p-0.5 rounded-full border border-white/[0.08]"
+          >
+            <button
+              onclick="switchAppleDemo('regression')"
+              id="btnAppleReg"
+              class="px-3 py-1 rounded-full text-[11px] font-medium transition-all apple-pill-active"
+            >
+              Doğrusal Regresyon
+            </button>
+            <button
+              onclick="switchAppleDemo('anova')"
+              id="btnAppleAnova"
+              class="px-3 py-1 rounded-full text-[11px] font-medium text-[#86868b] hover:text-white transition-all"
+            >
+              ANOVA Varyans
+            </button>
+          </div>
+        </div>
+
+        <!-- Studio Inner Canvas -->
+        <div class="p-8 sm:p-10 space-y-8 bg-[#09090b] rounded-b-[22px]">
+          <!-- Clean KPI Summary Strip -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="appleKpiGrid">
+            <div
+              class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
+            >
+              <span id="kpiRTitle" class="text-[11px] text-[#86868b] block mb-1"
+                >Pearson Korelasyon (r)</span
               >
-                <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <div class="text-base font-bold text-white mb-1">Dosyayı Buraya Bırakın</div>
-                <div class="text-xs text-slate-400">Excel, CSV, Parquet, SPSS (.sav)</div>
-              </div>
-
-              <div>
-                <span class="text-xs font-bold text-slate-300 block mb-2">Hazır Şablon Veri Setleri:</span>
-                <div class="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onclick="loadDemoDataset('academic')"
-                    class="p-3 rounded-xl bg-slate-900 border border-white/10 text-left text-xs hover:border-sky-400 transition-all"
-                  >
-                    <span class="font-bold text-sky-400 block mb-1">📑 Anket (.sav)</span>
-                    <span class="text-[10px] text-slate-400 block">Demografik Anket</span>
-                  </button>
-                  <button
-                    type="button"
-                    onclick="loadDemoDataset('sales')"
-                    class="p-3 rounded-xl bg-slate-900 border border-white/10 text-left text-xs hover:border-emerald-400 transition-all"
-                  >
-                    <span class="font-bold text-emerald-400 block mb-1">📊 Satış (Excel)</span>
-                    <span class="text-[10px] text-slate-400 block">Bölge & Ciro</span>
-                  </button>
-                  <button
-                    type="button"
-                    onclick="loadDemoDataset('test')"
-                    class="p-3 rounded-xl bg-slate-900 border border-white/10 text-left text-xs hover:border-purple-400 transition-all"
-                  >
-                    <span class="font-bold text-purple-400 block mb-1">📈 Test (CSV)</span>
-                    <span class="text-[10px] text-slate-400 block">Zaman Serisi</span>
-                  </button>
-                </div>
-              </div>
+              <span
+                id="kpiR"
+                class="text-2xl font-semibold text-white tracking-tight font-mono"
+                >0.8842</span
+              >
+              <span id="kpiRSub" class="text-[10px] text-[#86868b] block mt-1"
+                >Güçlü Doğrusal Bağ</span
+              >
             </div>
-
-            <div class="mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs">
-              <span class="text-slate-400">Sıfır Bulut Bağımlılığı • %100 Yerel</span>
-              <a href="{{ url_for('main.analysis') }}" class="font-bold text-sky-400 hover:text-sky-300">
-                Stüdyoya Git →
-              </a>
+            <div
+              class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
+            >
+              <span
+                id="kpiR2Title"
+                class="text-[11px] text-[#86868b] block mb-1"
+                >Belirlilik Katsayısı (R²)</span
+              >
+              <span
+                id="kpiR2"
+                class="text-2xl font-semibold text-white tracking-tight font-mono"
+                >0.7818</span
+              >
+              <span id="kpiR2Sub" class="text-[10px] text-[#86868b] block mt-1"
+                >%78.2 Açıklayıcılık</span
+              >
+            </div>
+            <div
+              class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
+            >
+              <span id="kpiPTitle" class="text-[11px] text-[#86868b] block mb-1"
+                >Anlamlılık Düzeyi</span
+              >
+              <span
+                id="kpiP"
+                class="text-2xl font-semibold text-white tracking-tight font-mono"
+                >&lt; 0.0001</span
+              >
+              <span id="kpiPSub" class="text-[10px] text-emerald-400 block mt-1"
+                >İstatistiksel Olarak Kesin</span
+              >
+            </div>
+            <div
+              class="p-4 rounded-2xl bg-[#141416] border border-white/[0.06]"
+            >
+              <span
+                id="kpiEqTitle"
+                class="text-[11px] text-[#86868b] block mb-1"
+                >Model Denklemi</span
+              >
+              <span
+                id="kpiEq"
+                class="text-sm font-semibold text-white tracking-tight font-mono block mt-1"
+                >y = 0.84x + 1200</span
+              >
+              <span id="kpiEqSub" class="text-[10px] text-[#86868b] block mt-1"
+                >OLS Doğrusal Model</span
+              >
             </div>
           </div>
 
-          <!-- SAĞ PANEL: MOTOR & DONANIM ÖZELLİKLERİ -->
-          <div class="spotlight-card p-8 flex flex-col justify-between">
-            <div>
-              <h2 class="text-2xl font-black text-white mb-2">Mühendislik & Platform Gücü</h2>
-              <p class="text-xs text-slate-400 mb-6">DataViz çekirdeğinde çalışan analitik bileşenler:</p>
-
-              <div class="space-y-3 font-mono text-xs">
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-between">
-                  <span class="text-slate-400">Analitik Çekirdek:</span>
-                  <span class="font-bold text-sky-400">Polars 0.20 SIMD</span>
-                </div>
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-between">
-                  <span class="text-slate-400">Bellek Mimarisi:</span>
-                  <span class="font-bold text-emerald-400">PyArrow Zero-Copy Buffer</span>
-                </div>
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-between">
-                  <span class="text-slate-400">İstatistiksel Motor:</span>
-                  <span class="font-bold text-purple-400">SciPy 1.11 & NumPy 2.0</span>
-                </div>
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-between">
-                  <span class="text-slate-400">Doğrulanmış Grafik:</span>
-                  <span class="font-bold text-amber-400">27 A-Sınıfı Görselleştirme</span>
-                </div>
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-between">
-                  <span class="text-slate-400">Çapraz Pivot:</span>
-                  <span class="font-bold text-pink-400">Dinamik Isı Haritası (Heatmap)</span>
-                </div>
-                <div class="p-3.5 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-between">
-                  <span class="text-slate-400">Gizlilik Seviyesi:</span>
-                  <span class="font-bold text-emerald-400">Tamamen Çevrimdışı (Offline)</span>
-                </div>
-              </div>
+          <!-- Minimalist High-Precision SVG Chart Area -->
+          <div
+            class="p-6 rounded-2xl bg-[#000000] border border-white/[0.06] flex flex-col justify-between min-h-[300px]"
+          >
+            <div
+              class="flex items-center justify-between text-xs text-[#86868b]"
+            >
+              <span id="chartLabel">Maliyet (TL) vs Net Kâr (TL)</span>
+              <span class="font-mono text-[10px] text-[#6e6e73]"
+                >SciPy OLS Lineer Fit</span
+              >
             </div>
 
-            <div class="mt-8 pt-6 border-t border-white/10">
-              <a
-                href="{{ url_for('main.analysis') }}"
-                class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 hover:opacity-90 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xl transition-all"
+            <!-- Dynamic SVG Vector -->
+            <div class="my-6">
+              <svg
+                id="appleChartSvg"
+                class="w-full h-48 overflow-visible"
+                viewBox="0 0 600 180"
               >
-                <span>⚡ Analiz Stüdyosunu Başlat</span>
-              </a>
+                <!-- Delicate axes -->
+                <line
+                  x1="30"
+                  y1="160"
+                  x2="570"
+                  y2="160"
+                  stroke="#2c2c2e"
+                  stroke-width="1"
+                />
+                <line
+                  x1="30"
+                  y1="20"
+                  x2="30"
+                  y2="160"
+                  stroke="#2c2c2e"
+                  stroke-width="1"
+                />
+
+                <!-- Subtle Trendline -->
+                <line
+                  x1="50"
+                  y1="145"
+                  x2="540"
+                  y2="35"
+                  stroke="#ffffff"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+
+                <!-- Monochromatic Precision Points -->
+                <circle cx="70" cy="140" r="3.5" fill="#f5f5f7" opacity="0.9" />
+                <circle
+                  cx="130"
+                  cy="125"
+                  r="3.5"
+                  fill="#f5f5f7"
+                  opacity="0.9"
+                />
+                <circle
+                  cx="190"
+                  cy="115"
+                  r="3.5"
+                  fill="#f5f5f7"
+                  opacity="0.9"
+                />
+                <circle
+                  cx="250"
+                  cy="100"
+                  r="3.5"
+                  fill="#f5f5f7"
+                  opacity="0.9"
+                />
+                <circle cx="310" cy="85" r="3.5" fill="#f5f5f7" opacity="0.9" />
+                <circle cx="370" cy="75" r="3.5" fill="#f5f5f7" opacity="0.9" />
+                <circle cx="430" cy="60" r="3.5" fill="#f5f5f7" opacity="0.9" />
+                <circle cx="490" cy="48" r="3.5" fill="#f5f5f7" opacity="0.9" />
+                <circle cx="530" cy="38" r="3.5" fill="#f5f5f7" opacity="0.9" />
+              </svg>
+            </div>
+
+            <!-- Elegant Executive Template Footer -->
+            <div
+              class="pt-4 border-t border-white/[0.06] text-xs text-[#86868b] leading-relaxed flex items-center justify-between"
+            >
+              <p id="appleInsightParagraph">
+                <strong class="text-white font-medium"
+                  >Yönetici Değerlendirmesi:</strong
+                >
+                Maliyet ile Kâr arasında r = 0.8842 katsayısıyla yüksek
+                korelasyon tespit edilmiştir. Model varyansın %78.2 kısmını
+                doğrusal olarak açıklamaktadır.
+              </p>
             </div>
           </div>
         </div>
       </div>
-    </main>
+    </section>
 
-    <!-- FOOTER -->
-    <footer class="border-t border-white/10 bg-[#02050c] py-8 px-6 text-xs text-slate-500">
-      <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-2 font-mono">
-          <span class="font-bold text-white">DataViz</span>
-          <span>•</span>
-          <span>SPSS (.sav), Parquet, Excel & CSV İstatistik Stüdyosu</span>
+    <!-- 3 CORE PILLARS (Clean Apple Bento) -->
+    <section
+      id="engine"
+      class="max-w-5xl mx-auto px-6 py-20 border-t border-white/[0.08]"
+    >
+      <div class="mb-14">
+        <p
+          class="text-xs uppercase tracking-[0.2em] font-semibold text-[#86868b] mb-2"
+        >
+          Mimari Tasarım
+        </p>
+        <h2
+          class="text-3xl sm:text-5xl font-semibold tracking-tight text-white"
+        >
+          Yüksek güç. Sıfır karmaşa.
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Pillar 1 -->
+        <div
+          class="apple-card rounded-3xl p-8 flex flex-col justify-between min-h-[320px]"
+        >
+          <div>
+            <span
+              class="text-xs font-mono text-[#86868b] uppercase tracking-wider block mb-4"
+              >01 / Polars Hızı</span
+            >
+            <h3 class="text-xl font-semibold text-white mb-2">
+              Milyon satır, tek nefeste.
+            </h3>
+            <p class="text-xs text-[#86868b] leading-relaxed">
+              Rust çekirdekli bellek optimizasyonu. Excel dosyalarının tıkandığı
+              noktada DataViz Pro devreye girer.
+            </p>
+          </div>
+          <div
+            class="text-[11px] font-mono text-white/50 pt-6 border-t border-white/[0.06]"
+          >
+            120k satır • 0.08 sn analiz
+          </div>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div
+          class="apple-card rounded-3xl p-8 flex flex-col justify-between min-h-[320px]"
+        >
+          <div>
+            <span
+              class="text-xs font-mono text-[#86868b] uppercase tracking-wider block mb-4"
+              >02 / Tip Onarıcı</span
+            >
+            <h3 class="text-xl font-semibold text-white mb-2">
+              Veri sağlığı, otomasyon ile.
+            </h3>
+            <p class="text-xs text-[#86868b] leading-relaxed">
+              Sayısal sütunlara karışmış sözel girdileri ve birimleri anında
+              tespit eder. Verinizi bozmadan arındırır.
+            </p>
+          </div>
+          <div
+            class="text-[11px] font-mono text-white/50 pt-6 border-t border-white/[0.06]"
+          >
+            Kayıpsız Sayısal Çevrim
+          </div>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div
+          class="apple-card rounded-3xl p-8 flex flex-col justify-between min-h-[320px]"
+        >
+          <div>
+            <span
+              class="text-xs font-mono text-[#86868b] uppercase tracking-wider block mb-4"
+              >03 / Kurumsal Çıktı</span
+            >
+            <h3 class="text-xl font-semibold text-white mb-2">
+              Sunuma hazır A4 rapor.
+            </h3>
+            <p class="text-xs text-[#86868b] leading-relaxed">
+              Yöneticiniz veya hocanız için ekran görüntüsüyle uğraşmayın. Tek
+              tıkla kusursuz bir A4 PDF belgesi oluşturun.
+            </p>
+          </div>
+          <div
+            class="text-[11px] font-mono text-white/50 pt-6 border-t border-white/[0.06]"
+          >
+            A4 Vektörel PDF Çıktısı
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINIMAL WORKFLOW STEPS -->
+    <section
+      id="workflow"
+      class="max-w-5xl mx-auto px-6 py-20 border-t border-white/[0.08]"
+    >
+      <div class="mb-14">
+        <p
+          class="text-xs uppercase tracking-[0.2em] font-semibold text-[#86868b] mb-2"
+        >
+          Süreç
+        </p>
+        <h2
+          class="text-3xl sm:text-5xl font-semibold tracking-tight text-white"
+        >
+          Yalnızca üç adım.
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="space-y-3">
+          <span class="text-2xl font-light text-white/30 font-mono">01</span>
+          <h4 class="text-base font-semibold text-white">Verinizi bırakın.</h4>
+          <p class="text-xs text-[#86868b] leading-relaxed">
+            CSV, Excel veya Parquet dosyanızı sürükleyin. Sütun tipleri ve
+            bozulmalar anında incelenir.
+          </p>
+        </div>
+        <div class="space-y-3">
+          <span class="text-2xl font-light text-white/30 font-mono">02</span>
+          <h4 class="text-base font-semibold text-white">
+            Değişkenleri eşleştirin.
+          </h4>
+          <p class="text-xs text-[#86868b] leading-relaxed">
+            X ve Y eksenlerine değişkenlerinizi koyun. Sayısal ise regresyon,
+            sözel ise ANOVA otomatik seçilir.
+          </p>
+        </div>
+        <div class="space-y-3">
+          <span class="text-2xl font-light text-white/30 font-mono">03</span>
+          <h4 class="text-base font-semibold text-white">Kararı belgeleyin.</h4>
+          <p class="text-xs text-[#86868b] leading-relaxed">
+            Yönetici özetinizi okuyun, grafiğinizi kişiselleştirin ve A4
+            raporunuzu doğrudan indirin.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPLE FOOTER -->
+    <footer
+      class="border-t border-white/[0.08] bg-[#050505] py-12 px-6 text-xs text-[#6e6e73]"
+    >
+      <div
+        class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
+        <div>
+          <span class="text-[#86868b] font-medium">DataViz</span>
         </div>
         <div class="flex items-center gap-6">
-          <a href="{{ url_for('main.analysis') }}" class="hover:text-white transition-colors">Analiz Stüdyosu</a>
+          <a
+            href="{{ url_for('main.analysis') }}"
+            class="text-[#86868b] hover:text-white transition-colors"
+            >Analiz Stüdyosu</a
+          >
           <span>•</span>
           <span>Umutcan DEMİR</span>
         </div>
       </div>
     </footer>
 
-    <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- 🚀 JAVASCRIPT KONTROL VE REACT-BITS MİKRO-ETKİLEŞİMLERİ   -->
-    <!-- ══════════════════════════════════════════════════════════ -->
     <script>
-      // 1. KONSEPT DEĞİŞTİRME MEKANİZMASI
-      function switchConcept(num) {
-        for (let i = 1; i <= 4; i++) {
-          const view = document.getElementById(`concept-view-${i}`);
-          if (view) view.classList.add("hidden");
-        }
-        const active = document.getElementById(`concept-view-${num}`);
-        if (active) active.classList.remove("hidden");
+      function switchAppleDemo(type) {
+        const btnReg = document.getElementById("btnAppleReg");
+        const btnAnova = document.getElementById("btnAppleAnova");
+        const kpiRTitle = document.getElementById("kpiRTitle");
+        const kpiR = document.getElementById("kpiR");
+        const kpiRSub = document.getElementById("kpiRSub");
+        const kpiR2Title = document.getElementById("kpiR2Title");
+        const kpiR2 = document.getElementById("kpiR2");
+        const kpiR2Sub = document.getElementById("kpiR2Sub");
+        const kpiPTitle = document.getElementById("kpiPTitle");
+        const kpiP = document.getElementById("kpiP");
+        const kpiPSub = document.getElementById("kpiPSub");
+        const kpiEqTitle = document.getElementById("kpiEqTitle");
+        const kpiEq = document.getElementById("kpiEq");
+        const kpiEqSub = document.getElementById("kpiEqSub");
+        const chartLabel = document.getElementById("chartLabel");
+        const svg = document.getElementById("appleChartSvg");
+        const text = document.getElementById("appleInsightParagraph");
 
-        document.querySelectorAll(".concept-btn").forEach((btn) => {
-          if (parseInt(btn.dataset.concept, 10) === num) {
-            btn.classList.add("active");
-          } else {
-            btn.classList.remove("active");
-          }
-        });
+        if (type === "regression" || type === "reg") {
+          btnReg.className =
+            "px-3 py-1 rounded-full text-[11px] font-medium transition-all apple-pill-active";
+          btnAnova.className =
+            "px-3 py-1 rounded-full text-[11px] font-medium text-[#86868b] hover:text-white transition-all";
 
-        localStorage.setItem("dataviz_landing_concept", num);
-      }
+          if (kpiRTitle) kpiRTitle.textContent = "Pearson Korelasyon (r)";
+          kpiR.textContent = "0.8842";
+          if (kpiRSub) kpiRSub.textContent = "Güçlü Doğrusal Bağ";
 
-      window.addEventListener("DOMContentLoaded", () => {
-        const saved = parseInt(localStorage.getItem("dataviz_landing_concept") || "1", 10);
-        switchConcept(saved);
-        initSpotlightCards();
-        initParticlesCanvas();
-      });
+          if (kpiR2Title) kpiR2Title.textContent = "Belirlilik Katsayısı (R²)";
+          kpiR2.textContent = "0.7818";
+          if (kpiR2Sub) kpiR2Sub.textContent = "%78.2 Açıklayıcılık";
 
-      // 2. SPOTLIGHT MOUSE TAKİP ANİMASYONU (REACT-BITS)
-      function initSpotlightCards() {
-        document.querySelectorAll(".spotlight-card").forEach((card) => {
-          card.addEventListener("mousemove", (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            card.style.setProperty("--mouse-x", `${x}px`);
-            card.style.setProperty("--mouse-y", `${y}px`);
-          });
-        });
-      }
+          if (kpiPTitle) kpiPTitle.textContent = "Anlamlılık Düzeyi";
+          kpiP.textContent = "< 0.0001";
+          if (kpiPSub) kpiPSub.textContent = "İstatistiksel Olarak Kesin";
 
-      // 3. CANLI INTERAKTİF CANVAS PARÇACIKLARI (KONSEPT 3 İÇİN)
-      function initParticlesCanvas() {
-        const canvas = document.getElementById("particlesCanvas");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        let w = (canvas.width = window.innerWidth);
-        let h = (canvas.height = window.innerHeight);
+          if (kpiEqTitle) kpiEqTitle.textContent = "Model Denklemi";
+          kpiEq.textContent = "y = 0.84x + 1200";
+          if (kpiEqSub) kpiEqSub.textContent = "OLS Doğrusal Model";
 
-        window.addEventListener("resize", () => {
-          w = canvas.width = window.innerWidth;
-          h = canvas.height = window.innerHeight;
-        });
+          chartLabel.textContent = "Maliyet (TL) vs Net Kâr (TL)";
 
-        const particles = [];
-        const count = 45;
-        for (let i = 0; i < count; i++) {
-          particles.push({
-            x: Math.random() * w,
-            y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5,
-            radius: Math.random() * 2 + 1,
-            alpha: Math.random() * 0.5 + 0.2,
-          });
-        }
+          text.innerHTML =
+            '<strong class="text-white font-medium">Yönetici Değerlendirmesi:</strong> Maliyet ile Kâr arasında r = 0.8842 katsayısıyla yüksek korelasyon tespit edilmiştir. Model varyansın %78.2 kısmını doğrusal olarak açıklamaktadır.';
 
-        function draw() {
-          ctx.clearRect(0, 0, w, h);
-          particles.forEach((p, idx) => {
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < 0) p.x = w;
-            if (p.x > w) p.x = 0;
-            if (p.y < 0) p.y = h;
-            if (p.y > h) p.y = 0;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(168, 85, 247, ${p.alpha})`;
-            ctx.fill();
-
-            // Çizgi bağları
-            for (let j = idx + 1; j < particles.length; j++) {
-              const p2 = particles[j];
-              const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-              if (dist < 100) {
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.strokeStyle = `rgba(56, 189, 248, ${0.15 * (1 - dist / 100)})`;
-                ctx.stroke();
-              }
-            }
-          });
-          requestAnimationFrame(draw);
-        }
-        draw();
-      }
-
-      // 4. DOSYA SEÇİMİ VE SÜRÜKLE BIRAK
-      function triggerGlobalFileSelect() {
-        document.getElementById("globalLandingFileInput")?.click();
-      }
-
-      document.getElementById("globalLandingFileInput")?.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (file) uploadAndRedirect(file);
-      });
-
-      function handleDragOver(e) {
-        e.preventDefault();
-        e.currentTarget.classList.add("dragover");
-      }
-
-      function handleDragLeave(e) {
-        e.currentTarget.classList.remove("dragover");
-      }
-
-      function handleDrop(e) {
-        e.preventDefault();
-        e.currentTarget.classList.remove("dragover");
-        const file = e.dataTransfer.files[0];
-        if (file) uploadAndRedirect(file);
-      }
-
-      async function uploadAndRedirect(file) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-          const res = await fetch("/upload", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json();
-          if (res.ok) {
-            window.location.href = "/analysis";
-          } else {
-            alert("Yükleme hatası: " + (data.error || "Bilinmeyen hata"));
-          }
-        } catch (err) {
-          alert("Sunucu bağlantı hatası: " + err.message);
-        }
-      }
-
-      async function loadDemoDataset(type) {
-        try {
-          await fetch("/load_sample", { method: "POST" });
-          window.location.href = "/analysis";
-        } catch {
-          window.location.href = "/analysis";
-        }
-      }
-
-      // 5. LABORATUVAR SEKME GEÇİŞİ (KONSEPT 3)
-      function switchLabMode(mode) {
-        const btnReg = document.getElementById("labBtnReg");
-        const btnAnova = document.getElementById("labBtnAnova");
-        const btnCorr = document.getElementById("labBtnCorr");
-
-        [btnReg, btnAnova, btnCorr].forEach(b => {
-          if (b) b.className = "px-3 py-1 rounded-full text-xs font-bold text-slate-400 hover:text-white transition-all";
-        });
-
-        const s1T = document.getElementById("labStat1Title");
-        const s1V = document.getElementById("labStat1Val");
-        const s1S = document.getElementById("labStat1Sub");
-        const s2T = document.getElementById("labStat2Title");
-        const s2V = document.getElementById("labStat2Val");
-        const s2S = document.getElementById("labStat2Sub");
-        const s3T = document.getElementById("labStat3Title");
-        const s3V = document.getElementById("labStat3Val");
-        const s4T = document.getElementById("labStat4Title");
-        const s4V = document.getElementById("labStat4Val");
-        const chartTitle = document.getElementById("labChartTitle");
-        const svg = document.getElementById("labSvgCanvas");
-        const insight = document.getElementById("labInsightBox");
-
-        if (mode === "reg") {
-          btnReg.className = "px-3 py-1 rounded-full text-xs font-bold bg-blue-600 text-white transition-all";
-          if (s1T) s1T.textContent = "Pearson (r)";
-          if (s1V) s1V.textContent = "0.8842";
-          if (s1S) s1S.textContent = "Güçlü Doğrusal Bağ";
-          if (s2T) s2T.textContent = "Açıklayıcılık (R²)";
-          if (s2V) s2V.textContent = "0.7818";
-          if (s2S) s2S.textContent = "%78.2 Varyans";
-          if (s3T) s3T.textContent = "p-Değeri";
-          if (s3V) s3V.textContent = "< 0.0001";
-          if (s4T) s4T.textContent = "Model Denklemi";
-          if (s4V) s4V.textContent = "y = 0.84x + b";
-          if (chartTitle) chartTitle.textContent = "Maliyet vs Kâr Doğrusal Modeli";
-          if (insight) insight.innerHTML = "💡 <strong>İstatistikçi Yorumu:</strong> Maliyet ile Kâr arasında r = 0.8842 ile yüksek korelasyon mevcuttur. SciPy OLS regresyonu modelin anlamlılığını kesinleştirmiştir.";
-          if (svg) svg.innerHTML = `
-            <line x1="30" y1="150" x2="570" y2="150" stroke="#334155" stroke-width="1" />
-            <line x1="30" y1="15" x2="30" y2="150" stroke="#334155" stroke-width="1" />
-            <line x1="50" y1="135" x2="540" y2="30" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-            <circle cx="70" cy="130" r="4" fill="#ffffff" />
-            <circle cx="130" cy="115" r="4" fill="#ffffff" />
-            <circle cx="190" cy="105" r="4" fill="#ffffff" />
-            <circle cx="250" cy="90" r="4" fill="#ffffff" />
-            <circle cx="310" cy="78" r="4" fill="#ffffff" />
-            <circle cx="370" cy="65" r="4" fill="#ffffff" />
-            <circle cx="430" cy="52" r="4" fill="#ffffff" />
-            <circle cx="490" cy="42" r="4" fill="#ffffff" />
-            <circle cx="530" cy="32" r="4" fill="#ffffff" />
-          `;
-        } else if (mode === "anova") {
-          btnAnova.className = "px-3 py-1 rounded-full text-xs font-bold bg-purple-600 text-white transition-all";
-          if (s1T) s1T.textContent = "ANOVA F";
-          if (s1V) s1V.textContent = "18.42";
-          if (s1S) s1S.textContent = "Belirgin Fark";
-          if (s2T) s2T.textContent = "En Yüksek Grup";
-          if (s2V) s2V.textContent = "Marmara";
-          if (s2S) s2S.textContent = "52.400 TL Ort.";
-          if (s3T) s3T.textContent = "p-Değeri";
-          if (s3V) s3V.textContent = "p < 0.001";
-          if (s4T) s4T.textContent = "Grup Sayısı";
-          if (s4V) s4V.textContent = "5 Bölge";
-          if (chartTitle) chartTitle.textContent = "Bölgelere Göre Satış Ortalamaları (ANOVA)";
-          if (insight) insight.innerHTML = "💡 <strong>Grup Özeti:</strong> Bölgeler arasındaki ciro ortalamaları istatistiksel olarak kesin bir fark göstermektedir (F = 18.42, p < 0.001).";
-          if (svg) svg.innerHTML = `
-            <line x1="30" y1="150" x2="570" y2="150" stroke="#334155" stroke-width="1" />
-            <g transform="translate(60, 0)"><rect x="0" y="25" width="60" height="125" rx="4" fill="#38bdf8"/><text x="30" y="165" fill="#94a3b8" font-size="10" text-anchor="middle">Marmara</text></g>
-            <g transform="translate(170, 0)"><rect x="0" y="60" width="60" height="90" rx="4" fill="#818cf8"/><text x="30" y="165" fill="#94a3b8" font-size="10" text-anchor="middle">Ege</text></g>
-            <g transform="translate(280, 0)"><rect x="0" y="75" width="60" height="75" rx="4" fill="#6366f1"/><text x="30" y="165" fill="#94a3b8" font-size="10" text-anchor="middle">İç Anadolu</text></g>
-            <g transform="translate(390, 0)"><rect x="0" y="90" width="60" height="60" rx="4" fill="#4f46e5"/><text x="30" y="165" fill="#94a3b8" font-size="10" text-anchor="middle">Akdeniz</text></g>
-            <g transform="translate(490, 0)"><rect x="0" y="115" width="50" height="35" rx="4" fill="#312e81"/><text x="25" y="165" fill="#94a3b8" font-size="10" text-anchor="middle">Karadeniz</text></g>
-          `;
-        } else if (mode === "corr") {
-          btnCorr.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white transition-all";
-          if (s1T) s1T.textContent = "Maks Korelasyon";
-          if (s1V) s1V.textContent = "0.941";
-          if (s1S) s1S.textContent = "Fiyat x Ciro";
-          if (s2T) s2T.textContent = "Negatif İlişki";
-          if (s2V) s2V.textContent = "-0.712";
-          if (s2S) s2S.textContent = "İndirim x Kâr";
-          if (s3T) s3T.textContent = "Boyut";
-          if (s3V) s3V.textContent = "6x6 Matris";
-          if (s4T) s4T.textContent = "Katsayı Tipi";
-          if (s4V) s4V.textContent = "Pearson r";
-          if (chartTitle) chartTitle.textContent = "Çok Değişkenli Korelasyon Isı Haritası (Heatmap)";
-          if (insight) insight.innerHTML = "💡 <strong>Korelasyon Özeti:</strong> Ürün Fiyatı ile Toplam Ciro arasında %94.1 oranında çok güçlü pozitif korelasyon saptanmıştır.";
-          if (svg) svg.innerHTML = `
-            <g transform="translate(150, 15)">
-              <rect x="0" y="0" width="50" height="40" fill="#0284c7" opacity="0.9" rx="3"/>
-              <rect x="55" y="0" width="50" height="40" fill="#0369a1" opacity="0.7" rx="3"/>
-              <rect x="110" y="0" width="50" height="40" fill="#075985" opacity="0.4" rx="3"/>
-              <rect x="165" y="0" width="50" height="40" fill="#0369a1" opacity="0.8" rx="3"/>
-              <rect x="220" y="0" width="50" height="40" fill="#0284c7" opacity="1.0" rx="3"/>
-
-              <rect x="0" y="45" width="50" height="40" fill="#0369a1" opacity="0.7" rx="3"/>
-              <rect x="55" y="45" width="50" height="40" fill="#0284c7" opacity="1.0" rx="3"/>
-              <rect x="110" y="45" width="50" height="40" fill="#075985" opacity="0.3" rx="3"/>
-              <rect x="165" y="45" width="50" height="40" fill="#0284c7" opacity="0.9" rx="3"/>
-              <rect x="220" y="45" width="50" height="40" fill="#0369a1" opacity="0.7" rx="3"/>
-
-              <rect x="0" y="90" width="50" height="40" fill="#075985" opacity="0.4" rx="3"/>
-              <rect x="55" y="90" width="50" height="40" fill="#075985" opacity="0.3" rx="3"/>
-              <rect x="110" y="90" width="50" height="40" fill="#0284c7" opacity="1.0" rx="3"/>
-              <rect x="165" y="90" width="50" height="40" fill="#0369a1" opacity="0.5" rx="3"/>
-              <rect x="220" y="90" width="50" height="40" fill="#075985" opacity="0.4" rx="3"/>
-            </g>
-          `;
-        }
-      }
-
-      // 6. TEMA DEĞİŞTİRME YÖNETİCİSİ
-      document.getElementById("themeToggleBtnLanding")?.addEventListener("click", () => {
-        const current = document.documentElement.getAttribute("data-theme") || "dark";
-        const next = current === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        if (next === "dark") {
-          document.documentElement.classList.add("dark");
+          svg.innerHTML = `
+          <line x1="30" y1="160" x2="570" y2="160" stroke="#2c2c2e" stroke-width="1" />
+          <line x1="30" y1="20" x2="30" y2="160" stroke="#2c2c2e" stroke-width="1" />
+          <line x1="50" y1="145" x2="540" y2="35" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+          <circle cx="70" cy="140" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="130" cy="125" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="190" cy="115" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="250" cy="100" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="310" cy="85" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="370" cy="75" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="430" cy="60" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="490" cy="48" r="3.5" fill="#f5f5f7" opacity="0.9" />
+          <circle cx="530" cy="38" r="3.5" fill="#f5f5f7" opacity="0.9" />
+        `;
         } else {
-          document.documentElement.classList.remove("dark");
+          btnAnova.className =
+            "px-3 py-1 rounded-full text-[11px] font-medium transition-all apple-pill-active";
+          btnReg.className =
+            "px-3 py-1 rounded-full text-[11px] font-medium text-[#86868b] hover:text-white transition-all";
+
+          if (kpiRTitle) kpiRTitle.textContent = "ANOVA F-İstatistiği";
+          kpiR.textContent = "18.42";
+          if (kpiRSub) kpiRSub.textContent = "Gruplar Arası Varyans";
+
+          if (kpiR2Title) kpiR2Title.textContent = "En Yüksek Grup";
+          kpiR2.textContent = "Marmara";
+          if (kpiR2Sub) kpiR2Sub.textContent = "Ortalama: 52.400 TL";
+
+          if (kpiPTitle) kpiPTitle.textContent = "Anlamlılık Düzeyi";
+          kpiP.textContent = "p < 0.001";
+          if (kpiPSub) kpiPSub.textContent = "Gruplar Farklı (p < 0.05)";
+
+          if (kpiEqTitle) kpiEqTitle.textContent = "En Düşük Grup";
+          kpiEq.textContent = "Karadeniz (Min)";
+          if (kpiEqSub) kpiEqSub.textContent = "Ortalama: 11.200 TL";
+
+          chartLabel.textContent =
+            "Bölge (X) vs Satış Tutarı (Y) - ANOVA Grup Karşılaştırması";
+
+          text.innerHTML =
+            '<strong class="text-white font-medium">Yönetici Değerlendirmesi:</strong> Satış metriğinde en yüksek performansı <strong class="text-white">Marmara (52.400 TL)</strong> gösterirken en düşük performansı <strong class="text-white">Karadeniz (11.200 TL)</strong> göstermektedir. Gruplar arası fark kesin olarak anlamlıdır.';
+
+          svg.innerHTML = `
+          <line x1="30" y1="160" x2="570" y2="160" stroke="#2c2c2e" stroke-width="1" />
+          <g transform="translate(60, 0)"><rect x="0" y="30" width="60" height="130" rx="4" fill="#ffffff"/><text x="30" y="175" fill="#86868b" font-size="10" text-anchor="middle">Marmara</text></g>
+          <g transform="translate(170, 0)"><rect x="0" y="65" width="60" height="95" rx="4" fill="#3a3a3c"/><text x="30" y="175" fill="#86868b" font-size="10" text-anchor="middle">Ege</text></g>
+          <g transform="translate(280, 0)"><rect x="0" y="80" width="60" height="80" rx="4" fill="#3a3a3c"/><text x="30" y="175" fill="#86868b" font-size="10" text-anchor="middle">İç Anadolu</text></g>
+          <g transform="translate(390, 0)"><rect x="0" y="95" width="60" height="65" rx="4" fill="#3a3a3c"/><text x="30" y="175" fill="#86868b" font-size="10" text-anchor="middle">Akdeniz</text></g>
+          <g transform="translate(490, 0)"><rect x="0" y="125" width="50" height="35" rx="4" fill="#242426"/><text x="25" y="175" fill="#86868b" font-size="10" text-anchor="middle">Karadeniz</text></g>
+        `;
         }
-        localStorage.setItem("dataviz-theme", next);
-      });
+      }
+
+      // Theme toggle handler
+      const toggleBtnLanding = document.getElementById("themeToggleBtnLanding");
+      if (toggleBtnLanding) {
+        toggleBtnLanding.addEventListener("click", () => {
+          const current =
+            document.documentElement.getAttribute("data-theme") || "dark";
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          if (next === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+          localStorage.setItem("dataviz-theme", next);
+        });
+      }
     </script>
   </body>
 </html>
