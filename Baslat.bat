@@ -163,7 +163,7 @@ echo [OK] Kutuphaneler eksiksiz ve hazir.
 if not exist "uploads" mkdir "uploads"
 
 :: 4. Port Tespiti ve Port Cakismasi Korumasi
-set "PORT=5001"
+set "PORT=5000"
 if exist ".env" (
     for /f "tokens=1,2 delims==" %%a in (.env) do (
         if "%%a"=="PORT" set "PORT=%%b"
