@@ -1,5 +1,28 @@
 # Güncelleme Notları (Changelog)
 
+## [v3.3.0] - CI/CD Pipeline, Kapsamlı Mimari Hata Düzeltmeleri ve Açık Kaynak Standartları (16.10.2026)
+
+### 🚀 Yeni Özellikler ve Altyapı
+- **GitHub Actions CI/CD Pipeline (`.github/workflows/ci.yml`, `release.yml`):**
+  - Ubuntu ve Windows üzerinde Python 3.12 ve 3.13 matrisinde 8 aşamalı otomatik test ve doğrulama iş akışı devreye alındı.
+  - Sürüm etiketlendiğinde otomatik taşınabilir paketleme (`DataViz_Portable.zip`) ve GitHub Release yayınlama desteği eklendi.
+- **Açık Kaynak Topluluk Standartları:**
+  - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1), `SECURITY.md`, PR ve Issue şablonları eklendi.
+- **Çoklu Platform Başlatıcı (`start.sh`):**
+  - Linux ve macOS kullanıcıları için tek komutla otomatik sanal ortam, bağımlılık kontrolü ve başlatma desteği eklendi.
+
+### 🐛 Kapsamlı Mimari Hata Düzeltmeleri & Güçlendirmeler
+- **ReportLab PDF Raporlama Motoru (`services/report_service.py`):**
+  - Kullanıcı ve veri girdilerindeki `<`, `>`, `&` karakterleri `_escape_pdf` ile sterilize edilerek ReportLab Paragraph XML parser çökmesi önlendi.
+  - Windows Arial font kısıtı gözetilerek Unicode alt/üst simgeler HTML etiketlerine (`<sub>10</sub>`, `<sup>2</sup>`) dönüştürüldü.
+- **SIMD Predicate Pushdown & Data Healer (`services/predicate_pushdown_engine.py`, `services/data_healer.py`):**
+  - `CategoricalDtype` serilerinde `.fillna("")` ve `==`/`!=` işlemlerinde oluşan çökmeler giderildi; kategori ağırlıklı ortalama hesabı ve nullable tamsayı tip güvenliği sağlandı.
+- **SQL Güvenliği & API Uç Noktaları (`routes/upload_routes.py`, `routes/data_routes.py`):**
+  - SQL sorgularına `SELECT` / `WITH` whitelist doğrulaması ve yıkıcı DDL/DML engeli getirildi.
+  - Sütun seçiminde `datetime`/`datetimetz` serilerinin kaybolması önlendi; GC bellek temizliği oturum yönetimine bağlandı.
+- **28/28 Master Test Doğrulaması:**
+  - IBM SPSS (.sav), Bayes Faktörü, Kaggle kirli veri stresi, çoklu sayfa Excel ve bellek izolasyonu dahil 28 master test %100 başarıyla tamamlandı.
+
 ## [v3.2.0] - AI Veri Güvenilirlik Stüdyosu, SQL Bağlantısı ve Kapsamlı Kararlılık Güncellemesi (29.09.2026)
 
 ### 🛡️ Yeni Özellikler

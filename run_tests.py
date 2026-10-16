@@ -80,7 +80,7 @@ def main():
             python_bin, "tests/test_stats_and_reporting.py"
         ]),
         ("28/28 Uçtan Uca Master Sistem Bağlantı Testi (E2E Connectivity)", [
-            python_bin, "test_system_connectivity.py"
+            python_bin, "tests/test_system_connectivity.py"
         ]),
     ]
 

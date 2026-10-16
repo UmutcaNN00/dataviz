@@ -48,29 +48,13 @@ jobs:
           # Ensure uploads directory
           New-Item -ItemType Directory -Force -Path "$distDir/uploads"
 
-          # Add Windows one-click starter script
-          $starterScript = @"
-          @echo off
-          chcp 65001 >nul
-          title DataViz Big Data Platform
-          echo ========================================================
-          echo   DataViz - Buyuk Veri Analitigi ve Kalite Platformu
-          echo ========================================================
-          echo.
-          if not exist .venv (
-              echo [1/3] Sanal ortam olusturuluyor...
-              python -m venv .venv
-          )
-          echo [2/3] Bagimliliklar kontrol ediliyor...
-          call .venv\Scripts\activate.bat
-          pip install -q -r requirements.txt
-          echo.
-          echo [3/3] DataViz sunucusu baslatiliyor...
-          start http://127.0.0.1:5000
-          python app.py
-          pause
-          "@
-          Set-Content -Path "$distDir/Baslat.bat" -Value $starterScript -Encoding UTF8
+          # Copy launcher scripts
+          if (Test-Path "Baslat.bat") {
+            Copy-Item -Path "Baslat.bat" -Destination $distDir
+          }
+          if (Test-Path "start.sh") {
+            Copy-Item -Path "start.sh" -Destination $distDir
+          }
 
           # Create ZIP archive
           Compress-Archive -Path "$distDir/*" -DestinationPath "DataViz_Portable.zip" -Force

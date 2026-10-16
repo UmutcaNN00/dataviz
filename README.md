@@ -17,8 +17,10 @@
   <img src="https://img.shields.io/badge/Görselleştirme-Plotly.js_50%2B_Tür-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
   <img src="https://img.shields.io/badge/Doğrulama-28%2F28_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
   <a href="https://github.com/UmutcaNN00/dataviz/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/UmutcaNN00/dataviz/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI%20Pipeline" alt="CI Status"></a>
+  <img src="https://img.shields.io/badge/Python-3.12_%7C_3.13_%7C_3.14-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Versions">
+  <img src="https://img.shields.io/badge/Platform-Windows_%7C_Linux_%7C_macOS-222222?style=for-the-badge&logo=linux&logoColor=white" alt="Platform Support">
   <img src="https://img.shields.io/badge/Veri_Egemenliği-%25100_Yerel_(KVKK_Uyumlu)-ff4500?style=for-the-badge&logo=shield&logoColor=white" alt="100% Local">
-  <img src="https://img.shields.io/badge/Lisans-MIT_Açık_Kaynak-yellow?style=for-the-badge" alt="MIT License">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Lisans-MIT_Açık_Kaynak-yellow?style=for-the-badge" alt="MIT License"></a>
   <a href="https://github.com/UmutcaNN00/dataviz/releases/latest"><img src="https://img.shields.io/badge/İndir-DataViz_Portable.zip_(v1.0.0)-22c55e?style=for-the-badge&logo=windows&logoColor=white" alt="Download Portable"></a>
 </p>
 
@@ -122,7 +124,7 @@ Büyük veri analitiği, günümüz akademik ve kurumsal karar destek sistemleri
 | Kod | SMART Hedef | Başarı Ölçütü / Doğrulama Kriteri |
 |:---:|---|---|
 | **H1** | **Bellek ve Hız Başarımı** | 1.000.000 satır ve 20 sütunluk bir veri setinin 8 GB RAM'li standart bir bilgisayarda **< 0.5 saniyede** belleğe alınması ve tepe RAM ayak izinin **< 250 MB** sınırında tutulması. |
-| **H2** | **Yapay Zekâ Veri Kalitesi Onarımı** | Sayısal sütunlara karışmış sözel bozulmaları (₺, $, birimler, sözel sayılar) İzolasyon Ormanı ve Regex heuristikleriyle tarayarak **$F_1 \ge \%90$ skoruyla** ve **%0 veri kaybıyla** sayısal tipe dönüştürülmesi. |
+| **H2** | **Yapay Zekâ Veri Kalitesi Onarımı** | Sayısal sütunlara karışmış sözel bozulmaları (₺, $, birimler, sözel sayılar) İzolasyon Ormanı ve Regex heuristikleriyle tarayarak **$F_1 \ge 0.90$ (%90) skoruyla** ve **%0 veri kaybıyla** sayısal tipe dönüştürülmesi. |
 | **H3** | **Kodsuz Bilimsel İstatistik** | Tek Yönlü ANOVA ($F$), Bağımsız Örneklem T-Testi ($t$), korelasyon matrisi ve OLS regresyon denklemlerinin **< 500 ms** altında reaktif hesaplanıp akademik metne dönüştürülmesi. |
 | **H4** | **Çok Boyutlu Güven Karnesi** | Veri setinin kalitesini 4 ağırlıklı boyutta (Eksiksizlik %35, Tip Doğruluğu %30, Tutarlılık %20, Tekillik %15) 100 üzerinden puanlayan ve ham-onarılmış farkını raporlayan stüdyonun sunulması. |
 | **H5** | **Sentetik Benchmark Doğrulaması** | 100K, 1M ve 5M satırlık sentetik veri kümelerinde 30 bağımsız deney koşumu gerçekleştirilerek sonuçların ANOVA ve T-testiyle ($\alpha = 0.05$) doğrulanması. |
@@ -228,7 +230,7 @@ Proje, 6 aylık süre zarfında birbirini tamamlayan 4 dengeli iş paketiyle (%2
 | İş Paketi | Süre | Sorumlu | Faaliyetler ve Başarı Ölçütü | Katkı |
 |---|:---:|:---:|---|:---:|
 | **İP1: Büyük Veri Motoru ve Sıfır-Kopyalama Bellek Mimarisi Optimizasyonu** | 1. - 2. Ay | Proje Yürütücüsü (Danışman Rehberliğinde) | Polars ve PyArrow sıfır-kopyalama veri motorunun kurulması; CSV, Excel ve Parquet otomatik ayraç/encoding algılayıcılarının geliştirilmesi. **Başarı:** 1M satırın < 1 saniyede açılması ve RAM ayak izinin < 250 MB olması. | **%25** |
-| **İP2: Yapay Zekâ Destekli Veri Kalitesi ve Akıllı Tip Onarım Modülü** | 2. - 3. Ay | Proje Yürütücüsü (Danışman Rehberliğinde) | İzolasyon Ormanı tabanlı anomali tarayıcısının eğitilmesi; Regex/heuristik akıllı tip dönüştürücünün ve 4 boyutlu Güven Karnesi stüdyosunun kodlanması. **Başarı:** Bozuk hücre tespitinde $F_1 \ge \%90$ skoru ve sıfır veri kaybı. | **%25** |
+| **İP2: Yapay Zekâ Destekli Veri Kalitesi ve Akıllı Tip Onarım Modülü** | 2. - 3. Ay | Proje Yürütücüsü (Danışman Rehberliğinde) | İzolasyon Ormanı tabanlı anomali tarayıcısının eğitilmesi; Regex/heuristik akıllı tip dönüştürücünün ve 4 boyutlu Güven Karnesi stüdyosunun kodlanması. **Başarı:** Bozuk hücre tespitinde $F_1 \ge 0.90$ (%90) skoru ve sıfır veri kaybı. | **%25** |
 | **İP3: Kodsuz Hipotez Testleri ve İstatistik Stüdyosunun Entegrasyonu** | 3. - 4. Ay | Proje Yürütücüsü (Danışman Rehberliğinde) | SciPy 1.11+ ANOVA ($F$), Bağımsız T-Testi ($t$), Korelasyon ve OLS regresyon (%95 GA) modellerinin sürükle-bırak eksen arayüzüne ve 50+ Plotly grafiğine bağlanması. **Başarı:** Tüm testlerin < 500 ms altında kodsuz hesaplanması. | **%25** |
 | **İP4: Sentetik Benchmark Simülasyonları, Doğrulama ve Çıktı Üretimi** | 5. - 6. Ay | Proje Yürütücüsü (Danışman Rehberliğinde) | 100K, 1M ve 5M satırlık kontrollü sentetik stres benchmarklarının icrası; 30 bağımsız koşumla ANOVA/T-testi hipotez doğrulaması; açık kaynak GitHub dokümantasyonu ve akademik bildiri yazımı. **Başarı:** $H_1$ doğrulaması ve bildiri taslağı. | **%25** |
 
@@ -343,7 +345,15 @@ dataviz/
 ### Seçenek 1: Windows'ta Tek Tıkla Başlatma (Önerilen)
 Proje ana dizinindeki [`Baslat.bat`](Baslat.bat) dosyasına çift tıklayın. Python tespiti, izole sanal ortam (`.venv`) ve kütüphaneler otomatik yapılandırılır; tarayıcınızda `http://127.0.0.1:5000` açılır.
 
-### Seçenek 2: Terminal / Manuel Kurulum
+### Seçenek 2: Linux & macOS'ta Tek Komutla Başlatma
+Proje ana dizinindeki [`start.sh`](start.sh) kabuk betiğini çalıştırın:
+```bash
+chmod +x start.sh
+./start.sh
+```
+Sanal ortam ve bağımlılıklar otomatik denetlenir, tarayıcınız otomatik açılır.
+
+### Seçenek 3: Terminal / Manuel Kurulum
 
 ```bash
 # 1. Depoyu klonlayın ve klasöre girin
@@ -362,7 +372,7 @@ python app.py
 # http://127.0.0.1:5000
 ```
 
-### Seçenek 3: Docker ile Çalıştırma
+### Seçenek 4: Docker ile Çalıştırma
 
 ```bash
 docker compose up -d --build
@@ -374,14 +384,26 @@ docker compose up -d --build
 Tüm mimari bileşenlerin, sıfır-kopyalama bellek motorunun, İzolasyon Ormanı onarıcısının ve 28/28 master E2E entegrasyon testlerinin doğruluğunu tek komutla test edebilirsiniz:
 
 ```bash
-# Tüm 7 test aşamasını (Birim, Uç Durum, Data Prep, SIMD, API, Stats, E2E) çalıştırır:
+# Tüm 8 test aşamasını (Sözdizimi, Birim, Uç Durum, Data Prep, SIMD, API, Stats, E2E) çalıştırır:
 python run_tests.py
 
 # Alternatif: Yalnızca 28 adımlı E2E bağlantı testini çalıştırır:
-python test_system_connectivity.py
+python tests/test_system_connectivity.py
 ```
 
-Projeye katkıda bulunma, kodlama standartları ve geliştirme kılavuzu için lütfen [CONTRIBUTING.md](CONTRIBUTING.md) belgesini inceleyin.
+---
+
+## 🤝 Açık Kaynak Standartları ve Topluluk
+
+DataViz, açık kaynak topluluk standartlarına tam uyumlu olarak geliştirilmektedir:
+
+| Belge | Açıklama |
+|---|---|
+| [📄 Katkı Rehberi (CONTRIBUTING.md)](CONTRIBUTING.md) | Geliştirme ortamı kurulumu, kodlama standartları, test protokolü ve PR süreci. |
+| [📜 Davranış Kuralları (CODE_OF_CONDUCT.md)](CODE_OF_CONDUCT.md) | Contributor Covenant v2.1 standartlarında kapsayıcı topluluk ilkeleri. |
+| [🔒 Güvenlik Politikası (SECURITY.md)](SECURITY.md) | Güvenlik açığı bildirim süreci ve desteklenen sürümler. |
+| [📝 Sürüm Günlüğü (CHANGELOG.md)](CHANGELOG.md) | Sürüm bazlı yeni özellikler, hata düzeltmeleri ve mimari değişiklikler. |
+| [⚖️ Lisans Belgesi (LICENSE)](LICENSE) | MIT Açık Kaynak Lisansı tam metni. |
 
 ---
 
@@ -402,7 +424,7 @@ Projeye katkıda bulunma, kodlama standartları ve geliştirme kılavuzu için l
 
 ## 📜 Lisans ve Haklar
 
-Bu proje **MIT Lisansı** altında açık kaynaklı olarak geliştirilmektedir.
+Bu proje [MIT Lisansı](LICENSE) altında açık kaynaklı olarak geliştirilmektedir. Ticari ve akademik kullanım, değiştirme ve dağıtım hakları serbesttir.
 
 <div align="center">
   <br>
