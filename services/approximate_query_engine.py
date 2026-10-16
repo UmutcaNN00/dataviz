@@ -36,8 +36,15 @@ class HyperLogLog:
         return int.from_bytes(h[:8], byteorder="big", signed=False)
 
     def add(self, val: Any):
-        if val is None or pd.isna(val):
+        if val is None:
             return
+        try:
+            if isinstance(val, (float, np.floating)) and np.isnan(val):
+                return
+            if pd.isna(val):
+                return
+        except Exception:
+            pass
         x = self._hash(str(val))
         # İlk b biti kova indeksi olarak al
         j = x >> (64 - self.b)
@@ -87,12 +94,15 @@ def compute_approximate_metrics(
     for col in target_df.columns:
         hll = HyperLogLog(b=10)
         # Hızlı vektörel HLL güncelleme
-        for v in target_df[col].dropna().iloc[:30000]:
+        vals_to_feed = target_df[col].dropna().iloc[:30000]
+        for v in vals_to_feed:
             hll.add(v)
         approx_distinct = hll.estimate()
+        evaluated_rows = len(vals_to_feed)
+        threshold_high = evaluated_rows * 0.7 if evaluated_rows > 0 else 0
         cardinality_results[col] = {
             "approx_distinct_count": approx_distinct,
-            "cardinality_level": "Yüksek (Anahtar/ID)" if approx_distinct > (total_rows * 0.7)
+            "cardinality_level": "Yüksek (Anahtar/ID)" if (approx_distinct > threshold_high and approx_distinct > 20)
             else "Orta" if approx_distinct > 20
             else "Düşük (Kategorik)",
         }
@@ -101,10 +111,10 @@ def compute_approximate_metrics(
     numeric_cols = target_df.select_dtypes(include=[np.number]).columns
     percentiles = {}
     for col in numeric_cols:
-        series = target_df[col].dropna()
-        if len(series) > 0:
+        clean_s = target_df[col].replace([np.inf, -np.inf], np.nan).dropna()
+        if len(clean_s) > 0:
             # np.percentile ile tek geçiş
-            p = np.percentile(series, [25, 50, 75, 90, 99])
+            p = np.percentile(clean_s, [25, 50, 75, 90, 99])
             percentiles[col] = {
                 "p25": round(float(p[0]), 2),
                 "p50_medyan": round(float(p[1]), 2),

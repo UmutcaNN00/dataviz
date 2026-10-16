@@ -125,7 +125,7 @@ def clean_dataframe(df: pd.DataFrame | None) -> pd.DataFrame:
                 else:
                     new_cols.append(f"Sütun_{i + 1}")
             df = df.iloc[header_candidate_idx + 1 :].copy()
-            df.columns = pd.Index(new_cols)
+            df.columns = pd.Index(_deduplicate_columns(new_cols))
             # Re-infer numeric types for columns that became object only because the header row was inside data
             for c in df.columns:
                 if df[c].dtype == object:
@@ -480,7 +480,7 @@ def read_spss_safely(file_input: Any) -> pd.DataFrame:
                     mapped_series = df[col].map(int_map)
 
                 if not mapped_series.isna().all():
-                    df[col] = mapped_series.fillna(df[col])
+                    df[col] = mapped_series.astype(object).fillna(df[col].astype(object))
 
     # 2. Değişken İsimlerini Açıklayıcı Soru Başlıklarına (Column Labels) Çevir
     if meta and hasattr(meta, "column_names_to_labels") and meta.column_names_to_labels:

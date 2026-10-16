@@ -141,10 +141,18 @@ def get_correlation_matrix_route():
     filters = data.get("filters", [])
     method = data.get("method", "pearson")
     cols = data.get("columns", [])
+    if isinstance(cols, str):
+        cols = [cols] if cols else None
 
-    active_df = apply_filters(global_df, filters)
-    matrix_data = compute_correlation_matrix(active_df, num_cols=cols, method=method)
-    return jsonify(matrix_data)
+    try:
+        active_df = apply_filters(global_df, filters)
+        matrix_data = compute_correlation_matrix(
+            active_df, num_cols=cols, method=method
+        )
+        return jsonify(matrix_data)
+    except Exception as e:
+        logger.exception("get_correlation_matrix hatası")
+        return jsonify({"error": f"Korelasyon matrisi hesaplanırken hata: {e}"}), 500
 
 
 @stats_bp.route("/get_regression_studio_data", methods=["POST"])
@@ -296,6 +304,8 @@ def get_naive_bayes():
     data = request.get_json(silent=True) or {}
     target_col = data.get("target_col") or data.get("target")
     feature_cols = data.get("feature_cols") or data.get("features", [])
+    if isinstance(feature_cols, str):
+        feature_cols = [feature_cols] if feature_cols else []
     filters = data.get("filters", [])
 
     try:
@@ -355,9 +365,13 @@ def get_logistic_regression():
     if isinstance(feature_cols, str):
         feature_cols = [feature_cols]
     filters = data.get("filters", [])
-    max_iter = int(data.get("max_iter", 1000))
 
     try:
+        try:
+            max_iter = max(10, min(int(data.get("max_iter") or 1000), 10000))
+        except (ValueError, TypeError):
+            max_iter = 1000
+
         active_df = apply_filters(global_df, filters)
         res = compute_logistic_regression(
             active_df,

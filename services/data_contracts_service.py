@@ -54,7 +54,7 @@ def evaluate_data_contracts(
     # A) Sayısal Sütunlar için Negatiflik ve Aşırı Değer Kuralları
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     for col in numeric_cols:
-        col_lower = col.lower()
+        col_lower = str(col).lower()
         # Fiyat, maliyet, tutar, yaş, adet, sayı gibi pozitif olması beklenen alanlar
         if any(term in col_lower for term in ["fiyat", "tutar", "adet", "yas", "yaş", "sayi", "sayı", "maliyet", "gelir", "kar"]):
             contracts_to_run.append({
@@ -77,7 +77,7 @@ def evaluate_data_contracts(
 
     # B) Kimlik / Anahtar Sütunları için Benzersizlik (Uniqueness) Kuralı
     for col in df.columns:
-        col_lower = col.lower()
+        col_lower = str(col).lower()
         if any(term in col_lower for term in ["id", "no", "kod", "key", "tc", "barkod"]):
             contracts_to_run.append({
                 "rule_name": f"Benzersizlik Kuralı ({col})",
@@ -117,11 +117,11 @@ def evaluate_data_contracts(
             num_series = pd.to_numeric(series, errors="coerce")
             valid_mask = series.notna()
             # Negatif olanlar veya sayıya çevrilemeyen kirli değerler ihlaldir
-            mask = valid_mask & ((num_series < 0) | num_series.isna())
+            mask = valid_mask & ((num_series < 0) | num_series.isna() | ~np.isfinite(num_series))
             violation_count = int(mask.sum())
             if violation_count > 0:
                 passed = False
-                violation_indices = mask[mask].index.tolist()[:10]
+                violation_indices = [int(i) + 1 for i in np.flatnonzero(mask)[:10]]
 
         elif rule_type == "range":
             min_val = contract.get("min", -np.inf)
@@ -129,12 +129,12 @@ def evaluate_data_contracts(
             num_series = pd.to_numeric(series, errors="coerce")
             valid_mask = series.notna()
             mask = valid_mask & (
-                (num_series < min_val) | (num_series > max_val) | num_series.isna()
+                (num_series < min_val) | (num_series > max_val) | num_series.isna() | ~np.isfinite(num_series)
             )
             violation_count = int(mask.sum())
             if violation_count > 0:
                 passed = False
-                violation_indices = mask[mask].index.tolist()[:10]
+                violation_indices = [int(i) + 1 for i in np.flatnonzero(mask)[:10]]
 
         elif rule_type == "unique":
             # Tekrarlayan değer maskesi (unhashable tiplere karşı korumalı)
@@ -145,7 +145,7 @@ def evaluate_data_contracts(
             violation_count = int(mask.sum())
             if violation_count > 0:
                 passed = False
-                violation_indices = mask[mask].index.tolist()[:10]
+                violation_indices = [int(i) + 1 for i in np.flatnonzero(mask)[:10]]
 
         elif rule_type == "max_null_pct":
             try:
@@ -157,7 +157,7 @@ def evaluate_data_contracts(
             if null_pct > max_allowed:
                 passed = False
                 violation_count = null_count
-                violation_indices = series[series.isna()].index.tolist()[:10]
+                violation_indices = [int(i) + 1 for i in np.flatnonzero(series.isna().to_numpy())[:10]]
 
         total_violations_count += violation_count
 
@@ -169,7 +169,7 @@ def evaluate_data_contracts(
             "status": "GEÇTİ" if passed else "İHLAL EDİLDİ",
             "violations_count": violation_count,
             "violation_pct": round((violation_count / max(1, total_rows)) * 100, 2),
-            "sample_violation_rows": [int(idx) + 1 for idx in violation_indices],
+            "sample_violation_rows": violation_indices,
         })
 
     elapsed_ms = round((time.time() - start_time) * 1000, 2)

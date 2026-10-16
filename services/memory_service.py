@@ -82,24 +82,26 @@ def optimize_dataframe_memory(
             # float64 -> float32 (Çoğu iş analitiği için yeterli 7 basamak hassasiyet)
             if col_dtype == np.float64:
                 try:
-                    optimized_df[col] = optimized_df[col].astype(np.float32)
-                    modified_columns.append({
-                        "column": col,
-                        "old_type": prev_type,
-                        "new_type": "float32",
-                        "reason": "Float32 optimizasyonu",
-                    })
+                    vals = optimized_df[col].dropna()
+                    if len(vals) == 0 or vals.abs().max() <= np.finfo(np.float32).max:
+                        optimized_df[col] = optimized_df[col].astype(np.float32)
+                        modified_columns.append({
+                            "column": col,
+                            "old_type": prev_type,
+                            "new_type": "float32",
+                            "reason": "Float32 optimizasyonu",
+                        })
                 except Exception as e_float:
                     logger.debug(f"Float32 dönüşüm atlandı ({col}): {e_float}")
 
         # 3. Metin / Object Sütunları (Kategorik Dönüşüm)
         elif (pd.api.types.is_object_dtype(col_dtype) or pd.api.types.is_string_dtype(col_dtype)) and convert_categories:
-            num_unique = optimized_df[col].nunique(dropna=True)
-            ratio = num_unique / max(1, total_rows)
+            try:
+                num_unique = optimized_df[col].nunique(dropna=True)
+                ratio = num_unique / max(1, total_rows)
 
-            # En az 10 satır olmalı, tek satırlık veriler kategoriye dönüştürülmemeli
-            if total_rows >= 10 and num_unique > 0 and (ratio <= category_threshold or (num_unique <= 50 and total_rows >= 50)):
-                try:
+                # En az 10 satır olmalı, tek satırlık veriler kategoriye dönüştürülmemeli
+                if total_rows >= 10 and num_unique > 0 and (ratio <= category_threshold or (num_unique <= 50 and total_rows >= 50)):
                     optimized_df[col] = optimized_df[col].astype("category")
                     modified_columns.append({
                         "column": col,
@@ -107,8 +109,8 @@ def optimize_dataframe_memory(
                         "new_type": "category",
                         "reason": f"Düşük kardinalite ({num_unique} benzersiz değer)",
                     })
-                except Exception as e_cat:
-                    logger.debug(f"Kategorik dönüşüm atlandı ({col}): {e_cat}")
+            except Exception as e_cat:
+                logger.debug(f"Kategorik dönüşüm atlandı ({col}): {e_cat}")
 
     end_bytes = int(optimized_df.memory_usage(deep=True).sum())
     savings_bytes = max(0, start_bytes - end_bytes)
@@ -142,7 +144,7 @@ def auto_optimize_ingested_df(df: pd.DataFrame) -> pd.DataFrame:
 
     try:
         from services.type_coercion_service import recover_dirty_numeric_columns
-        df, _ = recover_dirty_numeric_columns(df)
+        df, _ = recover_dirty_numeric_columns(df, min_numeric_ratio=0.98)
     except Exception as e:
         logger.warning(f"Otomatik tip kurtarma atlandı: {e}")
 

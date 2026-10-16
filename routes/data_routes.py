@@ -48,6 +48,9 @@ def _compute_health_dict(df: pd.DataFrame) -> dict[str, Any]:
             "missing_cells": 0,
             "missing_rows": 0,
             "total_rows": 0,
+            "total_cols": 0,
+            "numeric_columns": [],
+            "categorical_columns": [],
             "anomalies": [],
             "has_anomalies": False,
         }
@@ -71,12 +74,19 @@ def _compute_health_dict(df: pd.DataFrame) -> dict[str, Any]:
         missing_rows = 0 if missing_count == 0 else int(df.isnull().any(axis=1).sum())
 
     anomalies = detect_column_anomalies(df)
+    num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+    cat_cols = df.select_dtypes(
+        include=["object", "category", "bool", "string", "datetime", "datetimetz"]
+    ).columns.tolist()
     return {
         "success": True,
         "has_issues": missing_rows > 0 or len(anomalies) > 0,
         "missing_cells": missing_count,
         "missing_rows": missing_rows,
         "total_rows": total_n,
+        "total_cols": len(df.columns),
+        "numeric_columns": num_cols,
+        "categorical_columns": cat_cols,
         "anomalies": anomalies,
         "has_anomalies": len(anomalies) > 0,
     }
@@ -126,7 +136,7 @@ def repair_column_anomalies():
 
         numeric_cols = repaired_df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = repaired_df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
         health_data = _compute_health_dict(repaired_df)
 
@@ -189,7 +199,7 @@ def clean_data():
 
         numeric_cols = cleaned_df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = cleaned_df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
         health_data = _compute_health_dict(cleaned_df)
 
@@ -320,10 +330,12 @@ def merge_datasets():
                 df2 = read_csv_safely(file2)
             elif filename2.endswith((".xls", ".xlsx")):
                 df2, _, _, _ = read_excel_safely(file2)
+            elif filename2.endswith((".sav", ".zsav")):
+                df2 = read_spss_safely(file2)
             else:
                 return jsonify(
                     {
-                        "error": "Desteklenmeyen dosya formatı. Lütfen .parquet, .csv veya .xlsx dosyası yükleyin."
+                        "error": "Desteklenmeyen dosya formatı. Lütfen .parquet, .csv, .xlsx veya .sav dosyası yükleyin."
                     }
                 ), 400
             set_df(df2, 2)
@@ -429,7 +441,7 @@ def merge_datasets():
 
         numeric_cols = global_df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = global_df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         return jsonify(
@@ -456,14 +468,14 @@ def add_calculated_column():
         return jsonify({"error": "Veri yok"}), 400
 
     data = request.get_json(silent=True) or {}
-    new_col = (
+    new_col = str(
         data.get("new_col_name")
         or data.get("new_column_name")
         or data.get("new_column")
         or data.get("column_name")
         or ""
     ).strip()
-    formula = (data.get("formula") or "").strip()
+    formula = str(data.get("formula") or data.get("expression") or "").strip()
     col1 = data.get("col1")
     op = data.get("op") or data.get("operator")
     col2 = data.get("col2")
@@ -471,15 +483,18 @@ def add_calculated_column():
 
     if formula and not (col1 and op):
         import re
-        m = re.match(r"^([a-zA-Z0-9_çğıöşüÇĞİÖŞÜ]+)\s*([\+\-\*\/\%\^])\s*([a-zA-Z0-9_\.çğıöşüÇĞİÖŞÜ]+)$", formula)
+        m = re.match(r"^(.+?)\s*(\*\*|\^|[\+\-\*\/\%]|mod|pow)\s*(.+?)$", formula)
         if m:
-            col1 = m.group(1).strip()
-            op = m.group(2).strip()
-            rhs = m.group(3).strip()
-            if rhs in global_df.columns:
-                col2 = rhs
-            else:
-                scalar = rhs
+            col1_cand = m.group(1).strip()
+            op_cand = m.group(2).strip()
+            rhs_cand = m.group(3).strip()
+            if col1_cand in global_df.columns:
+                col1 = col1_cand
+                op = op_cand
+                if rhs_cand in global_df.columns:
+                    col2 = rhs_cand
+                else:
+                    scalar = rhs_cand
 
     if not new_col:
         return jsonify({"error": "Yeni sütun adı belirtilmelidir."}), 400
@@ -487,10 +502,20 @@ def add_calculated_column():
         return jsonify({"error": f"1. sütun ('{col1}') bulunamadı."}), 400
 
     try:
-        s1 = pd.to_numeric(global_df[col1], errors="coerce").fillna(0)
+        col1_s = (
+            global_df[col1].astype(object)
+            if isinstance(global_df[col1].dtype, pd.CategoricalDtype)
+            else global_df[col1]
+        )
+        s1 = pd.to_numeric(col1_s, errors="coerce").fillna(0.0)
 
         if col2 and col2 in global_df.columns:
-            s2 = pd.to_numeric(global_df[col2], errors="coerce").fillna(0)
+            col2_s = (
+                global_df[col2].astype(object)
+                if isinstance(global_df[col2].dtype, pd.CategoricalDtype)
+                else global_df[col2]
+            )
+            s2 = pd.to_numeric(col2_s, errors="coerce").fillna(0.0)
         elif scalar is not None and str(scalar).strip() != "":
             try:
                 s2 = float(scalar)
@@ -528,6 +553,7 @@ def add_calculated_column():
         else:
             return jsonify({"error": f"Geçersiz işlem operatörü: '{op}'"}), 400
 
+        global_df = global_df.copy()
         global_df[new_col] = res
         set_df(global_df, 1)
         set_baseline_trust(None)
@@ -535,7 +561,7 @@ def add_calculated_column():
 
         numeric_cols = global_df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = global_df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         return jsonify(
@@ -616,12 +642,13 @@ def calculate_risk_score():
 
         risk_scores = np.round(normalized_scores).astype(np.int16)
 
+        global_df = global_df.copy()
         global_df["Guven_Skoru_AI"] = risk_scores
         set_df(global_df, 1)
 
         new_numeric_cols = global_df.select_dtypes(include=["number"]).columns.tolist()
         new_categorical_cols = global_df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         return jsonify(
@@ -1058,7 +1085,7 @@ def auto_heal_all_trust():
 
         numeric_cols = healed_df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = healed_df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
         health_data = _compute_health_dict(healed_df)
 
@@ -1101,8 +1128,23 @@ def get_arrow_data():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    max_rows = request.args.get("max_rows", type=int) or (request.json.get("max_rows") if request.is_json else None)
-    binary_stream, meta = serialize_df_to_arrow_ipc(df, max_rows=max_rows)
+    max_rows = None
+    if request.is_json:
+        req_j = request.get_json(silent=True) or {}
+        raw_m = req_j.get("max_rows")
+    else:
+        raw_m = request.args.get("max_rows")
+    if raw_m is not None:
+        try:
+            max_rows = max(1, int(raw_m))
+        except (ValueError, TypeError):
+            max_rows = None
+
+    try:
+        binary_stream, meta = serialize_df_to_arrow_ipc(df, max_rows=max_rows)
+    except Exception as e:
+        logger.exception("Arrow IPC serileştirme hatası")
+        return jsonify({"error": f"Arrow serileştirme hatası: {e}"}), 500
 
     response = Response(binary_stream, mimetype="application/vnd.apache.arrow.stream")
     response.headers["X-Arrow-Rows"] = str(meta["num_rows"])
@@ -1124,9 +1166,24 @@ def benchmark_json_vs_arrow():
     if df is None:
         return jsonify({"error": "Önce bir dosya yükleyin veya örnek veri seçin."}), 400
 
-    sample_size = request.args.get("sample_size", default=25000, type=int)
-    results = benchmark_serialization(df, sample_size=sample_size)
-    return jsonify({"success": True, "benchmark": results})
+    sample_size = 25000
+    if request.is_json:
+        req_j = request.get_json(silent=True) or {}
+        raw_s = req_j.get("sample_size")
+    else:
+        raw_s = request.args.get("sample_size")
+    if raw_s is not None:
+        try:
+            sample_size = max(1, int(raw_s))
+        except (ValueError, TypeError):
+            sample_size = 25000
+
+    try:
+        results = benchmark_serialization(df, sample_size=sample_size)
+        return jsonify({"success": True, "benchmark": results})
+    except Exception as e:
+        logger.exception("benchmark_json_vs_arrow hatası")
+        return jsonify({"error": f"Benchmark hesaplama hatası: {e}"}), 500
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1149,7 +1206,10 @@ def find_text_clusters():
     data = data or {}
     col_name = data.get("column")
     method = data.get("method", "fingerprint")
-    max_clusters = int(data.get("max_clusters", 50))
+    try:
+        max_clusters = max(1, int(data.get("max_clusters") or 50))
+    except (ValueError, TypeError):
+        max_clusters = 50
 
     if not col_name or col_name not in df.columns:
         return jsonify({"error": f"Geçersiz sütun adı: {col_name}"}), 400
@@ -1189,13 +1249,25 @@ def merge_text_clusters():
         return jsonify({"error": "Birleştirilecek küme seçilmedi."}), 400
 
     try:
+        if get_baseline_trust() is None:
+            set_baseline_trust(_compute_trust_snapshot(df))
         healed_df, modified_count = apply_cluster_merges(df, col_name, merges)
         set_df(healed_df, 1)
+        set_is_cleaned(True)
+
+        new_num = healed_df.select_dtypes(include=["number"]).columns.tolist()
+        new_cat = healed_df.select_dtypes(
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
+        ).columns.tolist()
 
         return jsonify({
             "success": True,
             "column": col_name,
             "modified_rows": modified_count,
+            "total_rows": len(healed_df),
+            "total_cols": len(healed_df.columns),
+            "numeric_columns": new_num,
+            "categorical_columns": new_cat,
             "message": f"{modified_count} satır başarıyla standartlaştırıldı.",
         })
     except Exception as e:
@@ -1313,9 +1385,19 @@ def get_explainable_anomalies():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    top_n = request.args.get("top_n", default=30, type=int)
-    results = explain_dataset_anomalies(df, top_n=top_n)
-    return jsonify({"success": True, "anomaly_report": results})
+    data = request.get_json(silent=True) if request.method == "POST" else None
+    data = data or {}
+    raw_top = data.get("top_n") or request.args.get("top_n", default=30)
+    try:
+        top_n = max(1, int(raw_top))
+    except (ValueError, TypeError):
+        top_n = 30
+    try:
+        results = explain_dataset_anomalies(df, top_n=top_n)
+        return jsonify({"success": True, "anomaly_report": results})
+    except Exception as e:
+        logger.exception("explain_dataset_anomalies hatası")
+        return jsonify({"error": f"Anomali gerekçelendirme hatası: {e}"}), 500
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1356,16 +1438,32 @@ def recover_dirty_types_route():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    recovered_df, report = recover_dirty_numeric_columns(df)
-    if report:
-        set_df(recovered_df, 1)
+    try:
+        if get_baseline_trust() is None:
+            set_baseline_trust(_compute_trust_snapshot(df))
+        recovered_df, report = recover_dirty_numeric_columns(df)
+        if report:
+            set_df(recovered_df, 1)
+            set_is_cleaned(True)
 
-    return jsonify({
-        "success": True,
-        "recovered_columns_count": len(report),
-        "report": report,
-        "message": f"{len(report)} kirli sütun başarıyla sayısal tipe kurtarıldı." if report else "Kurtarılacak kirli sayısal sütun bulunamadı, tipler zaten tutarlı.",
-    })
+        new_num = recovered_df.select_dtypes(include=["number"]).columns.tolist()
+        new_cat = recovered_df.select_dtypes(
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
+        ).columns.tolist()
+
+        return jsonify({
+            "success": True,
+            "recovered_columns_count": len(report),
+            "report": report,
+            "total_rows": len(recovered_df),
+            "total_cols": len(recovered_df.columns),
+            "numeric_columns": new_num,
+            "categorical_columns": new_cat,
+            "message": f"{len(report)} kirli sütun başarıyla sayısal tipe kurtarıldı." if report else "Kurtarılacak kirli sayısal sütun bulunamadı, tipler zaten tutarlı.",
+        })
+    except Exception as e:
+        logger.exception("recover_dirty_types hatası")
+        return jsonify({"error": f"Kirli tip kurtarma hatası: {e}"}), 500
 
 
 @data_bp.route("/clean_data_advanced", methods=["POST"])
@@ -1384,12 +1482,28 @@ def clean_data_advanced_route():
     method = data.get("method", "mice")
     columns = data.get("columns")
 
-    imputed_df, report = impute_missing_advanced(df, method=method, target_columns=columns)
-    if "error" in report:
-        return jsonify(report), 400
+    try:
+        if get_baseline_trust() is None:
+            set_baseline_trust(_compute_trust_snapshot(df))
+        imputed_df, report = impute_missing_advanced(df, method=method, target_columns=columns)
+        if "error" in report:
+            return jsonify(report), 400
 
-    set_df(imputed_df, 1)
-    return jsonify(report)
+        set_df(imputed_df, 1)
+        set_is_cleaned(True)
+
+        new_num = imputed_df.select_dtypes(include=["number"]).columns.tolist()
+        new_cat = imputed_df.select_dtypes(
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
+        ).columns.tolist()
+        report["total_rows"] = len(imputed_df)
+        report["total_cols"] = len(imputed_df.columns)
+        report["numeric_columns"] = new_num
+        report["categorical_columns"] = new_cat
+        return jsonify(report)
+    except Exception as e:
+        logger.exception("clean_data_advanced hatası")
+        return jsonify({"error": f"Gelişmiş ikame hatası: {e}"}), 500
 
 
 @data_bp.route("/fast_fuzzy_join", methods=["POST"])
@@ -1422,20 +1536,36 @@ def fast_fuzzy_join_route():
     if not key1 or not key2:
         return jsonify({"error": "key1 ve key2 parametreleri zorunludur."}), 400
 
-    merged_df, metrics = fast_fuzzy_merge(df1, df2, key1, key2, threshold=threshold, how=how)
-    if "error" in metrics:
-        return jsonify(metrics), 400
+    try:
+        merged_df, metrics = fast_fuzzy_merge(df1, df2, key1, key2, threshold=threshold, how=how)
+        if "error" in metrics:
+            return jsonify(metrics), 400
 
-    merged_df.columns = pd.Index(_deduplicate_columns(merged_df.columns))
-    set_df(merged_df, 1)
-    set_baseline_trust(None)
-    set_is_cleaned(False)
-    return jsonify({
-        "success": True,
-        "metrics": metrics,
-        "new_row_count": len(merged_df),
-        "columns": merged_df.columns.tolist()[:20],
-    })
+        merged_df.columns = pd.Index(_deduplicate_columns(merged_df.columns))
+        set_df(merged_df, 1)
+        set_baseline_trust(None)
+        set_is_cleaned(False)
+
+        new_num = merged_df.select_dtypes(include=["number"]).columns.tolist()
+        new_cat = merged_df.select_dtypes(
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
+        ).columns.tolist()
+        new_joined_cols = [c for c in merged_df.columns if c not in df1.columns]
+
+        return jsonify({
+            "success": True,
+            "metrics": metrics,
+            "new_row_count": len(merged_df),
+            "total_rows": len(merged_df),
+            "total_cols": len(merged_df.columns),
+            "numeric_columns": new_num,
+            "categorical_columns": new_cat,
+            "new_joined_columns": new_joined_cols,
+            "columns": merged_df.columns.tolist()[:20],
+        })
+    except Exception as e:
+        logger.exception("fast_fuzzy_join hatası")
+        return jsonify({"error": f"Hızlı bulanık birleştirme hatası: {e}"}), 500
 
 
 @data_bp.route("/detect_ensemble_anomalies", methods=["GET", "POST"])
@@ -1451,14 +1581,27 @@ def detect_ensemble_anomalies_route():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    contamination = request.args.get("contamination", default=0.04, type=float)
-    top_n = request.args.get("top_n", default=30, type=int)
+    data = request.get_json(silent=True) if request.method == "POST" else None
+    data = data or {}
+    raw_c = data.get("contamination") or request.args.get("contamination", default=0.04)
+    raw_n = data.get("top_n") or request.args.get("top_n", default=30)
+    try:
+        contamination = min(0.5, max(0.001, float(raw_c)))
+    except (ValueError, TypeError):
+        contamination = 0.04
+    try:
+        top_n = max(1, int(raw_n))
+    except (ValueError, TypeError):
+        top_n = 30
 
-    result = detect_ensemble_anomalies(df, contamination=contamination, top_n=top_n)
-    if "error" in result:
-        return jsonify(result), 400
-
-    return jsonify({"success": True, "ensemble_report": result})
+    try:
+        result = detect_ensemble_anomalies(df, contamination=contamination, top_n=top_n)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify({"success": True, "ensemble_report": result})
+    except Exception as e:
+        logger.exception("detect_ensemble_anomalies hatası")
+        return jsonify({"error": f"Ensemble anomali hesaplama hatası: {e}"}), 500
 
 
 @data_bp.route("/evaluate_data_contracts", methods=["GET", "POST"])
@@ -1497,11 +1640,22 @@ def run_morsel_stats_route():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    morsel_size = request.args.get("morsel_size", default=30000, type=int)
-    res = parallel_morsel_stats(df, morsel_size=morsel_size)
-    if "error" in res:
-        return jsonify(res), 400
-    return jsonify(res)
+    data = request.get_json(silent=True) if request.method == "POST" else None
+    data = data or {}
+    raw_m = data.get("morsel_size") or request.args.get("morsel_size", default=30000)
+    try:
+        morsel_size = max(100, int(raw_m))
+    except (ValueError, TypeError):
+        morsel_size = 30000
+
+    try:
+        res = parallel_morsel_stats(df, morsel_size=morsel_size)
+        if "error" in res:
+            return jsonify(res), 400
+        return jsonify(res)
+    except Exception as e:
+        logger.exception("run_morsel_stats hatası")
+        return jsonify({"error": f"Morsel istatistik hatası: {e}"}), 500
 
 
 @data_bp.route("/persist_mmap_cache", methods=["GET", "POST"])
@@ -1515,8 +1669,12 @@ def persist_mmap_cache_route():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    res = mmap_cache.persist_to_mmap(df, dataset_id="active_mmap")
-    return jsonify(res)
+    try:
+        res = mmap_cache.persist_to_mmap(df, dataset_id="active_mmap")
+        return jsonify(res)
+    except Exception as e:
+        logger.exception("persist_mmap_cache hatası")
+        return jsonify({"error": f"Bellek haritası önbellekleme hatası: {e}"}), 500
 
 
 @data_bp.route("/filter_predicate_pushdown", methods=["POST"])
@@ -1558,16 +1716,32 @@ def parse_smart_dates_route():
     if df is None:
         return jsonify({"error": "Aktif veri seti bulunamadı."}), 400
 
-    parsed_df, report = detect_and_parse_datetime_columns(df)
-    if report:
-        set_df(parsed_df, 1)
+    try:
+        if get_baseline_trust() is None:
+            set_baseline_trust(_compute_trust_snapshot(df))
+        parsed_df, report = detect_and_parse_datetime_columns(df)
+        if report:
+            set_df(parsed_df, 1)
+            set_is_cleaned(True)
 
-    return jsonify({
-        "success": True,
-        "recovered_date_columns": len(report),
-        "report": report,
-        "message": f"{len(report)} tarih sütunu deterministik formatlarla başarıyla kurtarıldı." if report else "Dönüştürülecek tarih formatlı metin sütunu bulunamadı.",
-    })
+        new_num = parsed_df.select_dtypes(include=["number"]).columns.tolist()
+        new_cat = parsed_df.select_dtypes(
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
+        ).columns.tolist()
+
+        return jsonify({
+            "success": True,
+            "recovered_date_columns": len(report),
+            "report": report,
+            "total_rows": len(parsed_df),
+            "total_cols": len(parsed_df.columns),
+            "numeric_columns": new_num,
+            "categorical_columns": new_cat,
+            "message": f"{len(report)} tarih sütunu deterministik formatlarla başarıyla kurtarıldı." if report else "Dönüştürülecek tarih formatlı metin sütunu bulunamadı.",
+        })
+    except Exception as e:
+        logger.exception("parse_smart_dates hatası")
+        return jsonify({"error": f"Akıllı tarih ayrıştırma hatası: {e}"}), 500
 
 
 @data_bp.route("/run_approximate_query", methods=["GET", "POST"])

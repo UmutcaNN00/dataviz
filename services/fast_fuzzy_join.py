@@ -40,6 +40,8 @@ def _normalize_fuzzy_text(text: Any) -> str:
 def _extract_ngrams(text: str, n: int = 3) -> set:
     """Metinden n-gram kümesi çıkarır."""
     norm = _normalize_fuzzy_text(text)
+    if not norm:
+        return set()
     s = f"  {norm}  "
     if len(s) < n:
         return {s}
@@ -178,13 +180,15 @@ def fast_fuzzy_merge(
     df2_mapped = df2.copy(deep=False)
 
     # Her iki tarafta da eşleşecek string anahtar kolonları oluştur
-    df1_mapped["_fuzzy_join_key_"] = df1_mapped[key1].astype(str).map(
-        lambda x: matches_map[x][0] if x in matches_map else None
+    df1_s = df1_mapped[key1].astype(str).where(df1_mapped[key1].notna(), other=None)
+    df1_mapped["_fuzzy_join_key_"] = df1_s.map(
+        lambda x: matches_map[x][0] if x is not None and x in matches_map else None
     )
-    df1_mapped["_fuzzy_score"] = df1_mapped[key1].astype(str).map(
-        lambda x: matches_map[x][1] if x in matches_map else 0.0
+    df1_mapped["_fuzzy_score"] = df1_s.map(
+        lambda x: matches_map[x][1] if x is not None and x in matches_map else 0.0
     )
 
+    df2_mapped = df2_mapped[df2_mapped[key2].notna()].copy()
     df2_mapped["_fuzzy_join_key_"] = df2_mapped[key2].astype(str)
 
     # İsim çakışması önleme

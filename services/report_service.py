@@ -4,6 +4,7 @@ Generates publication-quality A4 PDF reports using ReportLab with robust Turkish
 APA-style statistical tables, hypothesis test interpretations, and regression models.
 """
 
+import html
 import io
 import logging
 import os
@@ -136,6 +137,11 @@ def _sanitize_tr(text: Any) -> str:
     for tr_char, ascii_char in tr_map.items():
         s = s.replace(tr_char, ascii_char)
     return s
+
+
+def _escape_pdf(text: Any) -> str:
+    """Sanitizes Turkish characters and escapes XML/HTML entities (<, >, &) for ReportLab Paragraph."""
+    return html.escape(_sanitize_tr(text), quote=False)
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -310,8 +316,8 @@ def generate_academic_pdf_report(
     story = []
 
     # 1. Header & Title Block
-    story.append(Paragraph(_sanitize_tr(title), style_title))
-    story.append(Paragraph(_sanitize_tr(subtitle), style_subtitle))
+    story.append(Paragraph(_escape_pdf(title), style_title))
+    story.append(Paragraph(_escape_pdf(subtitle), style_subtitle))
     story.append(
         HRFlowable(
             width="100%",
@@ -331,19 +337,19 @@ def generate_academic_pdf_report(
     meta_data = [
         [
             Paragraph(_sanitize_tr("Proje Kodu:"), style_meta_key),
-            Paragraph(_sanitize_tr(project_code), style_meta_val),
+            Paragraph(_escape_pdf(project_code), style_meta_val),
             Paragraph(_sanitize_tr("Rapor Tarihi:"), style_meta_key),
-            Paragraph(_sanitize_tr(now_str), style_meta_val),
+            Paragraph(_escape_pdf(now_str), style_meta_val),
         ],
         [
             Paragraph(_sanitize_tr("Araştırmacı / Kurum:"), style_meta_key),
-            Paragraph(_sanitize_tr(author), style_meta_val),
+            Paragraph(_escape_pdf(author), style_meta_val),
             Paragraph(_sanitize_tr("Örneklem (N):"), style_meta_key),
-            Paragraph(_sanitize_tr(f"{num_rows:,} satır ({num_cols} değişken)"), style_meta_val),
+            Paragraph(_escape_pdf(f"{num_rows:,} satır ({num_cols} değişken)"), style_meta_val),
         ],
         [
             Paragraph(_sanitize_tr("Eksik Değerler (NA):"), style_meta_key),
-            Paragraph(_sanitize_tr(f"{num_missing:,} hücre"), style_meta_val),
+            Paragraph(_escape_pdf(f"{num_missing:,} hücre"), style_meta_val),
             Paragraph(_sanitize_tr("İstatistiki Güven:"), style_meta_key),
             Paragraph(_sanitize_tr("%95 (α = 0.05)"), style_meta_val),
         ],
@@ -365,8 +371,16 @@ def generate_academic_pdf_report(
     story.append(Spacer(1, 10))
 
     # Determine numeric and categorical target columns
-    all_num_cols = df.select_dtypes(include=["number"]).columns.tolist() if df is not None else []
-    target_y = [c for c in (y_cols or []) if c in df.columns] if y_cols else []
+    all_num_cols = (
+        df.select_dtypes(include=["number"]).columns.tolist()
+        if (df is not None and not df.empty)
+        else []
+    )
+    target_y = (
+        [c for c in (y_cols or []) if df is not None and c in df.columns]
+        if y_cols
+        else []
+    )
     if not target_y:
         target_y = all_num_cols[:6]
 
@@ -415,15 +429,15 @@ def generate_academic_pdf_report(
 
         table_data.append(
             [
-                Paragraph(_sanitize_tr(c[:18]), style_tbl_cell_l),
-                Paragraph(_sanitize_tr(str(st.get("count", 0))), style_tbl_cell),
-                Paragraph(_sanitize_tr(mean_s), style_tbl_cell),
-                Paragraph(_sanitize_tr(std_s), style_tbl_cell),
-                Paragraph(_sanitize_tr(med_s), style_tbl_cell),
-                Paragraph(_sanitize_tr(min_max_s), style_tbl_cell),
-                Paragraph(_sanitize_tr(skew_s), style_tbl_cell),
-                Paragraph(_sanitize_tr(kurt_s), style_tbl_cell),
-                Paragraph(_sanitize_tr(jb_s), style_tbl_cell),
+                Paragraph(_escape_pdf(str(c)[:18]), style_tbl_cell_l),
+                Paragraph(_escape_pdf(str(st.get("count", 0))), style_tbl_cell),
+                Paragraph(_escape_pdf(mean_s), style_tbl_cell),
+                Paragraph(_escape_pdf(std_s), style_tbl_cell),
+                Paragraph(_escape_pdf(med_s), style_tbl_cell),
+                Paragraph(_escape_pdf(min_max_s), style_tbl_cell),
+                Paragraph(_escape_pdf(skew_s), style_tbl_cell),
+                Paragraph(_escape_pdf(kurt_s), style_tbl_cell),
+                Paragraph(_escape_pdf(jb_s), style_tbl_cell),
             ]
         )
 
@@ -458,7 +472,7 @@ def generate_academic_pdf_report(
     story.append(
         Paragraph(
             _sanitize_tr(
-                "<em>Not: JB (p) < 0.05 olması durumunda değişken normal dağılımdan sapmaktadır (p < 0.05).</em>"
+                "<em>Not: JB (p) &lt; 0.05 olması durumunda değişken normal dağılımdan sapmaktadır (p &lt; 0.05).</em>"
             ),
             style_body,
         )
@@ -466,10 +480,12 @@ def generate_academic_pdf_report(
     story.append(Spacer(1, 8))
 
     # 4. Hypothesis Testing & Comparative Statistics (Bölüm 3)
-    if x_col and x_col in df.columns:
+    if df is not None and not df.empty and x_col and x_col in df.columns:
         story.append(
             Paragraph(
-                _sanitize_tr(f"3. Hipotez Testleri ve Karşılaştırma Analizleri (Grup: {x_col})"),
+                _sanitize_tr("3. Hipotez Testleri ve Karşılaştırma Analizleri (Grup: ")
+                + _escape_pdf(x_col)
+                + ")",
                 style_h1,
             )
         )
@@ -482,7 +498,7 @@ def generate_academic_pdf_report(
                 Paragraph(_sanitize_tr("Parametrik (t / F)"), style_tbl_hdr),
                 Paragraph(_sanitize_tr("Parametrik Olmayan (U / H)"), style_tbl_hdr),
                 Paragraph(_sanitize_tr("p Değeri"), style_tbl_hdr),
-                Paragraph(_sanitize_tr("Bayes Faktörü (BF₁₀)"), style_tbl_hdr),
+                Paragraph(_sanitize_tr("Bayes Faktörü (BF<sub>10</sub>)"), style_tbl_hdr),
                 Paragraph(_sanitize_tr("Karar (α = 0.05)"), style_tbl_hdr),
             ]
         ]
@@ -492,7 +508,11 @@ def generate_academic_pdf_report(
             adv_type = info.get("type")
             p_val = info.get("p_value")
             p_str = f"{p_val:.4f}" if isinstance(p_val, (int, float)) else "-"
-            sig_decision = "Anlamlı Fark Var" if (p_val is not None and p_val < 0.05) else "Fark Yok (H₀)"
+            sig_decision = (
+                "Anlamlı Fark Var"
+                if (p_val is not None and p_val < 0.05)
+                else "Fark Yok (H<sub>0</sub>)"
+            )
             bf_str = str(info.get("bayes_bf10", "-"))
 
             if adv_type == "categorical_2":
@@ -502,12 +522,12 @@ def generate_academic_pdf_report(
                 u_str = f"U = {u_val:.1f}" if u_val is not None else "-"
                 hypo_data.append(
                     [
-                        Paragraph(_sanitize_tr(y[:18]), style_tbl_cell_l),
+                        Paragraph(_escape_pdf(str(y)[:18]), style_tbl_cell_l),
                         Paragraph(_sanitize_tr("2 Grup (T-Test / MW)"), style_tbl_cell),
-                        Paragraph(_sanitize_tr(t_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(u_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(p_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(bf_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(t_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(u_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(p_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(bf_str), style_tbl_cell),
                         Paragraph(_sanitize_tr(sig_decision), style_tbl_cell),
                     ]
                 )
@@ -518,12 +538,12 @@ def generate_academic_pdf_report(
                 h_str = f"H = {h_val:.2f}" if h_val is not None else "-"
                 hypo_data.append(
                     [
-                        Paragraph(_sanitize_tr(y[:18]), style_tbl_cell_l),
+                        Paragraph(_escape_pdf(str(y)[:18]), style_tbl_cell_l),
                         Paragraph(_sanitize_tr("ANOVA / Kruskal"), style_tbl_cell),
-                        Paragraph(_sanitize_tr(f_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(h_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(p_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(bf_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(f_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(h_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(p_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(bf_str), style_tbl_cell),
                         Paragraph(_sanitize_tr(sig_decision), style_tbl_cell),
                     ]
                 )
@@ -531,15 +551,15 @@ def generate_academic_pdf_report(
                 r_val = info.get("correlation")
                 r_str = f"r = {r_val:.2f}" if r_val is not None else "-"
                 r2_val = info.get("r_squared")
-                r2_str = f"R² = {r2_val:.2f}" if r2_val is not None else "-"
+                r2_str = f"R<sup>2</sup> = {r2_val:.2f}" if r2_val is not None else "-"
                 hypo_data.append(
                     [
-                        Paragraph(_sanitize_tr(y[:18]), style_tbl_cell_l),
-                        Paragraph(_sanitize_tr("Korelasyon & Regresyon"), style_tbl_cell),
-                        Paragraph(_sanitize_tr(r_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(str(y)[:18]), style_tbl_cell_l),
+                        Paragraph(_sanitize_tr("Korelasyon &amp; Regresyon"), style_tbl_cell),
+                        Paragraph(_escape_pdf(r_str), style_tbl_cell),
                         Paragraph(_sanitize_tr(r2_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(p_str), style_tbl_cell),
-                        Paragraph(_sanitize_tr(bf_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(p_str), style_tbl_cell),
+                        Paragraph(_escape_pdf(bf_str), style_tbl_cell),
                         Paragraph(_sanitize_tr(sig_decision), style_tbl_cell),
                     ]
                 )
@@ -587,14 +607,18 @@ def generate_academic_pdf_report(
         reg_res = compute_multiple_linear_regression(df, feats_indep, target_dep)
 
         if "error" not in reg_res:
-            eq_text = f"<strong>Model Denklemi:</strong> <code>{reg_res.get('equation')}</code>"
-            stats_text = (
-                f"<strong>R²:</strong> {reg_res.get('r_squared')} | "
-                f"<strong>Düzeltilmiş R²:</strong> {reg_res.get('adj_r_squared')} | "
-                f"<strong>F-İstatistiği:</strong> {reg_res.get('f_statistic')} (p = {reg_res.get('p_value')}) | "
-                f"<strong>Standart Hata:</strong> {reg_res.get('std_error')}"
+            eq_text = (
+                _sanitize_tr("<strong>Model Denklemi:</strong> <code>")
+                + _escape_pdf(reg_res.get("equation", ""))
+                + "</code>"
             )
-            story.append(Paragraph(_sanitize_tr(eq_text), style_body))
+            stats_text = (
+                f"<strong>R<sup>2</sup>:</strong> {_escape_pdf(reg_res.get('r_squared'))} | "
+                f"<strong>Düzeltilmiş R<sup>2</sup>:</strong> {_escape_pdf(reg_res.get('adj_r_squared'))} | "
+                f"<strong>F-İstatistiği:</strong> {_escape_pdf(reg_res.get('f_statistic'))} (p = {_escape_pdf(reg_res.get('p_value'))}) | "
+                f"<strong>Standart Hata:</strong> {_escape_pdf(reg_res.get('std_error'))}"
+            )
+            story.append(Paragraph(eq_text, style_body))
             story.append(Paragraph(_sanitize_tr(stats_text), style_body))
 
             # Coefficients Table
@@ -613,15 +637,15 @@ def generate_academic_pdf_report(
                 p_v = item.get("p_value")
                 p_st = f"{p_v:.4f}" if p_v is not None else "-"
                 vif_st = str(item.get("vif") or "-")
-                sig_st = "p < 0.05 (*)" if item.get("is_significant") else "Anlamsız"
+                sig_st = "p &lt; 0.05 (*)" if item.get("is_significant") else "Anlamsız"
                 coef_tbl_data.append(
                     [
-                        Paragraph(_sanitize_tr(item.get("feature", "")[:24]), style_tbl_cell_l),
-                        Paragraph(_sanitize_tr(str(item.get("coef"))), style_tbl_cell),
-                        Paragraph(_sanitize_tr(str(item.get("std_err"))), style_tbl_cell),
-                        Paragraph(_sanitize_tr(str(item.get("t_stat"))), style_tbl_cell),
-                        Paragraph(_sanitize_tr(p_st), style_tbl_cell),
-                        Paragraph(_sanitize_tr(vif_st), style_tbl_cell),
+                        Paragraph(_escape_pdf(str(item.get("feature", ""))[:24]), style_tbl_cell_l),
+                        Paragraph(_escape_pdf(str(item.get("coef"))), style_tbl_cell),
+                        Paragraph(_escape_pdf(str(item.get("std_err"))), style_tbl_cell),
+                        Paragraph(_escape_pdf(str(item.get("t_stat"))), style_tbl_cell),
+                        Paragraph(_escape_pdf(p_st), style_tbl_cell),
+                        Paragraph(_escape_pdf(vif_st), style_tbl_cell),
                         Paragraph(_sanitize_tr(sig_st), style_tbl_cell),
                     ]
                 )
@@ -653,7 +677,9 @@ def generate_academic_pdf_report(
             story.append(t_coef)
             story.append(
                 Paragraph(
-                    _sanitize_tr(f"<em>Çoklu Doğrusallık Notu: {reg_res.get('multicollinearity_note')}</em>"),
+                    _sanitize_tr("<em>Çoklu Doğrusallık Notu: ")
+                    + _escape_pdf(reg_res.get("multicollinearity_note", ""))
+                    + "</em>",
                     style_body,
                 )
             )

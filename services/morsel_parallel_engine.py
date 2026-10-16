@@ -21,15 +21,16 @@ def _compute_chunk_stats(chunk: pd.DataFrame, numeric_cols: List[str]) -> Dict[s
     """Tek bir morsel lokması için yerel özet istatistikleri hesaplar."""
     stats = {}
     for col in numeric_cols:
-        series = chunk[col].dropna()
-        if len(series) == 0:
+        arr = pd.to_numeric(chunk[col], errors="coerce").to_numpy(dtype=np.float64, na_value=np.nan)
+        arr = arr[np.isfinite(arr)]
+        if len(arr) == 0:
             continue
         stats[col] = {
-            "count": int(len(series)),
-            "sum": float(series.sum()),
-            "min": float(series.min()),
-            "max": float(series.max()),
-            "sum_sq": float((series ** 2).sum()),
+            "count": int(len(arr)),
+            "sum": float(np.sum(arr)),
+            "min": float(np.min(arr)),
+            "max": float(np.max(arr)),
+            "sum_sq": float(np.dot(arr, arr)),
         }
     return stats
 
@@ -58,6 +59,7 @@ def parallel_morsel_stats(
     num_cpus = os.cpu_count() or 4
     workers = max_workers or min(num_cpus, 16)
 
+    morsel_size = max(100, int(morsel_size or DEFAULT_MORSEL_SIZE))
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     total_rows = len(df)
 

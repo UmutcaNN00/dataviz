@@ -126,7 +126,7 @@ def execute_predicate_pushdown(
                     mask = np.zeros(total_rows, dtype=bool)
             else:
                 mask = (
-                    series.astype(str).str.lower() == str(val).lower()
+                    series.notna() & (series.astype(str).str.lower() == str(val).lower())
                 ).to_numpy(dtype=bool, na_value=False)
 
         elif op == "!=":
@@ -139,28 +139,30 @@ def execute_predicate_pushdown(
                     mask = np.ones(total_rows, dtype=bool)
             else:
                 mask = (
-                    series.astype(str).str.lower() != str(val).lower()
+                    series.notna() & (series.astype(str).str.lower() != str(val).lower())
                 ).to_numpy(dtype=bool, na_value=False)
 
         elif op == "contains":
-            s_clean = series.fillna("").astype(str)
+            s_clean = series.astype(object).fillna("").astype(str)
             mask = s_clean.str.lower().str.contains(
                 str(val).lower(), regex=False
             ).to_numpy(dtype=bool, na_value=False)
 
         elif op == "not_contains":
-            s_clean = series.fillna("").astype(str)
+            s_clean = series.astype(object).fillna("").astype(str)
             mask = (~s_clean.str.lower().str.contains(
                 str(val).lower(), regex=False
             )).to_numpy(dtype=bool, na_value=False)
 
         elif op == "in":
             val_list = val if isinstance(val, (list, tuple, set)) else [val]
-            mask = series.isin(val_list).to_numpy(dtype=bool, na_value=False)
+            val_str_list = [str(x) for x in val_list]
+            mask = (series.notna() & (series.isin(val_list) | series.astype(str).isin(val_str_list))).to_numpy(dtype=bool, na_value=False)
 
         elif op == "not_in":
             val_list = val if isinstance(val, (list, tuple, set)) else [val]
-            mask = (~series.isin(val_list)).to_numpy(dtype=bool, na_value=False)
+            val_str_list = [str(x) for x in val_list]
+            mask = (series.notna() & ~(series.isin(val_list) | series.astype(str).isin(val_str_list))).to_numpy(dtype=bool, na_value=False)
 
         elif op == "is_null":
             mask = series.isna().to_numpy(dtype=bool)
@@ -169,13 +171,13 @@ def execute_predicate_pushdown(
             mask = series.notna().to_numpy(dtype=bool)
 
         elif op == "startswith":
-            s_clean = series.fillna("").astype(str)
+            s_clean = series.astype(object).fillna("").astype(str)
             mask = s_clean.str.lower().str.startswith(
                 str(val).lower()
             ).to_numpy(dtype=bool, na_value=False)
 
         elif op == "endswith":
-            s_clean = series.fillna("").astype(str)
+            s_clean = series.astype(object).fillna("").astype(str)
             mask = s_clean.str.lower().str.endswith(
                 str(val).lower()
             ).to_numpy(dtype=bool, na_value=False)

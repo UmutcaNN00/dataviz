@@ -69,6 +69,7 @@ def set_df(df: Any, ds_index: int = 1, user_id: str | None = None) -> None:
     uid = user_id or get_user_id()
     with _STORE_LOCK:
         target_uids = {uid, "default_session"}
+        should_gc = False
         for target_id in target_uids:
             if target_id not in DATA_STORE:
                 DATA_STORE[target_id] = {
@@ -83,9 +84,11 @@ def set_df(df: Any, ds_index: int = 1, user_id: str | None = None) -> None:
             old_df = DATA_STORE[target_id].get(ds_index)
             DATA_STORE[target_id][ds_index] = df
             DATA_STORE[target_id]["last_access"] = time.time()
-            if old_df is not None and old_df is not df and target_id == uid:
-                del old_df
-                gc.collect()
+            if old_df is not None and old_df is not df:
+                should_gc = True
+            del old_df
+        if should_gc:
+            gc.collect()
     _evict_old_sessions(uid)
 
 
@@ -97,7 +100,7 @@ def get_excel_data(user_id: str | None = None) -> tuple[Any, list[str]]:
     with _STORE_LOCK:
         entry = DATA_STORE.get(uid)
         if entry is not None and entry.get("excel_file") is not None:
-            DATA_STORE[uid]["last_access"] = time.time()
+            entry["last_access"] = time.time()
             return entry.get("excel_file"), list(entry.get("sheet_names", []))
         if uid != "default_session":
             default_entry = DATA_STORE.get("default_session")

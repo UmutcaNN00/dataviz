@@ -345,8 +345,8 @@ export class PrototypeHub {
             <tr>
               <th style="width: 50px;">#</th>
               ${data.columns.map((c) => `
-                <th class="proto-th-sortable" data-col="${c}">
-                  ${c} ${this.sortCol === c ? (this.sortAsc ? "▲" : "▼") : ""}
+                <th class="proto-th-sortable" data-col="${escapeHtml(c)}">
+                  ${escapeHtml(c)} ${this.sortCol === c ? (this.sortAsc ? "▲" : "▼") : ""}
                 </th>
               `).join("")}
             </tr>
@@ -356,7 +356,7 @@ export class PrototypeHub {
               <tr>
                 <td class="proto-cell-id">${row._row_id}</td>
                 ${data.columns.map((c) => `
-                  <td>${row[c] !== null && row[c] !== undefined ? row[c] : `<span class="proto-null">NULL</span>`}</td>
+                  <td>${row[c] !== null && row[c] !== undefined ? escapeHtml(row[c]) : `<span class="proto-null">NULL</span>`}</td>
                 `).join("")}
               </tr>
             `).join("")}
@@ -981,8 +981,23 @@ export class PrototypeHub {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
+      if (data.numeric_columns) numericColumns = data.numeric_columns;
+      if (data.categorical_columns) categoricalColumns = data.categorical_columns;
+      if (data.total_rows) totalRows = data.total_rows;
+      if (data.total_cols) totalCols = data.total_cols;
+
+      if (data.report && data.report.length > 0) {
+        if (typeof renderS2ColumnPool === "function") renderS2ColumnPool();
+        const s2Summary = document.getElementById("s2DatasetSummary");
+        if (s2Summary) s2Summary.textContent = `${totalRows} satır, ${totalCols} sütun`;
+        const s3Summary = document.getElementById("s3FileName");
+        if (s3Summary && activeFileName) s3Summary.textContent = `${activeFileName} (${totalRows} satır)`;
+        const pSummary = document.getElementById("pivotDatasetSummary");
+        if (pSummary) pSummary.textContent = `${totalRows} satır × ${totalCols} sütun`;
+      }
+
       if (!data.report || data.report.length === 0) {
-        resultBox.innerHTML = `<div class="proto-banner-info">${data.message}</div>`;
+        resultBox.innerHTML = `<div class="proto-banner-info">${escapeHtml(data.message || "Kurtarılacak tarih sütunu bulunamadı.")}</div>`;
         return;
       }
 
@@ -995,12 +1010,12 @@ export class PrototypeHub {
           ${data.report.map(r => `
             <div class="proto-cluster-item">
               <div class="pci-header">
-                <span class="pci-badge">${r.column}</span>
-                <span class="pci-rows">Şablon: <code>${r.detected_format}</code> (${r.elapsed_ms} ms)</span>
+                <span class="pci-badge">${escapeHtml(String(r.column))}</span>
+                <span class="pci-rows">Şablon: <code>${escapeHtml(String(r.detected_format))}</code> (${r.elapsed_ms} ms)</span>
               </div>
               <div class="pci-body">
                 <div>Dönüştürülen Satır: <strong>${r.parsed_rows}</strong></div>
-                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Tarih Aralığı: [${r.min_date} ➔ ${r.max_date}]</div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Tarih Aralığı: [${escapeHtml(String(r.min_date))} ➔ ${escapeHtml(String(r.max_date))}]</div>
               </div>
             </div>
           `).join("")}
@@ -1226,8 +1241,8 @@ export class PrototypeHub {
             <tr>
               <th style="width: 60px; text-align: center;">#</th>
               ${cols.map((c) => `
-                <th class="proto-th-sortable vg-th-sort" data-col="${c}">
-                  ${c} ${this.vgSortCol === c ? (this.vgSortAsc ? "▲" : "▼") : ""}
+                <th class="proto-th-sortable vg-th-sort" data-col="${escapeHtml(String(c))}">
+                  ${escapeHtml(String(c))} ${this.vgSortCol === c ? (this.vgSortAsc ? "▲" : "▼") : ""}
                 </th>
               `).join("")}
             </tr>
@@ -1235,7 +1250,7 @@ export class PrototypeHub {
           <tbody>
             ${data.rows.map((row) => `
               <tr>
-                <td class="proto-cell-id" style="text-align: center;">${row._row_id}</td>
+                <td class="proto-cell-id" style="text-align: center;">${row._row_id != null ? escapeHtml(String(row._row_id)) : ""}</td>
                 ${cols.map((c) => {
                   const val = row[c];
                   if (val === null || val === undefined) {
@@ -1244,7 +1259,7 @@ export class PrototypeHub {
                   if (typeof val === "number") {
                     return `<td style="font-family: var(--font-mono, monospace); color: #38bdf8;">${val}</td>`;
                   }
-                  return `<td>${val}</td>`;
+                  return `<td>${escapeHtml(String(val))}</td>`;
                 }).join("")}
               </tr>
             `).join("")}

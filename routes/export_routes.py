@@ -10,39 +10,11 @@ from flask import Blueprint, jsonify, request, send_file
 from core.store import get_df
 from services.export_service import export_dataframe, export_pivot_to_excel
 from services.report_service import generate_academic_pdf_report
-from services.stats_service import apply_filters, compute_pivot_data
+from services.stats_service import apply_filters
 
 logger = logging.getLogger(__name__)
 
 export_bp = Blueprint("export", __name__)
-
-
-@export_bp.route("/pivot_data", methods=["POST"])
-@export_bp.route("/get_pivot_data", methods=["POST"])
-def get_pivot_data():
-    """Computes an interactive pivot matrix for cross-tabulation."""
-    global_df = get_df(1)
-    if global_df is None or global_df.empty:
-        return jsonify({"error": "Lütfen önce bir veri seti yükleyin."}), 400
-
-    data = request.get_json(silent=True) or {}
-    rows = data.get("rows", [])
-    cols = data.get("cols", [])
-    values = data.get("values", [])
-    agg_func = data.get("agg_func", "sum")
-    filters = data.get("filters", [])
-
-    try:
-        active_df = apply_filters(global_df, filters)
-        pivot_data = compute_pivot_data(
-            active_df, rows=rows, cols=cols, values=values, agg_func=agg_func
-        )
-        return jsonify(pivot_data)
-    except ValueError as e_val:
-        return jsonify({"error": str(e_val)}), 400
-    except Exception as e:
-        logger.exception("Pivot tablosu hesaplanırken hata")
-        return jsonify({"error": f"Pivot tablosu hesaplanırken hata oluştu: {e}"}), 500
 
 
 @export_bp.route("/export_pivot_excel", methods=["POST"])
@@ -199,6 +171,8 @@ def export_academic_pdf():
 
     try:
         active_df = apply_filters(global_df, filters)
+        if active_df is None or active_df.empty:
+            return jsonify({"error": "Uygulanan filtreler sonucunda raporlanacak veri kalmadı."}), 400
         buffer, download_name = generate_academic_pdf_report(
             active_df,
             title=title,

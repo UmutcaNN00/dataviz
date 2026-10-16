@@ -770,7 +770,11 @@ async function drawMegaPlotly(targetElementId, data, type, isMini = false) {
       const regModel = "linear";
       const corrMethod = "pearson";
 
-      if (isXNum && isYNum) {
+      if (statsBadgeEl && !isMini) {
+        statsBadgeEl.classList.add("hidden");
+      }
+
+      if (showTrend && isXNum && isYNum) {
         try {
           const regRes = await fetch("/get_regression_curve", {
             method: "POST",

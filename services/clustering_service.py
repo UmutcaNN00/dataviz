@@ -202,10 +202,7 @@ def apply_cluster_merges(
     null_mask = orig_s.isna()
 
     if isinstance(orig_s.dtype, pd.CategoricalDtype):
-        needed_cats = [c for c in set(replacement_map.values()) if c not in orig_s.cat.categories]
-        if needed_cats:
-            orig_s = orig_s.cat.add_categories(needed_cats)
-        healed_s = orig_s.replace(replacement_map)
+        healed_s = orig_s.astype(object).replace(replacement_map).astype("category")
     else:
         str_s = orig_s.astype(str)
         healed_s = str_s.replace(replacement_map)
@@ -213,7 +210,7 @@ def apply_cluster_merges(
             healed_s = healed_s.where(~null_mask, np.nan)
 
     healed_df[col_name] = healed_s
-    modified_rows = int(df[col_name].astype(str).isin(list(replacement_map.keys())).sum())
+    modified_rows = int((~null_mask & df[col_name].astype(str).isin(list(replacement_map.keys()))).sum())
 
     logger.info(f"Clustering merge applied on '{col_name}': {len(replacement_map)} varyasyon -> {modified_rows} satır güncellendi.")
     return healed_df, modified_rows

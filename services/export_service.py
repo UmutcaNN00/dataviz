@@ -36,7 +36,9 @@ def export_dataframe(
     base_name = file_name or "Aktarilan_Veri"
 
     if fmt in ["xlsx", "excel"]:
-        export_df = df.head(1048500) if len(df) > 1048500 else df
+        export_df = (df.head(1048500) if len(df) > 1048500 else df).copy(deep=False)
+        for col in export_df.select_dtypes(include=["datetimetz"]).columns:
+            export_df[col] = export_df[col].dt.tz_localize(None)
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
             export_df.to_excel(writer, index=False, sheet_name="Veri_Seti")
         mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -48,6 +50,8 @@ def export_dataframe(
             pl_df.write_parquet(output, compression="snappy")
         except Exception as e_pl:  # noqa: BLE001
             logger.warning(f"Polars parquet yazma hatası, pandas deneniyor: {e_pl}")
+            output.seek(0)
+            output.truncate(0)
             df.to_parquet(output, engine="pyarrow", compression="snappy")
         mimetype = "application/octet-stream"
         download_name = f"{base_name}.parquet"
@@ -135,7 +139,7 @@ def export_pivot_to_excel(
             fill_value=0,
             margins=True,
             margins_name="Genel Toplam",
-            observed=False,
+            observed=True,
         )
     except Exception as e_pt:
         logger.warning(
@@ -149,7 +153,7 @@ def export_pivot_to_excel(
             aggfunc=safe_agg,
             fill_value=0,
             margins=False,
-            observed=False,
+            observed=True,
         )
 
     output = io.BytesIO()

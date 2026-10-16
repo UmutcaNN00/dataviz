@@ -16,11 +16,6 @@ function showScreen(num) {
     "screen-trust-studio",
     "screen-proto-studio",
   ];
-  const screens = ids.map((id) => document.getElementById(id));
-  screens.forEach(
-    (s) => s && (s.classList.add("hidden"), s.classList.remove("active")),
-  );
-
   let activeIdx = 0;
   if (num === "pivot" || num === 4) {
     activeIdx = 3;
@@ -33,11 +28,21 @@ function showScreen(num) {
     lastScreenBeforeTrust = num;
   }
 
-  const target = screens[activeIdx];
-  if (target) {
-    target.classList.remove("hidden");
-    target.classList.add("active");
+  const target = document.getElementById(ids[activeIdx]);
+  if (!target) {
+    if ((num === "trust" || num === 5) && typeof openDataPrepModal === "function") {
+      openDataPrepModal("trust");
+    }
+    return;
   }
+
+  const screens = ids.map((id) => document.getElementById(id));
+  screens.forEach(
+    (s) => s && (s.classList.add("hidden"), s.classList.remove("active")),
+  );
+
+  target.classList.remove("hidden");
+  target.classList.add("active");
 
   if ((num === 4 || num === "pivot") && typeof initPivotStudio === "function") {
     initPivotStudio();
@@ -99,6 +104,14 @@ function applyUploadedDataset(data) {
   activeFilters = window.activeFilters = [];
   dashboardCharts = window.dashboardCharts = [];
   sheetNames = window.sheetNames = data.sheet_names || [];
+  currentChartData = window.currentChartData = null;
+  currentStats = window.currentStats = null;
+  currentKpis = window.currentKpis = [];
+  currentAiInsight = window.currentAiInsight = "";
+  window._pivotEverInitialized = false;
+  if (typeof regCurrentData !== "undefined") regCurrentData = null;
+  const statsBadge = document.getElementById("chartStatsBadge");
+  if (statsBadge) statsBadge.classList.add("hidden");
   if (window.pivotConfig) {
     window.pivotConfig.rows = [];
     window.pivotConfig.cols = [];
@@ -378,7 +391,13 @@ async function switchSheet(sheetName) {
     joinedColumns = window.joinedColumns = [];
     activeFilters = window.activeFilters = [];
     currentChartData = window.currentChartData = null;
-    currentStats = window.currentStats = {};
+    currentStats = window.currentStats = null;
+    currentKpis = window.currentKpis = [];
+    currentAiInsight = window.currentAiInsight = "";
+    window._pivotEverInitialized = false;
+    if (typeof regCurrentData !== "undefined") regCurrentData = null;
+    const statsBadge = document.getElementById("chartStatsBadge");
+    if (statsBadge) statsBadge.classList.add("hidden");
     if (window.pivotConfig) {
       window.pivotConfig.rows = [];
       window.pivotConfig.cols = [];
@@ -432,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape")
       document
-        .querySelectorAll(".modal-overlay:not(.hidden)")
+        .querySelectorAll(".modal-overlay:not(.hidden), .filter-modal:not(.hidden)")
         .forEach((m) => m.classList.add("hidden"));
   });
   document.querySelectorAll(".modal-overlay").forEach((modal) => {
@@ -833,43 +852,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-  // Parquet Dışa Aktarma Dinleyicileri
-  const triggerParquetDownload = async () => {
-    try {
-      if (typeof showToast === "function")
-        showToast("Parquet dosyası hazırlanıyor...", "info");
-      const res = await fetch("/export_parquet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filters: window.activeFilters || [] }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Parquet indirilemedi");
-      }
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Aktarilan_Veri.parquet";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      if (typeof showToast === "function")
-        showToast("Parquet başarıyla indirildi!", "success");
-    } catch (e) {
-      if (typeof showToast === "function")
-        showToast("Hata: " + e.message, "error");
-    }
-  };
-
-  document
-    .getElementById("btnQuickExportParquet")
-    ?.addEventListener("click", triggerParquetDownload);
-  document
-    .getElementById("downloadParquetBtn")
-    ?.addEventListener("click", triggerParquetDownload);
 
   // Akademik TÜBİTAK PDF Raporu İndir
   window.downloadAcademicPdfReport = async () => {

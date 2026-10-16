@@ -220,39 +220,25 @@ def _parse_series_fast(
             cats.apply(robust_parse_numeric_string), errors="coerce"
         ).to_numpy(dtype=target_dtype)
 
+        codes = series.cat.codes.to_numpy()
+        raw_lookup = np.empty(len(cat_parsed) + 1, dtype=target_dtype)
+        raw_lookup[:-1] = cat_parsed
+        raw_lookup[-1] = np.nan
+        safe_codes = np.where(codes >= 0, codes, len(cat_parsed))
+        out = raw_lookup[safe_codes]
+
+        valid_mask = np.isfinite(out)
+        valid_rows = out[valid_mask]
         fill_val = np.nan
         if fill_mode in ("fill_zero",):
             fill_val = target_dtype(0.0)
         elif fill_mode in ("fill_mean", "smart_heal"):
-            valid_cats = cat_parsed[np.isfinite(cat_parsed)]
-            fill_val = (
-                target_dtype(np.mean(valid_cats))
-                if len(valid_cats) > 0
-                else target_dtype(0.0)
-            )
+            fill_val = target_dtype(np.mean(valid_rows)) if len(valid_rows) > 0 else target_dtype(0.0)
         elif fill_mode in ("fill_median",):
-            valid_cats = cat_parsed[np.isfinite(cat_parsed)]
-            fill_val = (
-                target_dtype(np.median(valid_cats))
-                if len(valid_cats) > 0
-                else target_dtype(0.0)
-            )
+            fill_val = target_dtype(np.median(valid_rows)) if len(valid_rows) > 0 else target_dtype(0.0)
 
         if not np.isnan(fill_val):
-            cat_parsed = np.where(np.isfinite(cat_parsed), cat_parsed, fill_val)
-
-        codes = series.cat.codes.to_numpy()
-        if not np.isnan(fill_val):
-            # Append fill_val at the end of lookup table so code -1 (missing) maps directly to fill_val
-            lookup = np.empty(len(cat_parsed) + 1, dtype=target_dtype)
-            lookup[:-1] = cat_parsed
-            lookup[-1] = fill_val
-            safe_codes = np.where(codes >= 0, codes, len(cat_parsed))
-            out = lookup[safe_codes]
-        else:
-            out = np.full(len(series), np.nan, dtype=target_dtype)
-            valid_code_mask = codes >= 0
-            out[valid_code_mask] = cat_parsed[codes[valid_code_mask]]
+            out[~valid_mask] = fill_val
 
         return pd.Series(out, index=series.index, dtype=target_dtype)
 
@@ -406,7 +392,9 @@ def clean_missing_data(
             col_s = df_clean[c]
             if col_s.isna().any():
                 m_val = col_s.iloc[:250_000].mean() if is_massive else col_s.mean()
-                fill_v = 0.0 if pd.isna(m_val) else float(m_val)
+                fill_v = 0.0 if (pd.isna(m_val) or not np.isfinite(m_val)) else float(m_val)
+                if pd.api.types.is_integer_dtype(col_s.dtype) and fill_v % 1 != 0:
+                    col_s = col_s.astype(np.float32 if is_massive else np.float64)
                 df_clean[c] = col_s.fillna(
                     np.float32(fill_v) if col_s.dtype == np.float32 else fill_v
                 )
@@ -424,7 +412,9 @@ def clean_missing_data(
                 med_val = (
                     col_s.iloc[:250_000].median() if is_massive else col_s.median()
                 )
-                fill_v = 0.0 if pd.isna(med_val) else float(med_val)
+                fill_v = 0.0 if (pd.isna(med_val) or not np.isfinite(med_val)) else float(med_val)
+                if pd.api.types.is_integer_dtype(col_s.dtype) and fill_v % 1 != 0:
+                    col_s = col_s.astype(np.float32 if is_massive else np.float64)
                 df_clean[c] = col_s.fillna(
                     np.float32(fill_v) if col_s.dtype == np.float32 else fill_v
                 )

@@ -124,21 +124,36 @@ async function executeMerge() {
       const metrics = data.metrics || {};
       const newCols = data.columns || [];
 
+      if (data.numeric_columns) {
+        numericColumns = window.numericColumns = data.numeric_columns;
+        categoricalColumns = window.categoricalColumns = data.categorical_columns || [];
+        globalColumns = window.globalColumns = [...categoricalColumns, ...numericColumns];
+      }
+      if (data.total_rows) {
+        totalRows = window.totalRows = data.total_rows;
+      }
+      if (data.new_joined_columns) {
+        joinedColumns = window.joinedColumns = Array.from(new Set([...(window.joinedColumns || []), ...data.new_joined_columns]));
+      }
+      activeFilters = window.activeFilters = [];
+
       // Sağlık ve sütun tiplerini senkronize et
       try {
         const hRes = await fetch("/check_health", { cache: "no-store" });
         const hData = await hRes.json();
         if (hRes.ok) {
-          numericColumns = hData.numeric_columns || [];
-          categoricalColumns = hData.categorical_columns || [];
+          numericColumns = hData.numeric_columns || numericColumns;
+          categoricalColumns = hData.categorical_columns || categoricalColumns;
           globalColumns = [...categoricalColumns, ...numericColumns];
           window.numericColumns = numericColumns;
           window.categoricalColumns = categoricalColumns;
           window.globalColumns = globalColumns;
         }
       } catch (_) {
-        globalColumns = newCols;
-        window.globalColumns = globalColumns;
+        if (!data.numeric_columns) {
+          globalColumns = newCols;
+          window.globalColumns = globalColumns;
+        }
       }
 
       dataMergeModal?.classList.add("hidden");

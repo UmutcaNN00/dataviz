@@ -37,11 +37,14 @@ def _describe_distribution(s: dict[str, Any]) -> str | None:
     max_raw = s.get("max")
     std_raw = s.get("std")
 
-    mean = float(mean_raw) if isinstance(mean_raw, (int, float)) else None
-    med = float(med_raw) if isinstance(med_raw, (int, float)) else None
-    min_v = float(min_raw) if isinstance(min_raw, (int, float)) else None
-    max_v = float(max_raw) if isinstance(max_raw, (int, float)) else None
-    std_v = float(std_raw) if isinstance(std_raw, (int, float)) else None
+    def _is_finite_num(v):
+        return isinstance(v, (int, float, np.number)) and not isinstance(v, bool) and np.isfinite(float(v))
+
+    mean = float(mean_raw) if _is_finite_num(mean_raw) else None
+    med = float(med_raw) if _is_finite_num(med_raw) else None
+    min_v = float(min_raw) if _is_finite_num(min_raw) else None
+    max_v = float(max_raw) if _is_finite_num(max_raw) else None
+    std_v = float(std_raw) if _is_finite_num(std_raw) else None
 
     if mean is None or med is None:
         return None
@@ -161,11 +164,7 @@ def _extract_key_findings(
                 continue
             dist_summary = _describe_distribution(s)
             if dist_summary:
-                clean_html = dist_summary.replace("**", "<strong>", 1)
-                while "**" in clean_html:
-                    clean_html = clean_html.replace("**", "</strong>", 1).replace(
-                        "**", "<strong>", 1
-                    )
+                clean_html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", dist_summary)
                 findings.append(f"<strong>{col} Dağılımı:</strong> {clean_html}")
 
     return findings

@@ -22,13 +22,22 @@ def serialize_df_to_arrow_ipc(df: pd.DataFrame, max_rows: Optional[int] = None) 
     """
     start_time = time.perf_counter()
 
+    if df is None:
+        return b"", {"num_rows": 0, "num_columns": 0, "column_names": [], "byte_size": 0, "serialization_ms": 0.0}
+
     if max_rows and len(df) > max_rows:
         target_df = df.iloc[:max_rows]
     else:
         target_df = df
 
-    # Convert to PyArrow Table (zero-copy when compatible)
-    table = pa.Table.from_pandas(target_df, preserve_index=False)
+    # Convert to PyArrow Table (zero-copy when compatible, with object fallback)
+    try:
+        table = pa.Table.from_pandas(target_df, preserve_index=False)
+    except Exception:
+        safe_df = target_df.copy()
+        for c in safe_df.select_dtypes(include=["object"]).columns:
+            safe_df[c] = safe_df[c].astype(str)
+        table = pa.Table.from_pandas(safe_df, preserve_index=False)
 
     # Write to in-memory Arrow IPC RecordBatch stream
     sink = io.BytesIO()
@@ -72,7 +81,13 @@ def benchmark_serialization(df: pd.DataFrame, sample_size: int = 25000) -> dict[
 
     # 2. Apache Arrow IPC Benchmark
     t1 = time.perf_counter()
-    table = pa.Table.from_pandas(test_df, preserve_index=False)
+    try:
+        table = pa.Table.from_pandas(test_df, preserve_index=False)
+    except Exception:
+        safe_b_df = test_df.copy()
+        for c in safe_b_df.select_dtypes(include=["object"]).columns:
+            safe_b_df[c] = safe_b_df[c].astype(str)
+        table = pa.Table.from_pandas(safe_b_df, preserve_index=False)
     sink = io.BytesIO()
     with ipc.new_stream(sink, table.schema) as writer:
         writer.write_table(table)

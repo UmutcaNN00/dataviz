@@ -319,6 +319,17 @@ async function callRepairColumn(columnName, mode) {
     window.categoricalColumns = categoricalColumns;
     window.globalColumns = globalColumns;
 
+    if (Array.isArray(data.repaired_columns)) {
+      activeFilters = activeFilters.filter((f) => {
+        if (data.repaired_columns.includes(f.column) && numericColumns.includes(f.column)) {
+          return f.type !== "cat";
+        }
+        return true;
+      });
+      window.activeFilters = activeFilters;
+      if (typeof renderActiveFilterChips === "function") renderActiveFilterChips();
+    }
+
     if (typeof initDragDropPool === "function") initDragDropPool(true);
     if (typeof renderPivotPoolStructured === "function")
       renderPivotPoolStructured();
@@ -1024,6 +1035,9 @@ async function mergeSingleClusterAction(col, canonical, variants, itemElement) {
     if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
     if (typeof evaluateCharts === "function") evaluateCharts();
+    if (typeof refreshActiveChart === "function") refreshActiveChart();
+    if (typeof fetchStats === "function") fetchStats();
+    if (typeof fetchKpis === "function") fetchKpis();
   } catch (err) {
     if (itemElement) itemElement.style.opacity = "1";
     showDataPrepToast({
@@ -1086,6 +1100,9 @@ async function mergeAllClustersAction(col, clusters) {
     if (typeof checkDataHealthAsync === "function") checkDataHealthAsync();
     if (typeof renderChartGrid === "function") renderChartGrid("all");
     if (typeof evaluateCharts === "function") evaluateCharts();
+    if (typeof refreshActiveChart === "function") refreshActiveChart();
+    if (typeof fetchStats === "function") fetchStats();
+    if (typeof fetchKpis === "function") fetchKpis();
   } catch (err) {
     showDataPrepToast({
       title: "Toplu Birleştirme Hatası",

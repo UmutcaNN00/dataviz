@@ -73,6 +73,7 @@ __all__ = [
     "read_csv_safely",
     "read_excel_safely",
     "read_parquet_safely",
+    "read_spss_safely",
     "repair_column_data",
     "robust_parse_numeric_string",
     "safe_float",

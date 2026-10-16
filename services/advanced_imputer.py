@@ -74,25 +74,26 @@ def impute_missing_advanced(
     try:
         # 1. Sayısal sütunların çok değişkenli (MICE / KNN) doldurulması
         if numeric_cols and num_missing_before > 0:
-            # Tamamen NaN olan sütunları scikit-learn'ün atlamaması için geçici 0 ile doldur
+            # Sayısal sütunları float64 formatına güvenle çekip sonsuz değerleri temizle
+            imputed_df[numeric_cols] = imputed_df[numeric_cols].replace([np.inf, -np.inf], np.nan).astype(np.float64)
             all_nan_cols = [c for c in numeric_cols if imputed_df[c].isna().all()]
             for c in all_nan_cols:
                 imputed_df[c] = 0.0
 
-            # Kalan eksik sayısal sütunlar varsa model çalıştır
             remaining_missing = [c for c in numeric_cols if imputed_df[c].isna().sum() > 0]
             if remaining_missing:
                 safe_n_samples = len(imputed_df)
                 safe_k = max(1, min(n_neighbors, safe_n_samples))
 
                 if method.lower() == "knn":
-                    imputer = KNNImputer(n_neighbors=safe_k)
+                    imputer = KNNImputer(n_neighbors=safe_k, keep_empty_features=True)
                 else:
                     imputer = IterativeImputer(
                         max_iter=max_iter,
                         random_state=42,
                         initial_strategy="median",
                         skip_complete=False,
+                        keep_empty_features=True,
                     )
 
                 if safe_n_samples > 20000:

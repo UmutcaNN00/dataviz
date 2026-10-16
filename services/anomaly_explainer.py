@@ -47,8 +47,9 @@ def explain_dataset_anomalies(
             "message": "Analiz edilecek sayısal sütun bulunamadı.",
         }
 
+    contamination = min(max(float(contamination or 0.05), 0.001), 0.5)
     # Clean subset for model
-    num_data = target_df[numeric_cols].apply(pd.to_numeric, errors="coerce")
+    num_data = target_df[numeric_cols].apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
     col_means = num_data.mean().fillna(0.0)
     col_stds = num_data.std().replace(0, 1e-6).fillna(1.0)
     col_mins = num_data.min().fillna(0.0)

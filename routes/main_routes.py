@@ -146,7 +146,7 @@ def load_sample():
         set_df(df, 1)
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         return jsonify(

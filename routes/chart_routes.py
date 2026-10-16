@@ -197,7 +197,7 @@ def get_chart_data():
                         "Adet": [int(v) for v in counts.values.tolist()],
                     }
                 else:
-                    grouped = active_df.groupby(x_col, observed=False)
+                    grouped = active_df.groupby(x_col, observed=True)
                     if agg_func == "sum":
                         grouped_df = grouped.sum(numeric_only=True)
                     elif agg_func == "mean":
@@ -231,13 +231,32 @@ def get_chart_data():
                             ]
                         else:
                             try:
-                                cnt_s = (
-                                    active_df.groupby(x_col, observed=False)[y]
-                                    .count()
-                                    .reindex(grouped_df.index)
-                                    .fillna(0)
+                                s_grp = active_df[y].groupby(
+                                    active_df[x_col], observed=True
                                 )
-                                agg_dict[y] = [int(v) for v in cnt_s.tolist()]
+                                is_num_y = pd.api.types.is_numeric_dtype(active_df[y])
+                                if is_num_y and agg_func in (
+                                    "sum",
+                                    "mean",
+                                    "median",
+                                    "min",
+                                    "max",
+                                ):
+                                    agg_s = (
+                                        getattr(s_grp, agg_func)()
+                                        .reindex(grouped_df.index)
+                                        .fillna(0.0)
+                                    )
+                                    agg_dict[y] = [
+                                        safe_float(v, 0.0) for v in agg_s.tolist()
+                                    ]
+                                else:
+                                    cnt_s = (
+                                        s_grp.count()
+                                        .reindex(grouped_df.index)
+                                        .fillna(0)
+                                    )
+                                    agg_dict[y] = [int(v) for v in cnt_s.tolist()]
                             except Exception:  # noqa: BLE001
                                 agg_dict[y] = [0] * len(grouped_df)
                     response_data["agg"] = agg_dict

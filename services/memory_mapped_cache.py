@@ -66,26 +66,41 @@ class MemoryMappedCacheManager:
         İşletim sisteminin sanal belleğinden doğrudan istenen sütunları sıfır kopyalama ile okur.
         """
         start_time = time.time()
-        file_path = os.path.join(self.cache_dir, f"{dataset_id}.arrow")
+        safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", str(dataset_id or "active_mmap"))
+        file_path = os.path.join(self.cache_dir, f"{safe_id}.arrow")
 
         if not os.path.exists(file_path):
             return {"error": "MMap önbellek dosyası bulunamadı. Önce persist_to_mmap çağrılmalı."}
 
-        # OS Page Cache üzerinden Memory-Map ile aç
-        source = pa.memory_map(file_path, mode="r")
-        reader = ipc.RecordBatchFileReader(source)
+        with pa.memory_map(file_path, mode="r") as source:
+            reader = ipc.RecordBatchFileReader(source)
+            if reader.num_record_batches == 0:
+                return {
+                    "success": True,
+                    "read_columns": [],
+                    "returned_rows": 0,
+                    "elapsed_ms": 0.0,
+                    "preview": [],
+                    "zero_copy_active": True,
+                }
+            table_schema = reader.schema
+            available_cols = [table_schema.field(i).name for i in range(len(table_schema))]
+            target_cols = columns if columns else available_cols[:10]
+            target_cols = [c for c in target_cols if c in available_cols]
 
-        table_schema = reader.schema
-        available_cols = [table_schema.field(i).name for i in range(len(table_schema))]
-        
-        target_cols = columns if columns else available_cols[:10]
-        target_cols = [c for c in target_cols if c in available_cols]
+            batch = reader.get_batch(0)
+            projected_batch = batch.select(target_cols)
+            sliced_df = projected_batch.slice(0, limit).to_pandas().copy()
 
-        # Sadece ilk RecordBatch veya dilimi oku
-        batch = reader.get_batch(0)
-        # Sütun bazlı projeksiyon (Columnar Projection)
-        projected_batch = batch.select(target_cols)
-        sliced_df = projected_batch.slice(0, limit).to_pandas()
+        clean_preview = []
+        for row in sliced_df.to_dict(orient="records")[:5]:
+            clean_row = {}
+            for k, v in row.items():
+                if pd.isna(v) or (isinstance(v, float) and not np.isfinite(v)):
+                    clean_row[str(k)] = None
+                else:
+                    clean_row[str(k)] = v
+            clean_preview.append(clean_row)
 
         elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
@@ -94,7 +109,7 @@ class MemoryMappedCacheManager:
             "read_columns": target_cols,
             "returned_rows": len(sliced_df),
             "elapsed_ms": elapsed_ms,
-            "preview": sliced_df.to_dict(orient="records")[:5],
+            "preview": clean_preview,
             "zero_copy_active": True,
         }
 

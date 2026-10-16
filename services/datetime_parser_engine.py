@@ -73,27 +73,38 @@ def detect_and_parse_datetime_columns(
         if ratio >= min_date_ratio and matched_format:
             col_start = time.time()
             try:
-                # Kesin C format şablonu ile tek geçişte parse et
+                s_strip = parsed_df[col].astype(str).str.strip()
                 converted = pd.to_datetime(
-                    parsed_df[col].astype(str).str.strip(),
+                    s_strip,
                     format=matched_format,
                     errors="coerce",
                 )
                 valid_count = int(converted.notna().sum())
-                parsed_df[col] = converted
+                actual_ratio = valid_count / max(1, len(series))
 
-                col_elapsed_ms = round((time.time() - col_start) * 1000, 2)
+                if actual_ratio < min_date_ratio and matched_format in ("%d/%m/%Y", "%d-%m-%Y"):
+                    alt_fmt = "%m/%d/%Y" if matched_format == "%d/%m/%Y" else "%m-%d-%Y"
+                    alt_converted = pd.to_datetime(s_strip, format=alt_fmt, errors="coerce")
+                    alt_valid = int(alt_converted.notna().sum())
+                    if (alt_valid / max(1, len(series))) >= min_date_ratio:
+                        converted = alt_converted
+                        valid_count = alt_valid
+                        matched_format = alt_fmt
+                        actual_ratio = alt_valid / max(1, len(series))
 
-                report.append({
-                    "column": col,
-                    "detected_format": matched_format,
-                    "confidence_ratio": round(ratio * 100, 1),
-                    "parsed_rows": valid_count,
-                    "elapsed_ms": col_elapsed_ms,
-                    "min_date": str(converted.min()),
-                    "max_date": str(converted.max()),
-                })
-                logger.info(f"Sütun '{col}' {matched_format} şablonuyla {col_elapsed_ms}ms sürede tarihe dönüştürüldü.")
+                if actual_ratio >= min_date_ratio:
+                    parsed_df[col] = converted
+                    col_elapsed_ms = round((time.time() - col_start) * 1000, 2)
+                    report.append({
+                        "column": col,
+                        "detected_format": matched_format,
+                        "confidence_ratio": round(actual_ratio * 100, 1),
+                        "parsed_rows": valid_count,
+                        "elapsed_ms": col_elapsed_ms,
+                        "min_date": str(converted.min()),
+                        "max_date": str(converted.max()),
+                    })
+                    logger.info(f"Sütun '{col}' {matched_format} şablonuyla {col_elapsed_ms}ms sürede tarihe dönüştürüldü.")
             except Exception as e:
                 logger.warning(f"Tarih dönüştürme atlandı: {col} -> {e}")
 

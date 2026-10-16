@@ -82,7 +82,7 @@ def upload():
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         logger.info(
@@ -131,6 +131,8 @@ def switch_sheet():
 
     req_json = request.get_json(silent=True) or {}
     sheet_name = req_json.get("sheet_name") or request.form.get("sheet_name")
+    if sheet_name is not None:
+        sheet_name = str(sheet_name).strip()
     if not sheet_name or sheet_name not in sheet_names:
         return jsonify(
             {
@@ -163,7 +165,7 @@ def switch_sheet():
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         logger.info(
@@ -185,6 +187,7 @@ def switch_sheet():
         return jsonify({"error": f"Sayfa değiştirilirken bir hata oluştu: {e}"}), 400
 
 
+import re
 from sqlalchemy import create_engine
 
 
@@ -200,6 +203,27 @@ def fetch_sql():
             {"error": "Veritabani URL'si (URI) ve SQL sorgusu (Query) zorunludur."}
         ), 400
 
+    cleaned_query = re.sub(r"/\*.*?\*/", " ", str(query), flags=re.DOTALL)
+    cleaned_query = re.sub(r"--[^\r\n]*", " ", cleaned_query).strip()
+    cleaned_no_trailing = cleaned_query.rstrip(";").strip()
+    if ";" in cleaned_no_trailing:
+        return jsonify(
+            {"error": "Güvenlik nedeniyle çoklu SQL ifadelerine izin verilmemektedir."}
+        ), 400
+    if not re.match(r"^(SELECT|WITH)\b", cleaned_no_trailing, flags=re.IGNORECASE):
+        return jsonify(
+            {"error": "Güvenlik nedeniyle yalnızca salt okunur SELECT veya WITH sorgularına izin verilmektedir."}
+        ), 400
+    forbidden_kw = re.search(
+        r"\b(DROP|DELETE|UPDATE|INSERT|ALTER|TRUNCATE|ATTACH|DETACH|PRAGMA|COPY)\b",
+        cleaned_no_trailing,
+        flags=re.IGNORECASE,
+    )
+    if forbidden_kw:
+        return jsonify(
+            {"error": f"Güvenlik nedeniyle '{forbidden_kw.group(1).upper()}' ifadesine izin verilmemektedir."}
+        ), 400
+
     logger.info(
         f"SQL Baglanti istegi alindi: URI={db_uri.split('@')[-1] if '@' in db_uri else 'hidden'}"
     )
@@ -207,7 +231,7 @@ def fetch_sql():
     engine = None
     try:
         engine = create_engine(db_uri)
-        df = clean_dataframe(pd.read_sql(query, con=engine))
+        df = clean_dataframe(pd.read_sql(cleaned_no_trailing, con=engine))
 
         if df is None or df.empty or len(df.columns) == 0:
             return jsonify({"error": "Sorgu calisti ancak bos veri dondu."}), 400
@@ -223,7 +247,7 @@ def fetch_sql():
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = df.select_dtypes(
-            include=["object", "category", "bool", "string"]
+            include=["object", "category", "bool", "string", "datetime", "datetimetz"]
         ).columns.tolist()
 
         return jsonify(

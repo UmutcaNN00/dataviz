@@ -161,8 +161,12 @@ def compute_naive_bayes_classification(
             "error": "Naive Bayes analizi için yeterli geçerli satır bulunamadı (en az 8 satır gereklidir)."
         }
 
-    X = sub[feature_cols].apply(pd.to_numeric, errors="coerce").dropna()
+    X_num = sub[feature_cols].apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
+    valid_mask = X_num.notna().all(axis=1)
+    X = X_num[valid_mask]
     y = sub.loc[X.index, target_col].astype(str)
+    if len(X) < 8 or y.nunique() < 2:
+        return {"error": "Geçerli sayısal dönüşüm sonrasında yeterli satır veya sınıf bulunamadı (en az 8 satır, 2 sınıf)." }
 
     try:
         from sklearn.model_selection import cross_val_score
@@ -490,7 +494,7 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
                     
                     ss_res = float(np.sum((y_used - y_fit_used) ** 2))
                     ss_tot = float(np.sum((y_used - np.mean(y_used)) ** 2))
-                    r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+                    r_squared = min(max(1.0 - (ss_res / ss_tot), 0.0), 1.0) if ss_tot > 0 else 0.0
                     
                     se = safe_float(std_err, None)
             else:
@@ -547,8 +551,10 @@ def compute_robust_regression(x_vals, y_vals, model_type="linear", num_points=10
                         1.0 / n_used + ((x_curve - x_bar) ** 2) / ss_x
                     )
                     
-                    ci_upper = [round(float(v), 4) for v in np.exp(log_y_curve + t_val * se_line_log)]
-                    ci_lower = [round(float(v), 4) for v in np.exp(log_y_curve - t_val * se_line_log)]
+                    exp_upper = np.clip(log_y_curve + t_val * se_line_log, -500, 500)
+                    exp_lower = np.clip(log_y_curve - t_val * se_line_log, -500, 500)
+                    ci_upper = [round(float(v), 4) for v in np.exp(exp_upper)]
+                    ci_lower = [round(float(v), 4) for v in np.exp(exp_lower)]
                 
             else: # linear and log
                 x_for_ci = np.log(x_used) if model_type == "log" else x_used
@@ -1008,8 +1014,13 @@ def compute_advanced_stats(
             advanced["kruskal_wallis"] = adv_info.get("kruskal_wallis", {})
             advanced["kruskal_h"] = adv_info.get("kruskal_h")
             advanced["kruskal_p"] = adv_info.get("kruskal_p")
+            advanced["p_value"] = adv_info.get("p_value") or adv_info.get("anova", {}).get("p_value")
             advanced["anova_best_group"] = adv_info.get("best_group")
             advanced["anova_low_group"] = adv_info.get("worst_group")
+            advanced["best_group"] = adv_info.get("best_group")
+            advanced["best_val"] = adv_info.get("best_val")
+            advanced["worst_group"] = adv_info.get("worst_group")
+            advanced["worst_val"] = adv_info.get("worst_val")
             advanced["bayes_factor"] = adv_info.get("bayes_factor")
             advanced["bayes_bf10"] = adv_info.get("bayes_bf10")
             advanced["bayes_evidence"] = adv_info.get("bayes_evidence")
@@ -1022,6 +1033,10 @@ def compute_advanced_stats(
             advanced["mann_whitney_p"] = adv_info.get("mann_whitney_p")
             advanced["p_value"] = adv_info["t_test"]["p_value"]
             advanced["group_means"] = adv_info.get("group_means", {})
+            advanced["best_group"] = adv_info.get("best_group")
+            advanced["best_val"] = adv_info.get("best_val")
+            advanced["worst_group"] = adv_info.get("worst_group")
+            advanced["worst_val"] = adv_info.get("worst_val")
             advanced["bayes_factor"] = adv_info.get("bayes_factor")
             advanced["bayes_bf10"] = adv_info.get("bayes_bf10")
             advanced["bayes_evidence"] = adv_info.get("bayes_evidence")
@@ -1263,9 +1278,8 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
             row_vals = [safe_float(v, 0.0) for v in row_series.tolist()]
             is_gt_row = any("Genel Toplam" in lbl for lbl in row_labels)
             if not is_gt_row:
-                raw_values_all.extend(
-                    row_vals[:-1] if has_grand_total_col else row_vals
-                )
+                non_gt_idx = [i for i, h in enumerate(table_headers) if "Genel Toplam" not in str(h)]
+                raw_values_all.extend([row_vals[i] for i in non_gt_idx if i < len(row_vals)])
             table_rows.append(
                 {
                     "row_labels": row_labels,
@@ -1284,9 +1298,8 @@ def compute_pivot_data(active_df, rows, cols, values, agg_func="sum"):
             row_vals = [safe_float(v, 0.0) for v in row_series.tolist()]
             is_gt_row = str(idx_val) == "Genel Toplam"
             if not is_gt_row:
-                raw_values_all.extend(
-                    row_vals[:-1] if has_grand_total_col else row_vals
-                )
+                non_gt_idx = [i for i, h in enumerate(table_headers) if "Genel Toplam" not in str(h)]
+                raw_values_all.extend([row_vals[i] for i in non_gt_idx if i < len(row_vals)])
             table_rows.append(
                 {
                     "row_labels": row_labels,
@@ -1414,8 +1427,8 @@ def compute_multiple_linear_regression(
                 vif_dict[feat] = 1.0
             else:
                 try:
-                    other_feats = [c for c in valid_feats if c != feat]
-                    X_other = np.column_stack([np.ones(n_samples), sub[other_feats].to_numpy(dtype=float)])
+                    other_idx = [i for i in range(n_features) if i != idx]
+                    X_other = np.column_stack([np.ones(n_samples), X_clean[:, other_idx]])
                     beta_other = np.linalg.pinv(X_other.T @ X_other) @ (X_other.T @ X_clean[:, idx])
                     ss_feat_res = np.sum((X_clean[:, idx] - X_other @ beta_other)**2)
                     ss_feat_tot = max(np.sum((X_clean[:, idx] - np.mean(X_clean[:, idx]))**2), 1e-12)
@@ -1499,9 +1512,11 @@ def compute_logistic_regression(
     if len(sub) < 8:
         return {"error": "Lojistik regresyon için yeterli geçerli satır bulunamadı (en az 8 satır gereklidir)."}
 
-    X_df = sub[valid_feats].apply(pd.to_numeric, errors="coerce")
+    X_df = sub[valid_feats].apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
     y_ser = sub[target_col].astype(str)
-    valid_mask = X_df.notna().all(axis=1) & y_ser.notna()
+    valid_mask = X_df.notna().all(axis=1) & y_ser.notna() & (y_ser != "nan")
+    if valid_mask.sum() < 8:
+        return {"error": "Lojistik regresyon için yeterli geçerli satır bulunamadı (en az 8 satır gereklidir)." }
 
     X_clean = X_df.loc[valid_mask].to_numpy(dtype=float)
     y_clean = y_ser.loc[valid_mask].to_numpy()

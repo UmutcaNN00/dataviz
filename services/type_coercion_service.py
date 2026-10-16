@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Yaygın para birimleri, semboller ve geçersiz göstergeler
 CLEAN_REGEX = re.compile(r"(?i)[₺$€£¥% ]|\btl\b|\busd\b|\beur\b|\btry\b")
-INVALID_TOKENS = {"-", "--", "n/a", "na", "null", "none", "yok", "belirsiz", "nan", "?"}
+INVALID_TOKENS = {"", "-", "--", "n/a", "na", "null", "none", "yok", "belirsiz", "nan", "<na>", "?"}
 
 
 def recover_dirty_numeric_columns(
@@ -64,17 +64,26 @@ def recover_dirty_numeric_columns(
             has_comma = s.str.contains(",", regex=False)
             has_dot = s.str.contains(".", regex=False)
 
-            # Durum A: 1.250,50 (TR/AB formatı) -> noktayı kaldır, virgülü nokta yap
+            # Durum A: 1.250,50 (TR/AB formatı)
             tr_format = has_comma & has_dot & (s.str.rfind(",") > s.str.rfind("."))
-            # Durum B: 1,250.50 (US formatı) -> virgülü kaldır
+            # Durum B: 1,250.50 (US formatı)
             us_format = has_comma & has_dot & (s.str.rfind(".") > s.str.rfind(","))
-            # Durum C: Sadece virgül var (1250,50) -> virgülü nokta yap
+            # Durum C: Sadece virgül var (1250,50)
             only_comma = has_comma & ~has_dot
+            # Durum D: Birden fazla nokta (1.250.000)
+            multi_dot = ~has_comma & (s.str.count(r"\.") > 1)
+            # Durum E: Birden fazla virgül (1,250,000)
+            multi_comma = (s.str.count(",") > 1) & ~has_dot
+            # Durum F: Türk binlik nokta (15.000)
+            tr_thousand_dot = ~has_comma & (s.str.match(r"^[+-]?[1-9]\d{0,2}\.\d{3}$") == True)
 
             res = s.copy()
             res.loc[tr_format] = res.loc[tr_format].str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
             res.loc[us_format] = res.loc[us_format].str.replace(",", "", regex=False)
             res.loc[only_comma] = res.loc[only_comma].str.replace(",", ".", regex=False)
+            res.loc[multi_dot] = res.loc[multi_dot].str.replace(".", "", regex=False)
+            res.loc[multi_comma] = res.loc[multi_comma].str.replace(",", "", regex=False)
+            res.loc[tr_thousand_dot] = res.loc[tr_thousand_dot].str.replace(".", "", regex=False)
             return res
 
         normalized = _normalize_separators(cleaned_str)
@@ -85,7 +94,7 @@ def recover_dirty_numeric_columns(
         ratio = valid_numeric_count / max(1, len(sample_cleaned))
 
         # Eğer örneklenen verinin %80'den fazlası sayısal ise tüm sütunu kurtar!
-        if ratio >= min_numeric_ratio:
+        if ratio >= min_numeric_ratio and valid_numeric_count >= max(2, int(len(sample) * 0.15)):
             full_series = recovered_df[col].astype(str).str.strip().str.lower()
             full_series_cleaned = full_series.replace(list(INVALID_TOKENS), np.nan)
             full_cleaned_str = full_series_cleaned.str.replace(CLEAN_REGEX, "", regex=True)
@@ -99,12 +108,17 @@ def recover_dirty_numeric_columns(
             if len(valid_vals) > 0 and (valid_vals % 1 == 0).all():
                 is_pure_int = True
 
-            if is_pure_int and converted_series.isna().sum() == 0:
+            if is_pure_int and converted_series.isna().sum() == 0 and (valid_vals >= np.iinfo(np.int64).min).all() and (valid_vals <= np.iinfo(np.int64).max).all():
                 recovered_df[col] = converted_series.astype(np.int64)
                 target_type = "int64"
             else:
-                recovered_df[col] = converted_series.astype(np.float32)
-                target_type = "float32"
+                max_val = float(valid_vals.abs().max()) if len(valid_vals) > 0 else 0.0
+                if max_val > 1e7 or max_val > np.finfo(np.float32).max:
+                    recovered_df[col] = converted_series.astype(np.float64)
+                    target_type = "float64"
+                else:
+                    recovered_df[col] = converted_series.astype(np.float32)
+                    target_type = "float32"
 
             coerced_count = int(converted_series.notna().sum())
             null_count = int(converted_series.isna().sum())

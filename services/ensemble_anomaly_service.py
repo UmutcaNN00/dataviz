@@ -59,8 +59,10 @@ def detect_ensemble_anomalies(
         }
 
     # Eksik değerleri medyan ile doldur, tümü NaN ise 0.0 ata
-    medians = df[numeric_cols].median().fillna(0.0)
-    clean_matrix = df[numeric_cols].fillna(medians).fillna(0.0)
+    num_sub = df[numeric_cols].replace([np.inf, -np.inf], np.nan)
+    medians = num_sub.median().fillna(0.0)
+    clean_matrix = num_sub.fillna(medians).fillna(0.0)
+    contamination = min(max(float(contamination or 0.05), 0.001), 0.5)
     
     # Robust scaling (Aykırı değerlerden etkilenmeyen ölçeklendirme)
     scaler = RobustScaler()
@@ -79,7 +81,7 @@ def detect_ensemble_anomalies(
     iso_scores = -iso.score_samples(scaled_features)  # Yüksek skor = daha anomali
 
     # 2. Model: Local Outlier Factor (LOF)
-    n_neighbors = min(20, max(5, total_rows // 5))
+    n_neighbors = max(1, min(20, max(5, total_rows // 5), total_rows - 1))
     lof = LocalOutlierFactor(
         n_neighbors=n_neighbors,
         contamination=contamination,
@@ -140,7 +142,15 @@ def detect_ensemble_anomalies(
         row_preview = {}
         for c in df.columns[:6]:
             val = df.iloc[idx][c]
-            row_preview[c] = round(float(val), 2) if isinstance(val, (float, np.floating)) else str(val)
+            if pd.isna(val):
+                row_preview[str(c)] = None
+            elif isinstance(val, (float, np.floating)):
+                row_preview[str(c)] = round(float(val), 2) if np.isfinite(val) else None
+            else:
+                row_preview[str(c)] = str(val)
+
+        z_val = float(z_scores.iloc[idx])
+        safe_z = round(z_val, 2) if np.isfinite(z_val) else 0.0
 
         anomalies_list.append({
             "row_index": int(idx) + 1,
@@ -148,7 +158,7 @@ def detect_ensemble_anomalies(
             "risk_percentage": risk_pct,
             "risk_level": risk_level,
             "agreeing_models": agreeing_models,
-            "max_z_score": round(float(z_scores.iloc[idx]), 2),
+            "max_z_score": safe_z,
             "preview": row_preview,
         })
 

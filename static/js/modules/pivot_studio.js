@@ -23,8 +23,8 @@ function initPivotStudio() {
 
   // Dosya adı rozetini senkronize et
   const fileNameEl = document.getElementById("pivotFileName");
-  if (fileNameEl && window.currentFileName) {
-    fileNameEl.textContent = window.currentFileName;
+  if (fileNameEl && (window.activeFileName || activeFileName)) {
+    fileNameEl.textContent = window.activeFileName || activeFileName;
   }
 
   // Mevcut veri setinde bulunmayan eski sütunları temizle

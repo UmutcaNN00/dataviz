@@ -4,6 +4,8 @@
 ════════════════════════════════════════════════════════════ */
 
 var globalColumns = [];
+var totalRows = 0;
+var totalCols = 0;
 var numericColumns = [];
 var categoricalColumns = [];
 var calculatedColumns = []; // Kullanıcının ürettiği özel formül sütunları
@@ -21,9 +23,19 @@ var axisConfig = { x: null, y: [] };
 
 // 🔍 Aktif Filtreler (Slicers)
 var activeFilters = [];
+var activeQuickFilterCol = null;
 
 // 🎛️ Çoklu Pano (Dashboard Canvas) Listesi
 var dashboardCharts = [];
+var dashboardKpis = [];
+
+// 📑 Pivot Matris Yapılandırması
+var pivotConfig = {
+  rows: [],
+  cols: [],
+  values: [],
+  agg_func: "sum",
+};
 
 var PALETTE = [
   "#a78bfa",
@@ -300,3 +312,15 @@ window.activeFilters = activeFilters;
 window.dashboardCharts = dashboardCharts;
 window.PALETTE = PALETTE;
 window.DataVizProgress = DataVizProgress;
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+window.escapeHtml = escapeHtml;
+
