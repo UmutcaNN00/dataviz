@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/İstatistik-SciPy_1.11%2B_Hipotez_Lab-8b5cf6?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy">
   <img src="https://img.shields.io/badge/Görselleştirme-Plotly.js_50%2B_Tür-3b82f6?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
   <img src="https://img.shields.io/badge/Doğrulama-28%2F28_E2E_Test_Başarılı-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Tests">
+  <a href="https://github.com/UmutcaNN00/dataviz/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/UmutcaNN00/dataviz/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI%20Pipeline" alt="CI Status"></a>
   <img src="https://img.shields.io/badge/Veri_Egemenliği-%25100_Yerel_(KVKK_Uyumlu)-ff4500?style=for-the-badge&logo=shield&logoColor=white" alt="100% Local">
   <img src="https://img.shields.io/badge/Lisans-MIT_Açık_Kaynak-yellow?style=for-the-badge" alt="MIT License">
   <a href="https://github.com/UmutcaNN00/dataviz/releases/latest"><img src="https://img.shields.io/badge/İndir-DataViz_Portable.zip_(v1.0.0)-22c55e?style=for-the-badge&logo=windows&logoColor=white" alt="Download Portable"></a>
@@ -368,13 +369,19 @@ docker compose up -d --build
 # Tarayıcıda: http://localhost:5000
 ```
 
-### 🧪 Sistem Doğrulama Testi (28/28 Master Test)
+### 🧪 Sistem Doğrulama ve Sürekli Entegrasyon (CI/CD)
 
-Tüm mimari bileşenlerin, sıfır-kopyalama bellek motorunun, İzolasyon Ormanı onarıcısının ve istatistik servislerinin doğruluğunu tek komutla test edebilirsiniz:
+Tüm mimari bileşenlerin, sıfır-kopyalama bellek motorunun, İzolasyon Ormanı onarıcısının ve 28/28 master E2E entegrasyon testlerinin doğruluğunu tek komutla test edebilirsiniz:
 
 ```bash
+# Tüm 7 test aşamasını (Birim, Uç Durum, Data Prep, SIMD, API, Stats, E2E) çalıştırır:
+python run_tests.py
+
+# Alternatif: Yalnızca 28 adımlı E2E bağlantı testini çalıştırır:
 python test_system_connectivity.py
 ```
+
+Projeye katkıda bulunma, kodlama standartları ve geliştirme kılavuzu için lütfen [CONTRIBUTING.md](CONTRIBUTING.md) belgesini inceleyin.
 
 ---
 

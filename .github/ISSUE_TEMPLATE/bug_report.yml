@@ -1,0 +1,54 @@
+name: "🐛 Hata Bildirimi (Bug Report)"
+description: "DataViz platformunda karşılaştığınız bir sorunu veya hatayı bildirin."
+title: "[HATA]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hata bildiriminde bulunduğunuz için teşekkürler! Sorunun hızlıca çözülebilmesi için lütfen aşağıdaki alanları doldurun.
+  - type: textarea
+    id: description
+    attributes:
+      label: "Sorunun Özeti"
+      description: "Karşılaştığınız hatayı net ve anlaşılır bir şekilde açıklayın."
+      placeholder: "Örn: 500.000 satırlık Parquet dosyası yüklendiğinde scatter grafiğinde X ekseni render edilmiyor..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Hatayı Yeniden Oluşturma Adımları"
+      description: "Hatayı tekrarlamak için izlenmesi gereken adımlar:"
+      placeholder: |
+        1. 'Dosya Yükle' butonuna tıklayın ve 'ornek.csv'yi seçin.
+        2. Eksen havuzundan X eksenine 'Gelir' sütununu sürükleyin.
+        3. 'Regresyon Stüdyosu'nu açın...
+        4. Konsolda şu hatayı görün...
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: "İşletim Sistemi"
+      options:
+        - "Windows 11"
+        - "Windows 10"
+        - "Ubuntu / Debian"
+        - "macOS"
+        - "Diğer"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: "Tarayıcı ve Sürümü"
+      placeholder: "Chrome 125, Firefox 126, Edge, Safari..."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Hata Logları veya Ekran Görüntüleri"
+      description: "Flask terminal çıktısı, tarayıcı DevTools konsol logu veya hata ekranı görüntüsü ekleyebilirsiniz."
+      render: shell

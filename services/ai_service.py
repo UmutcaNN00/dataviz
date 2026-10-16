@@ -4,7 +4,11 @@ Deterministic rule-based statistical interpreter producing clear, concise Turkis
 for ANOVA, Welch's T-Test, Correlation, Regression, and Descriptive Statistics.
 """
 
+import html
+import re
 from typing import Any
+
+import numpy as np
 
 
 def _describe_correlation(corr: float) -> tuple[str, str]:

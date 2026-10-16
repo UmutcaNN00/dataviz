@@ -1,0 +1,30 @@
+name: "💡 Özellik veya Algoritma Önerisi (Feature Request)"
+description: "DataViz platformuna eklenmesini istediğiniz yeni bir özellik veya analitik motor önerin."
+title: "[ÖNERİ]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DataViz platformunu daha da geliştirmek için önerinizi paylaşabilirsiniz!
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Çözülmesi İstenen Problem"
+      description: "Mevcut durumda hangi analiz darboğazını yaşıyorsunuz?"
+      placeholder: "Örn: Zaman serisi verilerinde gelecek dönem tahmini yapabilmek için kodlama bilmeyen kullanıcılara yönelik bir ARIMA/Prophet arayüzü faydalı olurdu..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Önerilen Çözüm veya Arayüz Tasarımı"
+      description: "Bu özelliğin nasıl çalışmasını hayal ediyorsunuz?"
+      placeholder: "Grafik stüdyosuna 'Gelecek Projeksiyonu' butonu eklenip parametreler (mevsimsellik, güven aralığı) slider ile seçilebilir..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Düşünülen Alternatifler"
+      description: "Dikkate aldığınız alternatif yaklaşımlar veya kütüphaneler (örn. statsmodels, sktime) var mı?"
