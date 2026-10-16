@@ -16,18 +16,38 @@ if hasattr(sys.stdout, "reconfigure"):
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 os.environ["PYTHONPATH"] = BASE_DIR
 
-def run_step(step_name: str, cmd: list[str]) -> bool:
+def check_syntax() -> bool:
+    import py_compile
+    import glob
+    files = [
+        f for f in glob.glob(os.path.join(BASE_DIR, "**", "*.py"), recursive=True)
+        if ".venv" not in f and "venv" not in f
+    ]
+    try:
+        for f in files:
+            py_compile.compile(f, doraise=True)
+        print(f"  {len(files)} Python dosyası sözdizimi açısından kusursuz.")
+        return True
+    except Exception as e:
+        print(f"  Sözdizimi hatası: {e}")
+        return False
+
+def run_step(step_name: str, cmd_or_func) -> bool:
     print(f"\n{'=' * 65}")
     print(f"🚀 [TEST ADIMI] {step_name}")
     print(f"{'=' * 65}")
     start = time.time()
-    result = subprocess.run(cmd, cwd=BASE_DIR, env=os.environ)
+    if callable(cmd_or_func):
+        success = cmd_or_func()
+    else:
+        result = subprocess.run(cmd_or_func, cwd=BASE_DIR, env=os.environ)
+        success = (result.returncode == 0)
     duration = time.time() - start
-    if result.returncode == 0:
+    if success:
         print(f"✅ {step_name} BAŞARIYLA TAMAMLANDI ({duration:.2f}s)")
         return True
     else:
-        print(f"❌ {step_name} HATA İLE SONUÇLANDI (Çıkış Kodu: {result.returncode})")
+        print(f"❌ {step_name} HATA İLE SONUÇLANDI")
         return False
 
 def main():
@@ -40,10 +60,7 @@ def main():
     python_bin = sys.executable
 
     steps = [
-        ("Python Dosyaları Sözdizimi Derleme Denetimi", [
-            python_bin, "-c",
-            "import py_compile, glob; files = [f for f in glob.glob('**/*.py', recursive=True) if '.venv' not in f and 'venv' not in f]; [py_compile.compile(f, doraise=True) for f in files]; print(f'{len(files)} Python dosyası sözdizimi açısından kusursuz.')"
-        ]),
+        ("Python Dosyaları Sözdizimi Derleme Denetimi", check_syntax),
         ("Birim Testleri (Unittest Suite: Audit Fixes & SPSS Reader)", [
             python_bin, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py", "-v"
         ]),
